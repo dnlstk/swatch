@@ -1,0 +1,36 @@
+{
+  "name": "prompt-gen",
+  "version": "1.0.0",
+  "description": "ComfyUI Prompt Generator",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac dir"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.daniel.promptgen",
+    "productName": "Prompt Gen",
+    "asar": true,
+    "mac": {
+      "icon": "icon.icns",
+      "category": "public.app-category.graphics-design",
+      "identity": null
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "server.js",
+      "package.json",
+      "icon.icns",
+      "trayTemplate.png",
+      "trayTemplate@2x.png"
+    ]
+  }
+}
