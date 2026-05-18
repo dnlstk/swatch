@@ -8,43 +8,52 @@
 @font-face{font-family:'Poppins';src:url('/fonts/Poppins-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap;}
 @font-face{font-family:'Poppins';src:url('/fonts/Poppins-Medium.ttf') format('truetype');font-weight:500;font-style:normal;font-display:swap;}
 @font-face{font-family:'Poppins';src:url('/fonts/Poppins-SemiBold.ttf') format('truetype');font-weight:600;font-style:normal;font-display:swap;}
+@font-face{font-family:'Space Mono';src:url('/fonts/SpaceMono-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:'Space Mono';src:url('/fonts/SpaceMono-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#0e0e0f;--surface:#161618;--surface2:#1e1e21;--surface3:#252528;--surface4:#2c2c30;
+  --bg:#090909;--chrome:#0f0f11;--panel:#131315;--surface:#161618;--surface2:#1d1d20;--surface3:#252528;--surface4:#2c2c30;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--border3:rgba(255,255,255,0.22);
-  --text:#e8e8e6;--muted:#6b6b72;--muted2:#3d3d44;
+  --text:#E8E8E6;--muted:#6B6B72;--muted2:#3d3d44;
   --purple:#a78bfa;--blue:#818cf8;--amber:#f59e0b;--green:#34d399;--pink:#f472b6;--orange:#fb923c;--slate:#94a3b8;--red:#f87171;--cyan:#67e8f9;
-  --mono:'Poppins',system-ui,sans-serif;--sans:'Poppins',system-ui,sans-serif;
-  --footer-h:200px;
+  --mono:'Space Mono',monospace;--sans:'Poppins',system-ui,sans-serif;
+  --footer-h:200px;--tabs-h:46px;
+  --shadow:0 0 0 1px rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.8);
+  --shadow-sm:0 0 0 1px rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.4);
 }
 body.light{
-  --bg:#f0f0ed;--surface:#e6e6e2;--surface2:#dadad5;--surface3:#cecec9;--surface4:#c2c2bc;
-  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);--border3:rgba(0,0,0,0.26);
-  --text:#18181a;--muted:#5c5c54;--muted2:#94928a;
-  --purple:#5b21b6;--blue:#3730a3;--amber:#92400e;--green:#065f46;--pink:#9d174d;--orange:#c2410c;--slate:#334155;--red:#b91c1c;--cyan:#0891b2;
+  --bg:#F5F4F0;--chrome:#EDEBE6;--panel:#FFFFFF;--surface:#E6E4DE;--surface2:#DFDDDA;--surface3:#D5D3CE;--surface4:#C9C7C2;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);--border3:rgba(0,0,0,0.26);
+  --text:#1A1917;--muted:#78756E;--muted2:#B2B0A9;
+  --purple:#6D28D9;--blue:#1D4ED8;--amber:#92400E;--green:#047857;--pink:#9d174d;--orange:#D96A14;--slate:#334155;--red:#B91C1C;--cyan:#0891b2;
+  --shadow:0 0 0 1px rgba(0,0,0,0.06), 0 8px 40px rgba(0,0,0,0.12);
+  --shadow-sm:0 0 0 1px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.07);
+  --gstate-unreviewed-border:rgba(0,0,0,0.13);
+  --gstate-review-border:#D97706;
+  --gstate-approved-border:#16A34A;
+  --gstate-declined-border:#DC2626;
+  --gallery-sidebar-w:162px;
+  --gallery-panel-w:320px;
 }
 /* Light mode specific overrides for better readability */
 body.light .lora-title{color:var(--orange);}
 body.light .lpopup-file{color:var(--orange);}
-body.light .lpopup-type{background:rgba(194,65,12,.12);color:var(--orange);}
+body.light .lpopup-type{background:rgba(217,106,20,.12);color:var(--orange);}
 body.light .lchip-type{color:var(--orange);}
-body.light .lchip.active{border-color:var(--orange);background:rgba(194,65,12,.08);}
+body.light .lchip.active{border-color:var(--orange);background:rgba(217,106,20,.08);}
 body.light .lchip.active .lchip-wval{color:var(--orange);}
-body.light .mbtn.active[data-m=sdxl]{border-color:var(--purple);color:var(--purple);background:rgba(91,33,182,.08);}
-body.light .mbtn.active[data-m=pony]{border-color:var(--pink);color:var(--pink);background:rgba(157,23,77,.08);}
-body.light .mbtn.active[data-m=illustrious]{border-color:var(--green);color:var(--green);background:rgba(6,95,70,.08);}
 body.light .mnotice{background:rgba(157,23,77,.06);border-color:rgba(157,23,77,.2);color:var(--pink);}
-body.light .lora-ac{background:rgba(194,65,12,.12);color:var(--orange);}
-body.light .lfbtn.active{border-color:var(--orange);color:var(--orange);background:rgba(194,65,12,.08);}
-body.light .tw-box{border-color:rgba(194,65,12,.25);}
-body.light .lp-type{background:rgba(194,65,12,.12);color:var(--orange);}
-body.light .rand-btn{border-color:rgba(91,33,182,.3);color:var(--purple);}
-body.light .rand-btn:hover{background:rgba(91,33,182,.08);}
-body.light .tbtn.eactive{color:var(--orange);border-color:rgba(194,65,12,.3);background:rgba(194,65,12,.07);}
-body.light .addinput{border-color:rgba(194,65,12,.25);}
-body.light .addinput:focus{border-color:rgba(194,65,12,.6);}
-body.light .addbtn{border-color:rgba(194,65,12,.3);color:var(--orange);}
-body.light .addbtn:hover{background:rgba(194,65,12,.1);}
+body.light .lora-ac{background:rgba(217,106,20,.12);color:var(--orange);}
+body.light .lfbtn.active{border-color:var(--orange);color:var(--orange);background:rgba(217,106,20,.08);}
+body.light .tw-box{border-color:rgba(217,106,20,.25);}
+body.light .lp-type{background:rgba(217,106,20,.12);color:var(--orange);}
+body.light .rand-btn{border-color:rgba(109,40,217,.3);color:var(--purple);}
+body.light .rand-btn:hover{background:rgba(109,40,217,.08);}
+body.light .tbtn.eactive{color:var(--orange);border-color:rgba(217,106,20,.3);background:rgba(217,106,20,.07);}
+body.light .addinput{border-color:rgba(217,106,20,.25);}
+body.light .addinput:focus{border-color:rgba(217,106,20,.6);}
+body.light .addbtn{border-color:rgba(217,106,20,.3);color:var(--orange);}
+body.light .addbtn:hover{background:rgba(217,106,20,.1);}
 body.light .wpbtn.rem{color:var(--red);border-color:rgba(185,28,28,.25);}
 body.light .wpbtn.rem:hover{background:rgba(185,28,28,.1);}
 body.light .preset-del:hover{color:var(--red);background:rgba(185,28,28,.1);}
@@ -52,7 +61,7 @@ body.light .hist-btn:last-child{color:var(--red);}
 body.light .abtn.copied{border-color:var(--green);color:var(--green);}
 /* LORA TOOLBAR - only visible on LoRAs tab */
 .lora-toolbar{display:none !important;}
-.lora-tab-active .lora-toolbar{display:flex !important;flex-wrap:wrap;align-items:center;-webkit-app-region:no-drag;}
+.lora-tab-active .lora-toolbar{display:flex !important;align-items:center;gap:5px;padding:6px 12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin:8px 10px 0;box-shadow:var(--shadow-sm);flex-wrap:wrap;}
 .lora-card-fav.active{color:#FFD700 !important;text-shadow:0 0 6px rgba(255,215,0,.7) !important;}
 body.light .lora-card-fav.active{color:#d97706;text-shadow:0 0 5px rgba(217,119,6,.5);}
 @media(max-width:860px){
@@ -62,22 +71,16 @@ body.light .lora-card-fav.active{color:#d97706;text-shadow:0 0 5px rgba(217,119,
 }
 html,body{height:100%;overflow:hidden;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;}
-.app{display:grid;grid-template-columns:230px 1fr;transition:grid-template-columns .2s ease;}
-.app.sidebar-collapsed{grid-template-columns:36px 1fr;}
+.app{display:grid;grid-template-columns:230px 1fr 380px;grid-template-rows:var(--tabs-h) 1fr;height:100vh;overflow:hidden;background:var(--bg);}
+.app.sidebar-collapsed{grid-template-columns:36px 1fr 380px;}
+.app.no-right-panel{grid-template-columns:230px 1fr;}
+.app.no-right-panel.sidebar-collapsed{grid-template-columns:36px 1fr;}
 
 /* SIDEBAR */
-.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto;transition:all .2s ease;overflow:hidden;border-radius:0 12px 12px 0;}
+.sidebar{grid-row:2;background:var(--panel);padding:18px 14px;display:flex;flex-direction:column;gap:4px;height:calc(100vh - var(--tabs-h));overflow-y:auto;transition:all .2s ease;overflow:hidden;border-radius:12px;margin:0 0 10px 10px;box-shadow:var(--shadow);border:1px solid var(--border);scrollbar-width:none;}
+.sidebar::-webkit-scrollbar{display:none;}
 .sidebar-collapsed .sidebar{padding:8px 4px;padding-top:46px;overflow:hidden;}
-.collapsed-models{display:none;flex-direction:column;gap:4px;align-items:center;padding:4px 0 8px;}
-.sidebar-collapsed .collapsed-models{display:flex;}
-.cmbtn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--muted);}
-.cmbtn:hover{border-color:var(--border2);}
-.cmbtn.active[data-m=sdxl]{border-color:var(--purple);background:rgba(167,139,250,.15);}
-.cmbtn.active[data-m=pony]{border-color:var(--pink);background:rgba(244,114,182,.15);}
-.cmbtn.active[data-m=illustrious]{border-color:var(--green);background:rgba(52,211,153,.15);}
-.sidebar-collapsed .sidebar .logo-text,.sidebar-collapsed .sidebar .model-row,.sidebar-collapsed .sidebar .slabel,.sidebar-collapsed .sidebar #nav,.sidebar-collapsed .sidebar .add-cat-btn,.sidebar-collapsed .sidebar .sstats,.sidebar-collapsed .sidebar .gallery-sidebar-controls{display:none !important;}
-.gallery-tab-active .model-row{display:none !important;}
-.gallery-tab-active .collapsed-models{display:none !important;}
+.sidebar-collapsed .sidebar .logo-text,.sidebar-collapsed .sidebar .slabel,.sidebar-collapsed .sidebar #nav,.sidebar-collapsed .sidebar .add-cat-btn,.sidebar-collapsed .sidebar .sstats,.sidebar-collapsed .sidebar .gallery-sidebar-controls{display:none !important;}
 .gallery-sidebar-controls{display:none;flex-direction:row;gap:4px;padding:0 4px 10px;border-bottom:1px solid var(--border);margin-bottom:4px;}
 .gallery-tab-active .gallery-sidebar-controls{display:flex;}
 .gallery-sidebar-controls .gsc-btn{font-family:var(--mono);padding:6px 4px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
@@ -85,45 +88,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15
 .gsc-label{font-size:9px;line-height:1;}
 .gallery-sidebar-controls .gsc-btn:hover{border-color:var(--border2);color:var(--text);}
 .gallery-sidebar-controls .gsc-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(129,140,248,.1);}
-.collapsed-gallery{display:none;flex-direction:column;gap:4px;align-items:center;padding:4px 0 8px;}
-.gallery-tab-active.sidebar-collapsed .collapsed-gallery{display:flex;}
-.collapsed-gallery .cmbtn{color:var(--muted);}
-.collapsed-gallery .cmbtn.active{border-color:var(--blue);color:var(--blue);background:rgba(129,140,248,.15);}
 .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:6px;}
 .sidebar-bottom-hr{height:1px;background:var(--border);margin:0 -12px;}
-.sidebar-brut-btn{font-size:11px;font-family:var(--mono);padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center;}
-.sidebar-brut-btn:hover{border-color:var(--border2);color:var(--text);}
-.sidebar-brut-btn.adult-active,.sidebar-brut-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(129,140,248,.1);}
-.sidebar-bottom-btns{display:flex;gap:6px;}
-.sidebar-bottom-btns .sidebar-brut-btn{flex:1;}
-.sidebar-sm-btn{font-size:13px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;line-height:1;}
-.sidebar-sm-btn:hover{border-color:var(--border2);color:var(--text);}
 .sidebar-clear-btn{display:block;width:100%;padding:7px 10px;border:1px solid rgba(248,113,113,.25);background:transparent;color:rgba(248,113,113,.85);border-radius:6px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;cursor:pointer;margin:6px 0 4px;transition:all .12s;text-align:center;}
 .sidebar-clear-btn:hover{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.45);color:#fca5a5;}
-.tags-brut-btn{display:none;}
-.lora-brut-btn{display:none;}
-.gallery-brut-btn{display:none;}
-.tags-tab-active .tags-brut-btn{display:block;}
-.lora-tab-active .lora-brut-btn{display:block;}
-.gallery-tab-active .gallery-brut-btn{display:block;}
-body.hide-brut .tags-brut-btn,body.hide-brut .lora-brut-btn,body.hide-brut .gallery-brut-btn,body.hide-brut #cgal-brut-lora,body.hide-brut #cgal-brut,body.hide-brut #lp-adult-btn,body.hide-brut .lora-card-adult,body.hide-brut #lora-ctx-adult-item,body.hide-brut .gbulk-brut,body.hide-brut .wpbtn.brut-toggle{display:none !important;}
+.tags-brut-btn{display:none !important;}
+.lora-brut-btn{display:none !important;}
+.gallery-brut-btn{display:none !important;}
+.tags-tab-active .tags-brut-btn{display:inline-flex !important;}
+.lora-tab-active .lora-brut-btn{display:inline-flex !important;}
+.gallery-tab-active .gallery-brut-btn{display:inline-flex !important;}
+body.hide-brut .tags-brut-btn,body.hide-brut .lora-brut-btn,body.hide-brut .gallery-brut-btn,body.hide-brut #lp-adult-btn,body.hide-brut .lora-card-adult,body.hide-brut #lora-ctx-adult-item,body.hide-brut .gbulk-brut,body.hide-brut .wpbtn.brut-toggle{display:none !important;}
 .gallery-tab-active .sstats{display:none;}
-.sidebar-collapsed .sidebar-bottom{display:none;}
-.collapsed-bottom{display:none;flex-direction:column;gap:4px;align-items:center;margin-top:auto;padding:8px 0;}
-.sidebar-collapsed .collapsed-bottom{display:flex;}
-.collapsed-bottom .cmbtn.active,.collapsed-bottom .cmbtn.adult-active{border-color:var(--blue);color:var(--blue);background:rgba(129,140,248,.15);}
 .sidebar-toggle{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;border-radius:4px;transition:all .12s;line-height:1;}
 .sidebar-toggle:hover{color:var(--text);background:var(--surface2);}
 
-.footer{position:fixed;bottom:0;right:0;transition:width .2s ease;}
 
 .logo-v{opacity:.4;font-size:9px;}
-.model-row{display:flex;gap:4px;padding:0 4px 14px;border-bottom:1px solid var(--border);margin-bottom:4px;}
-.mbtn{flex:1;padding:5px 4px;border:1px solid var(--border);background:transparent;border-radius:5px;font-family:var(--mono);font-size:8px;letter-spacing:.05em;color:var(--muted);cursor:pointer;transition:all .15s;text-transform:uppercase;}
-.mbtn:hover{border-color:var(--border2);color:var(--text);}
-.mbtn.active[data-m=sdxl]{border-color:var(--purple);color:var(--purple);background:rgba(167,139,250,.08);}
-.mbtn.active[data-m=pony]{border-color:var(--pink);color:var(--pink);background:rgba(244,114,182,.08);}
-.mbtn.active[data-m=illustrious]{border-color:var(--green);color:var(--green);background:rgba(52,211,153,.08);}
 .slabel{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--muted2);text-transform:uppercase;padding:10px 8px 3px;}
 .nitem{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;cursor:pointer;color:var(--muted);font-size:13px;transition:all .12s;border:1px solid transparent;user-select:none;}
 .nitem:hover{background:var(--surface2);color:var(--text);}
@@ -135,18 +116,40 @@ body.hide-brut .tags-brut-btn,body.hide-brut .lora-brut-btn,body.hide-brut .gall
 .sstat{font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:2px;}
 
 /* MAIN */
-.main{display:flex;flex-direction:column;min-height:100vh;}
-.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 24px;position:sticky;top:0;z-index:10;}
-.tab{padding:12px 16px;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;margin-bottom:-1px;}
+.main{grid-column:2;grid-row:2;display:flex;flex-direction:column;min-height:0;overflow-y:auto;scrollbar-width:none;}
+.main::-webkit-scrollbar{display:none;}
+
+/* TITLE BAR */
+.tabs{grid-column:1/-1;grid-row:1;display:flex;align-items:center;background:var(--chrome);padding:0 16px;height:var(--tabs-h);z-index:10;-webkit-app-region:drag;border-bottom:1px solid var(--border);gap:0;}
+.tabs-left{display:flex;align-items:center;gap:6px;padding-left:78px;-webkit-app-region:no-drag;}
+.tabs-right{display:flex;align-items:center;gap:4px;margin-left:auto;-webkit-app-region:no-drag;}
+.tab{padding:4px 13px;font-size:13px;color:var(--muted);cursor:pointer;border:1px solid transparent;border-radius:6px;background:transparent;transition:all .12s;font-family:var(--sans);font-weight:400;white-space:nowrap;}
 .tab:hover{color:var(--text);}
-.tab.active{color:var(--text);border-bottom-color:var(--text);}
+.tab.active{color:var(--text);border-color:var(--border2);background:var(--surface);font-weight:500;}
+.tab-badge{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;color:#fff;margin-left:4px;vertical-align:middle;}
+.tab-badge-orange{background:var(--orange);}
+.tab-badge-blue{background:var(--blue);}
+.titlebar-divider{width:1px;height:20px;background:var(--border2);margin:0 6px;flex-shrink:0;}
+.titlebar-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--muted);-webkit-app-region:no-drag;font-family:var(--mono);}
+.titlebar-btn:hover{border-color:var(--border2);color:var(--text);}
+.titlebar-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(129,140,248,.1);}
+.titlebar-group{display:flex;align-items:center;gap:3px;}
+.titlebar-group .titlebar-btn.active[data-m=sdxl]{border-color:var(--purple);color:var(--purple);background:rgba(167,139,250,.15);}
+.titlebar-group .titlebar-btn.active[data-m=pony]{border-color:var(--pink);color:var(--pink);background:rgba(244,114,182,.15);}
+.titlebar-group .titlebar-btn.active[data-m=illustrious]{border-color:var(--green);color:var(--green);background:rgba(52,211,153,.15);}
+body.light .titlebar-group .titlebar-btn.active[data-m=sdxl]{border-color:var(--purple);color:var(--purple);background:rgba(109,40,217,.1);}
+body.light .titlebar-group .titlebar-btn.active[data-m=pony]{border-color:var(--pink);color:var(--pink);background:rgba(157,23,77,.1);}
+body.light .titlebar-group .titlebar-btn.active[data-m=illustrious]{border-color:var(--green);color:var(--green);background:rgba(4,120,87,.1);}
+.gen-subtab{padding:4px 10px;border-radius:5px;border:1px solid transparent;background:transparent;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .12s;}
+.gen-subtab.active{border-color:var(--border2);background:var(--surface);color:var(--text);font-weight:500;}
+
 .panel{display:none;padding:22px 24px;padding-bottom:calc(var(--footer-h) + 24px);}
 .footer-hidden .footer{display:none !important;}
 .footer-hidden .panel.active{padding-bottom:24px !important;}
 .panel.active{display:block;}
 
 /* COMPOSE (sticky subject + extra-neg) */
-.compose-sticky{position:sticky;top:45px;z-index:8;background:var(--bg);padding:14px 0 10px;margin:-22px -24px 16px;padding-left:24px;padding-right:24px;border-bottom:1px solid var(--border);}
+.compose-sticky{position:sticky;top:0;z-index:8;background:var(--bg);padding:14px 0 10px;margin:-22px -24px 16px;padding-left:24px;padding-right:24px;border-bottom:1px solid var(--border);}
 .compose-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:14px;align-items:start;}
 .compose-cell{display:flex;flex-direction:column;gap:5px;min-width:0;}
 .compose-lbl-row{display:flex;align-items:center;gap:6px;height:18px;}
@@ -343,7 +346,6 @@ body.light .wpbtn.paren.paren-active{background:rgba(91,33,182,.1);border-color:
 .lp-btn.disabled{opacity:.35;cursor:default;pointer-events:none;}
 
 /* FOOTER */
-.footer{position:fixed;bottom:0;right:0;width:calc(100% - 230px);background:var(--surface);border-top:1px solid var(--border);z-index:50;}
 .lora-strip{border-bottom:1px solid var(--border);}
 .lora-hdr{display:flex;align-items:center;gap:10px;padding:9px 22px;cursor:pointer;background:var(--surface);transition:background .12s;user-select:none;}
 .lora-hdr:hover{background:var(--surface2);}
@@ -504,7 +506,7 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
    NOTE: #footer lives OUTSIDE .app (it's a sibling), so we use the sibling combinator (~)
    instead of descendant selectors. Got bit by this: the original `.app.layout-right .footer`
    selector silently matched nothing. */
-.app.layout-right ~ .footer{
+.app.layout-right .footer{
   position:fixed;top:0;right:0;bottom:0;left:auto;
   width:420px;height:100vh;
   border-top:none;border-left:1px solid var(--border);
@@ -513,29 +515,28 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 }
 /* No !important on display:flex above — switchTab sets inline `display:none` on non-Tags tabs,
    and inline styles win over CSS naturally. So the panel is hidden on LoRAs/Gallery/etc. */
-.app.layout-right:not(.footer-hidden) .main{margin-right:420px;transition:margin-right .3s ease;}
-.app.layout-right ~ .footer .lora-strip{flex-shrink:0;border-bottom:1px solid var(--border);padding:6px 14px;}
-.app.layout-right ~ .footer .out-grid{
+.app.layout-right .footer .lora-strip{flex-shrink:0;border-bottom:1px solid var(--border);padding:6px 14px;}
+.app.layout-right .footer .out-grid{
   display:flex;flex-direction:column;gap:8px;
   padding:10px 14px 6px;
   grid-template-columns:none;
   flex:1 1 auto;min-height:0;overflow-y:auto;
 }
-.app.layout-right ~ .footer .out-box{max-height:none;min-height:60px;height:60px;}
-.app.layout-right ~ .footer .tw-box{max-height:130px;min-height:36px;}
-.app.layout-right ~ .footer .out-actions{flex-wrap:wrap;padding:6px 14px 8px;gap:5px;flex-shrink:0;border-top:1px solid var(--border);}
-.app.layout-right ~ .footer .out-actions .abtn,.app.layout-right ~ .footer .out-actions .rand-btn{flex:1;min-width:calc(50% - 3px);text-align:center;font-size:11px;padding:4px 6px;}
-.app.layout-right ~ .footer .out-actions .abtn[onclick*="clearAll"]{flex:0 0 auto;min-width:0;padding:4px 10px;}
-.app.layout-right ~ .footer .send-row{padding:6px 14px 10px;flex-direction:column;align-items:stretch;gap:6px;flex-shrink:0;border-top:none;margin-top:0;padding-top:6px;}
-.app.layout-right ~ .footer .send-fields{gap:5px;}
-.app.layout-right ~ .footer .send-ckpt-field{flex:1 1 100%;min-width:0;}
-.app.layout-right ~ .footer .send-field .cfg-sel,.app.layout-right ~ .footer .send-field .cfg-in{height:24px;font-size:10px;}
-.app.layout-right ~ .footer .send-seed-field{flex:1 1 calc(100% - 32px);}
-.app.layout-right ~ .footer .send-btn{width:100%;padding:8px;font-size:13px;}
-.app.layout-right ~ .footer .send-bottom{flex:0 0 auto;flex-direction:column;gap:6px;}
-.app.layout-right ~ .footer .send-bottom .queue-pill{flex:0 0 auto;width:100%;}
-.app.layout-right ~ .footer .send-bottom .send-btn{flex:0 0 auto;}
-.app.layout-right ~ .footer .send-fields{flex:0 0 auto;}
+.app.layout-right .footer .out-box{max-height:none;min-height:60px;height:60px;}
+.app.layout-right .footer .tw-box{max-height:130px;min-height:36px;}
+.app.layout-right .footer .out-actions{flex-wrap:wrap;padding:6px 14px 8px;gap:5px;flex-shrink:0;border-top:1px solid var(--border);}
+.app.layout-right .footer .out-actions .abtn,.app.layout-right .footer .out-actions .rand-btn{flex:1;min-width:calc(50% - 3px);text-align:center;font-size:11px;padding:4px 6px;}
+.app.layout-right .footer .out-actions .abtn[onclick*="clearAll"]{flex:0 0 auto;min-width:0;padding:4px 10px;}
+.app.layout-right .footer .send-row{padding:6px 14px 10px;flex-direction:column;align-items:stretch;gap:6px;flex-shrink:0;border-top:none;margin-top:0;padding-top:6px;}
+.app.layout-right .footer .send-fields{gap:5px;}
+.app.layout-right .footer .send-ckpt-field{flex:1 1 100%;min-width:0;}
+.app.layout-right .footer .send-field .cfg-sel,.app.layout-right .footer .send-field .cfg-in{height:24px;font-size:10px;}
+.app.layout-right .footer .send-seed-field{flex:1 1 calc(100% - 32px);}
+.app.layout-right .footer .send-btn{width:100%;padding:8px;font-size:13px;}
+.app.layout-right .footer .send-bottom{flex:0 0 auto;flex-direction:column;gap:6px;}
+.app.layout-right .footer .send-bottom .queue-pill{flex:0 0 auto;width:100%;}
+.app.layout-right .footer .send-bottom .send-btn{flex:0 0 auto;}
+.app.layout-right .footer .send-fields{flex:0 0 auto;}
 .app.layout-right .panel{padding-right:24px;}
 .app.layout-right .panel.active{padding-bottom:24px;}
 .app:not(.layout-right) .panel.active{padding-bottom:calc(var(--footer-h) + 24px);}
@@ -732,7 +733,7 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 
 /* ===================== GALLERY ===================== */
 .gallery-toolbar{display:none !important;}
-.gallery-tab-active .gallery-toolbar{display:flex !important;align-items:center;gap:5px;margin-left:auto;min-width:0;-webkit-app-region:no-drag;}
+.gallery-tab-active .gallery-toolbar{display:flex !important;align-items:center;gap:5px;padding:6px 12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin:8px 10px 0;box-shadow:var(--shadow-sm);flex-wrap:wrap;}
 .gsearch-wrap{position:relative;display:flex;align-items:center;width:160px;flex-shrink:1;min-width:80px;}
 .gsearch-wrap .lsearch{width:100%;padding-right:22px;}
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:4px;}
@@ -947,43 +948,9 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
   height:100vh;
   display:flex;
   align-items:stretch;
-}
-/* The shell — replaces the old `.app` flex grid with a 3-col CSS grid */
-.app{
-  display:grid !important;
-  grid-template-columns:var(--sidebar-w-redesign) 1fr var(--panel-w);
-  grid-template-rows:1fr;
-  height:100vh;
-  overflow:hidden;
-  flex:1;
   background:var(--bg);
-  position:relative;
-  transition:none;
 }
-.app.no-right-panel{grid-template-columns:var(--sidebar-w-redesign) 1fr;}
-.app.sidebar-collapsed{grid-template-columns:36px 1fr var(--panel-w);}
-.app.sidebar-collapsed.no-right-panel{grid-template-columns:36px 1fr;}
 
-/* Sidebar in the new grid */
-.sidebar{
-  grid-column:1;
-  grid-row:1;
-  background:var(--surface);
-  border-right:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  height:auto;
-  overflow:hidden;
-  padding:0 !important;
-  margin:8px 0 8px 8px;
-  border-radius:10px;
-  border:1px solid var(--border2);
-  box-shadow:0 2px 16px rgba(0,0,0,.35);
-  position:static;
-  top:auto;
-  gap:0;
-}
-body.light .sidebar{background:#ebe9e5;border-color:rgba(0,0,0,.1);box-shadow:0 2px 16px rgba(0,0,0,.1);}
 /* Three sections within sidebar */
 .sidebar-top{flex-shrink:0;padding:14px 12px 0;display:flex;flex-direction:column;gap:0;}
 .sidebar-nav{flex:1 1 0;overflow-y:auto;padding:4px 12px;min-height:0;}
@@ -1006,44 +973,7 @@ body.light .sidebar{background:#ebe9e5;border-color:rgba(0,0,0,.1);box-shadow:0 
 .sidebar-top .logo-text{font-size:13px;font-weight:600;color:var(--text);font-family:var(--sans);}
 .sidebar-top .logo-v{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-left:4px;}
 .sidebar-top .sidebar-toggle{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 4px;}
-.sidebar-top .model-row{padding:0 0 12px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;gap:4px;}
-.sidebar-top .model-row .mbtn{flex:1;padding:5px 4px;border:1px solid var(--border2);background:transparent;border-radius:5px;font-family:var(--mono);font-size:9px;letter-spacing:.05em;color:var(--muted);cursor:pointer;transition:all .15s;text-transform:uppercase;}
-.sidebar-top .model-row .mbtn:hover{border-color:var(--border3);color:var(--text);}
-.sidebar-top .model-row .mbtn.active[data-m=sdxl]{border-color:var(--purple);color:var(--purple);background:rgba(167,139,250,.08);}
-.sidebar-top .model-row .mbtn.active[data-m=pony]{border-color:var(--pink);color:var(--pink);background:rgba(244,114,182,.08);}
-.sidebar-top .model-row .mbtn.active[data-m=illustrious]{border-color:var(--green);color:var(--green);background:rgba(134,239,172,.08);}
 .sidebar-top .slabel{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--muted2);text-transform:uppercase;padding:10px 8px 4px;}
-
-/* Tabs — stay sticky at top of the scrollable main column */
-.tabs{
-  position:sticky;
-  top:0;
-  z-index:20;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  padding:0 24px;
-  display:flex;
-  align-items:stretch;
-  margin:0;
-  flex-shrink:0;
-  height:var(--tabs-h);
-  -webkit-app-region:drag;
-}
-.tab{padding:12px 16px;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:color .12s,border-color .12s;margin-bottom:-1px;-webkit-app-region:no-drag;}
-.tab:hover{color:var(--text);}
-.tab.active{color:var(--text);border-bottom-color:var(--text);}
-
-/* Main area — col 2 of grid, scrollable */
-.main{
-  grid-column:2;
-  grid-row:1;
-  display:flex;
-  flex-direction:column;
-  min-height:0;
-  overflow-y:auto;
-  position:relative;
-  padding:0;
-}
 .main .panel{padding:0;padding-bottom:0;}
 .main .panel.active{padding:0;}
 /* Panels other than Generate get padding back */
@@ -1051,28 +981,25 @@ body.light .sidebar{background:#ebe9e5;border-color:rgba(0,0,0,.1);box-shadow:0 
 .main .panel.active:not(#panel-tags){padding:22px 24px;}
 .main .panel#panel-tags.active{display:flex;flex-direction:column;}
 
-/* Footer = right panel — col 3, spans both rows */
+/* Footer = right panel — col 3, row 2 */
 .footer{
   grid-column:3;
-  grid-row:1;
-  background:var(--surface);
-  border-left:1px solid var(--border);
+  grid-row:2;
+  background:var(--panel);
   display:flex;
   flex-direction:column;
   overflow:visible;
   position:relative;
-  top:auto;
   width:auto;
   height:auto;
   padding:0;
-  margin:8px 8px 8px 0;
-  border-radius:10px;
-  border:1px solid var(--border2);
-  box-shadow:0 2px 16px rgba(0,0,0,.35);
+  margin:0 10px 10px 0;
+  border-radius:12px;
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
   z-index:auto;
   transition:none;
 }
-body.light .footer{background:#e4e2de;border-color:rgba(0,0,0,.12);box-shadow:0 2px 16px rgba(0,0,0,.1);}
 .app.no-right-panel .footer{display:none;}
 .footer-hidden .footer{display:none !important;}
 
@@ -1409,11 +1336,6 @@ body.light .tgroup .ttitle{background:rgba(0,0,0,.07);}
 body.light .tag-chip{background:var(--surface2);border-color:var(--border2);color:var(--muted);}
 body.light .tag-chip:hover{border-color:var(--border3);color:var(--text);}
 
-/* Sidebar layout-toggle is now inert (right panel is permanent). Keep visible for future. */
-
-/* layout-right is a no-op in the redesign — grid column handles the right panel */
-.app.layout-right .main{margin-right:0 !important;}
-.app.layout-right ~ .footer{position:relative !important;width:auto !important;height:auto !important;}
 
 /* Keep gallery-detail / lora-panel etc. behaviors unchanged — they overlay */
 
@@ -1538,26 +1460,6 @@ body.light .send-config .cfg-sel{
   <!-- STICKY TOP -->
   <div class="sidebar-top">
     <div class="logo"><span class="logo-text">Prompt Gen <span class="logo-v">v3</span></span><button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">◀</button></div>
-    <div class="collapsed-models">
-      <button class="cmbtn" data-m="sdxl" onclick="setModel('sdxl')" title="SDXL" style="font-size:10px;font-weight:700;font-family:var(--mono);">XL</button>
-      <button class="cmbtn" data-m="pony" onclick="setModel('pony')" title="Pony" style="font-size:10px;font-weight:700;font-family:var(--mono);">PN</button>
-      <button class="cmbtn active" data-m="illustrious" onclick="setModel('illustrious')" title="Illustrious" style="font-size:10px;font-weight:700;font-family:var(--mono);">IL</button>
-    </div>
-    <div class="collapsed-gallery">
-      <button class="cmbtn" id="cgal-size" onclick="toggleGallerySize()" title="Toggle card size" style="font-size:12px;">⊞</button>
-      <button class="cmbtn" id="cgal-select" onclick="toggleGallerySelect()" title="Select mode" style="font-size:12px;">☑</button>
-      <button class="cmbtn" onclick="loadGallery()" title="Refresh" style="font-size:12px;">↺</button>
-    </div>
-    <div class="gallery-sidebar-controls">
-      <button class="gsc-btn" id="gsc-size" onclick="toggleGallerySize()"><span class="gsc-icon">⊞</span><span class="gsc-label" id="gsc-size-label">Small</span></button>
-      <button class="gsc-btn" id="gsc-select" onclick="toggleGallerySelect()"><span class="gsc-icon">☑</span><span class="gsc-label">Select</span></button>
-      <button class="gsc-btn" onclick="loadGallery()"><span class="gsc-icon">↺</span><span class="gsc-label">Reload</span></button>
-    </div>
-    <div class="model-row">
-      <button class="mbtn" data-m="sdxl" onclick="setModel('sdxl')">SDXL</button>
-      <button class="mbtn" data-m="pony" onclick="setModel('pony')">Pony</button>
-      <button class="mbtn active" data-m="illustrious" onclick="setModel('illustrious')">Illus</button>
-    </div>
     <div class="slabel-row">
       <span class="slabel" id="sidebar-label">Categories</span>
       <button class="slabel-add" id="sidebar-add-btn" onclick="showCatForm()" title="New category">+</button>
@@ -1576,69 +1478,74 @@ body.light .send-config .cfg-sel{
         <div class="sstat"><span id="stat-tags">0</span> tags · <span id="stat-loras">0</span> LoRAs</div>
       </div>
       <button class="sidebar-clear-btn" onclick="sidebarClearAll()" title="Clear everything for the current tab">✕ Clear all</button>
-      <div class="sidebar-bottom-hr"></div>
-      <div class="sidebar-bottom-btns">
-        <button class="sidebar-brut-btn tags-brut-btn" id="tags-brut-btn" onclick="toggleTagBrutFilter()">⍜ Brut</button>
-        <button class="sidebar-brut-btn lora-brut-btn" id="ladult-btn" onclick="toggleAdult()">⍜ Brut</button>
-        <button class="sidebar-brut-btn gallery-brut-btn" id="gsc-brut" onclick="toggleGalleryAdult()">⍜ Brut</button>
-        <button class="sidebar-sm-btn" id="layout-btn" onclick="toggleLayout()" title="Toggle prompt panel position (bottom / right)">⬒</button>
-        <button class="sidebar-sm-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode">☀</button>
-      </div>
     </div>
-  </div>
-  <!-- Collapsed-mode bottom (only shown when sidebar is collapsed) -->
-  <div class="collapsed-bottom">
-    <button class="cmbtn tags-brut-btn" id="cgal-brut-tags" onclick="toggleTagBrutFilter()" title="Show Brut tags" style="font-size:10px;">⍜</button>
-    <button class="cmbtn lora-brut-btn" id="cgal-brut-lora" onclick="toggleAdult()" title="Show Brut content" style="font-size:10px;">⍜</button>
-    <button class="cmbtn gallery-brut-btn" id="cgal-brut" onclick="toggleGalleryAdult()" title="Show Brut content" style="font-size:10px;">⍜</button>
-    <button class="cmbtn" id="collapsed-clear-btn" onclick="sidebarClearAll()" title="Clear all" style="font-size:13px;color:rgba(248,113,113,.75);border-color:rgba(248,113,113,.2);">✕</button>
-    <button class="cmbtn" id="collapsed-theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode" style="font-size:12px;">☀</button>
   </div>
 </aside>
 
-<main class="main">
-  <div class="tabs">
-    <div class="tab" onclick="switchTab('tags')">Generate</div>
-    <div class="tab active" onclick="switchTab('loras')">LoRAs <span id="loras-tab-ac" style="font-size:10px;opacity:.6;"></span></div>
-    <div class="tab" onclick="switchTab('checkpoints')">Checkpoints</div>
-    <div class="tab" onclick="switchTab('history')" style="display:none;">History</div>
-    <div class="tab" onclick="switchTab('presets')" style="display:none;">Presets</div>
-    <div class="tab" onclick="switchTab('gallery')">Gallery <span id="gallery-tab-nag" style="font-size:10px;color:var(--amber);"></span></div>
-    <div class="gallery-toolbar" id="gallery-toolbar">
-      <button class="lfbtn active" id="gtf-all" onclick="setGalleryFilter('all')">All</button>
-      <button class="lfbtn" id="gtf-unreviewed" onclick="setGalleryFilter('unreviewed')">Unreviewed</button>
-      <button class="lfbtn" id="gtf-review" onclick="setGalleryFilter('review')">Review</button>
-      <button class="lfbtn" id="gtf-approved" onclick="setGalleryFilter('approved')">Approved</button>
-      <button class="lfbtn" id="gtf-declined" onclick="setGalleryFilter('declined')">Declined</button>
-      <button class="lfbtn" id="gallery-process-btn" onclick="galleryProcessDeclined()" style="display:none;border-color:rgba(248,113,113,.3);color:var(--red);">🗑 Process 0</button>
-      <button class="lfbtn gtf-time-btn" id="gtf-time" onclick="cycleGalleryTimeFilter()">All time</button>
-      <div class="gsearch-wrap">
-        <input class="lsearch" id="gsearch" placeholder="Search..." oninput="onGallerySearch()">
-        <button onclick="clearGallerySearch()" id="gsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
-      </div>
+<!-- TITLE BAR (spans all columns, row 1) -->
+<div class="tabs" id="titlebar">
+  <div class="tabs-left">
+    <div class="tab" data-tab="tags" onclick="switchTab('tags')">Generate</div>
+    <div class="tab active" data-tab="loras" onclick="switchTab('loras')">LoRAs <span id="loras-tab-ac" class="tab-badge tab-badge-orange" style="display:none;"></span></div>
+    <div class="tab" data-tab="checkpoints" onclick="switchTab('checkpoints')">Checkpoints</div>
+    <div class="tab" data-tab="history" onclick="switchTab('history')" style="display:none;">History</div>
+    <div class="tab" data-tab="presets" onclick="switchTab('presets')" style="display:none;">Presets</div>
+    <div class="tab" data-tab="gallery" onclick="switchTab('gallery')">Gallery <span id="gallery-tab-nag" class="tab-badge tab-badge-blue" style="display:none;"></span></div>
+  </div>
+  <div class="tabs-right">
+    <div class="titlebar-group">
+      <button class="titlebar-btn" data-m="sdxl" onclick="setModel('sdxl')" title="SDXL" style="font-size:9px;font-weight:700;">XL</button>
+      <button class="titlebar-btn" data-m="pony" onclick="setModel('pony')" title="Pony" style="font-size:9px;font-weight:700;">PN</button>
+      <button class="titlebar-btn active" data-m="illustrious" onclick="setModel('illustrious')" title="Illustrious" style="font-size:9px;font-weight:700;">IL</button>
     </div>
-    <div class="lora-toolbar" id="lora-toolbar" style="display:flex;align-items:center;gap:5px;margin-left:auto;min-width:0;">
-      <button class="lfbtn active" id="ltf-all" onclick="setLoraTabFilter('all')">All</button>
-      <button class="lfbtn" id="ltf-fav" onclick="setLoraTabFilter('fav')">Favs</button>
-      <button class="lfbtn" id="ltf-verified" onclick="cycleVerifiedFilter()">Verified: All</button>
-      <button class="lfbtn" id="ltf-cleaned" onclick="toggleCleanedFilter()">Cleaned: All</button>
-      <button class="lfbtn" onclick="loadLoras()">↺</button>
-      <span class="lrstatus" id="lrstatus-tab" style="font-size:10px;">Not connected</span>
-      <div style="position:relative;display:flex;align-items:center;width:160px;flex-shrink:1;min-width:80px;">
-        <input class="lsearch" id="lsearch-tab" placeholder="Search..." oninput="onLoraSearch()" style="padding-right:22px;width:100%;">
-        <button onclick="clearLoraSearch()" id="lsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
-      </div>
+    <div class="titlebar-divider"></div>
+    <div class="titlebar-group gen-subtabs-titlebar">
+      <button class="gen-subtab active" data-mode="image" onclick="switchGenMode('image')">IMG</button>
+      <button class="gen-subtab" data-mode="video" onclick="switchGenMode('video')">VID</button>
+    </div>
+    <div class="titlebar-divider"></div>
+    <button class="titlebar-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode" style="font-size:13px;">☀</button>
+    <button class="titlebar-btn" id="tags-brut-btn" onclick="toggleTagBrutFilter()" title="Brut mode" style="font-size:10px;">⍜ Brut</button>
+    <button class="titlebar-btn" id="ladult-btn" onclick="toggleAdult()" title="Brut mode" style="font-size:10px;display:none;">⍜ Brut</button>
+    <button class="titlebar-btn" id="gsc-brut" onclick="toggleGalleryAdult()" title="Brut mode" style="font-size:10px;display:none;">⍜ Brut</button>
+    <div class="titlebar-divider"></div>
+    <button class="titlebar-btn" id="layout-btn" onclick="toggleLayout()" title="Toggle portrait/landscape view">⊡</button>
+  </div>
+</div>
+
+<main class="main">
+  <!-- Gallery filter bar (floating strip, only visible on gallery tab) -->
+  <div class="gallery-toolbar" id="gallery-toolbar">
+    <button class="lfbtn active" id="gtf-all" onclick="setGalleryFilter('all')">All</button>
+    <button class="lfbtn" id="gtf-unreviewed" onclick="setGalleryFilter('unreviewed')">Unreviewed</button>
+    <button class="lfbtn" id="gtf-review" onclick="setGalleryFilter('review')">Review</button>
+    <button class="lfbtn" id="gtf-approved" onclick="setGalleryFilter('approved')">Approved</button>
+    <button class="lfbtn" id="gtf-declined" onclick="setGalleryFilter('declined')">Declined</button>
+    <button class="lfbtn" id="gallery-process-btn" onclick="galleryProcessDeclined()" style="display:none;border-color:rgba(248,113,113,.3);color:var(--red);">🗑 Process 0</button>
+    <button class="lfbtn gtf-time-btn" id="gtf-time" onclick="cycleGalleryTimeFilter()">All time</button>
+    <div class="gsearch-wrap">
+      <input class="lsearch" id="gsearch" placeholder="Search..." oninput="onGallerySearch()">
+      <button onclick="clearGallerySearch()" id="gsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
+    </div>
+  </div>
+  <!-- LoRA filter bar (floating strip, only visible on LoRAs tab) -->
+  <div class="lora-toolbar" id="lora-toolbar">
+    <button class="lfbtn active" id="ltf-all" onclick="setLoraTabFilter('all')">All</button>
+    <button class="lfbtn" id="ltf-fav" onclick="setLoraTabFilter('fav')">Favs</button>
+    <button class="lfbtn" id="ltf-verified" onclick="cycleVerifiedFilter()">Verified: All</button>
+    <button class="lfbtn" id="ltf-cleaned" onclick="toggleCleanedFilter()">Cleaned: All</button>
+    <button class="lfbtn" onclick="loadLoras()">↺</button>
+    <span class="lrstatus" id="lrstatus-tab" style="font-size:10px;">Not connected</span>
+    <div style="position:relative;display:flex;align-items:center;width:160px;flex-shrink:1;min-width:80px;">
+      <input class="lsearch" id="lsearch-tab" placeholder="Search..." oninput="onLoraSearch()" style="padding-right:22px;width:100%;">
+      <button onclick="clearLoraSearch()" id="lsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
     </div>
   </div>
 
   <!-- GENERATE -->
   <div class="panel" id="panel-tags">
-    <!-- Sticky: Subject + sub-tab toggle -->
+    <!-- Sticky: Subject -->
     <div class="compose-sticky">
-      <div class="gen-subtabs">
-        <button class="gen-subtab active" onclick="switchGenMode('image')">Image</button>
-        <button class="gen-subtab" onclick="switchGenMode('video')">Video</button>
-      </div>
       <div class="compose-cell compose-subj gen-sub-image active">
         <div class="compose-lbl-row">
           <span class="slbl">Subject</span>

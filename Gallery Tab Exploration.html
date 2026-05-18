@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<!--
+  GALLERY TAB EXPLORATION
+  5 artboards:
+  A — Sidebar + Colored Borders + Detail Panel + Age Section
+  B — Tab Strip + Bottom Bar Strip + Bulk Select Mode
+  C — Sidebar + Ambient Tint (full card wash)
+  D — Sidebar + Glass Badge Pill (most minimal)
+  E — Compare Mode (50/50 fullscreen overlay)
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery Tab — Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f0eee9;font-family:'Poppins',sans-serif;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel">
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DESIGN TOKENS — warm light (P1 palette from DESIGN_NOTES.md)
+// ─────────────────────────────────────────────────────────────────────────────
+const T = {
+  bg:        '#F5F4F0',
+  chrome:    '#EDEBE6',
+  panel:     '#FFFFFF',
+  surface:   '#E6E4DE',
+  surface2:  '#DFDDDA',
+  border:    'rgba(0,0,0,0.08)',
+  border2:   'rgba(0,0,0,0.14)',
+  text:      '#1A1917',
+  muted:     '#78756E',
+  muted2:    '#B2B0A9',
+  orange:    '#D96A14',
+  green:     '#047857',
+  amber:     '#92400E',
+  blue:      '#1D4ED8',
+  red:       '#B91C1C',
+  shadow:    '0 0 0 1px rgba(0,0,0,0.06), 0 8px 40px rgba(0,0,0,0.12)',
+  shadowSm:  '0 0 0 1px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.07)',
+};
+
+const ST = {
+  unreviewed: { border: 'rgba(0,0,0,0.13)', bg: 'transparent',              dot: T.muted2,   strip: 'transparent', label: 'Unreviewed', labelColor: T.muted  },
+  review:     { border: '#D97706',           bg: 'rgba(217,119,6,0.07)',     dot: '#D97706',  strip: '#D97706',     label: 'Review',     labelColor: '#92400E'},
+  approved:   { border: '#16A34A',           bg: 'rgba(22,163,74,0.07)',     dot: '#16A34A',  strip: '#16A34A',     label: 'Approved',   labelColor: '#047857'},
+  declined:   { border: '#DC2626',           bg: 'rgba(220,38,38,0.07)',     dot: '#DC2626',  strip: '#DC2626',     label: 'Declined',   labelColor: '#B91C1C'},
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SAMPLE DATA
+// ─────────────────────────────────────────────────────────────────────────────
+const IMGS = [
+  'uploads/ComfyUI_temp_afcjz_00001_.png',
+  'uploads/ComfyUI_temp_babvx_00019_.png',
+  'uploads/ComfyUI_temp_evojz_00009_.png',
+  'uploads/ComfyUI_temp_labek_00062_.png',
+  'uploads/ComfyUI_temp_sphuk_00026_.png',
+  'uploads/ComfyUI_temp_sphuk_00036_.png',
+  'uploads/ComfyUI_00700_.png',
+  'uploads/image_00862_.png',
+  'uploads/0_11Xx_B.jpeg',
+  'uploads/0dor1_kus1miy4.jpeg',
+  'uploads/3Y3S_style.jpeg',
+  'uploads/6BDf4N7yeKYYNXC.jpeg',
+  'uploads/748cm_C.jpeg',
+  'uploads/11e10.jpeg',
+];
+
+const STATE_SEQ_RECENT = ['unreviewed','review','unreviewed','approved','unreviewed','review','approved','unreviewed','declined','approved','unreviewed','review','declined','unreviewed','approved'];
+const STATE_SEQ_OLD    = ['unreviewed','unreviewed','unreviewed','unreviewed','unreviewed','unreviewed','unreviewed','unreviewed'];
+
+const RECENT_ITEMS = Array.from({length: 15}, (_, i) => ({
+  id: i, src: IMGS[i % IMGS.length], state: STATE_SEQ_RECENT[i],
+  name: `ComfyUI_${String(850+i).padStart(5,'0')}_.png`,
+  old: false, selected: i === 3 || i === 9,
+}));
+const OLD_ITEMS = Array.from({length: 8}, (_, i) => ({
+  id: 100+i, src: IMGS[(i+5) % IMGS.length], state: 'unreviewed',
+  name: `ComfyUI_${String(700+i).padStart(5,'0')}_.png`,
+  old: true, selected: false,
+}));
+const ALL_ITEMS = [...RECENT_ITEMS, ...OLD_ITEMS];
+
+const BULK_ITEMS = Array.from({length: 24}, (_, i) => ({
+  id: i, src: IMGS[i % IMGS.length], state: STATE_SEQ_RECENT[i % STATE_SEQ_RECENT.length],
+  name: `ComfyUI_${String(800+i).padStart(5,'0')}_.png`, old: false,
+  selected: [1,2,3,6,7,8,9,11,12,14,15,16,17,18].includes(i),
+}));
+
+const CATS = [
+  { id: 'all',           label: 'All Images',   color: T.muted,    count: 36 },
+  { id: 'uncategorized', label: 'Uncategorized',color: '#78756E',  count: 18 },
+  { id: 'portraits',     label: 'Portraits',    color: '#0891B2',  count: 9  },
+  { id: 'horror',        label: 'Body Horror',  color: '#B91C1C',  count: 6  },
+  { id: 'graphic',       label: 'Graphic',      color: '#7C3AED',  count: 3  },
+];
+
+const FILTERS = [
+  { id: 'All',         count: 36, dot: null       },
+  { id: 'Unreviewed',  count: 14, dot: T.muted2   },
+  { id: 'Review',      count:  7, dot: '#D97706'  },
+  { id: 'Approved',    count: 11, dot: '#16A34A'  },
+  { id: 'Declined',    count:  4, dot: '#DC2626'  },
+  { id: 'Old (14d+)',  count:  8, dot: '#D97706'  },
+];
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TITLE BAR
+// ─────────────────────────────────────────────────────────────────────────────
+function TitleBar() {
+  return (
+    <div style={{ height: 46, background: T.chrome, borderBottom: `1px solid ${T.border2}`, flexShrink: 0,
+      display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {['#FF5F57','#FFBD2E','#28CA41'].map((c,i) => (
+          <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: c }} />
+        ))}
+      </div>
+      <div style={{ width: 1, height: 18, background: T.border2 }} />
+      <div style={{ display: 'flex', gap: 2 }}>
+        {['Generate','LoRAs ●12','Gallery ●36'].map((tab, i) => {
+          const label = tab.split(' ')[0];
+          const badge = tab.includes('●') ? tab.split('●')[1] : null;
+          const active = i === 2;
+          const badgeColor = i === 1 ? T.orange : '#0891B2';
+          return (
+            <div key={tab} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 11px', borderRadius: 6, fontSize: 13, fontFamily: 'Poppins',
+              fontWeight: active ? 500 : 400, color: active ? T.text : T.muted,
+              background: active ? T.surface : 'transparent',
+              border: `1px solid ${active ? T.border2 : 'transparent'}`,
+            }}>
+              {label}
+              {badge && <span style={{ background: badgeColor, color: '#fff', borderRadius: 8,
+                fontSize: 9, padding: '1px 5px', fontFamily: 'Space Mono', fontWeight: 700 }}>{badge}</span>}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontFamily:'Space Mono', fontSize:10, color:T.muted }}>☀</span>
+        <div style={{ width:1, height:14, background:T.border2 }} />
+        <span style={{ fontFamily:'Space Mono', fontSize:10, color:T.muted }}>⊡</span>
+      </div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILTER BAR
+// ─────────────────────────────────────────────────────────────────────────────
+function FilterBar({ active = 'All', showCompare = false, selectMode = false, selectedCount = 0 }) {
+  return (
+    <div style={{ margin: '0 10px', height: 40, background: T.panel, borderRadius: 9,
+      border: `1px solid ${T.border}`, boxShadow: T.shadowSm, flexShrink: 0,
+      display: 'flex', alignItems: 'center', padding: '0 8px', gap: 3 }}>
+      {/* Search */}
+      <div style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 8px',
+        background:T.surface, borderRadius:6, border:`1px solid ${T.border}`, minWidth:150 }}>
+        <span style={{ color:T.muted2, fontSize:12 }}>⌕</span>
+        <span style={{ fontFamily:'Poppins', fontSize:12, color:T.muted2 }}>Search gallery…</span>
+      </div>
+      <div style={{ width:1, height:18, background:T.border2, margin:'0 3px' }} />
+      {/* State filters */}
+      {FILTERS.map(f => {
+        const isActive = f.id === active;
+        return (
+          <div key={f.id} style={{
+            display:'flex', alignItems:'center', gap:4,
+            padding:'3px 8px', borderRadius:6, cursor:'pointer',
+            background: isActive ? T.surface : 'transparent',
+            border:`1px solid ${isActive ? T.border2 : 'transparent'}`,
+          }}>
+            {f.dot && <div style={{ width:5, height:5, borderRadius:'50%', background:f.dot }} />}
+            <span style={{ fontFamily:'Poppins', fontSize:11, fontWeight: isActive ? 500 : 400,
+              color: isActive ? T.text : T.muted, whiteSpace:'nowrap' }}>{f.id}</span>
+            <span style={{ fontFamily:'Space Mono', fontSize:9, color:T.muted2 }}>{f.count}</span>
+          </div>
+        );
+      })}
+      <div style={{ flex:1 }} />
+      {showCompare && (
+        <div style={{ padding:'4px 10px', borderRadius:6, background:'#1D4ED8', color:'#fff',
+          fontFamily:'Poppins', fontSize:11, fontWeight:500, cursor:'pointer', flexShrink:0 }}>⊞ Compare 2</div>
+      )}
+      {selectMode && selectedCount > 0 && (
+        <div style={{ fontFamily:'Space Mono', fontSize:9, color:T.muted2 }}>{selectedCount} selected</div>
+      )}
+      <div style={{ padding:'4px 9px', borderRadius:6, background: selectMode ? T.orange : T.surface,
+        border:`1px solid ${selectMode ? T.orange : T.border2}`, fontFamily:'Poppins', fontSize:11,
+        color: selectMode ? '#fff' : T.muted, cursor:'pointer', flexShrink:0 }}>Select</div>
+      <div style={{ padding:'4px 9px', borderRadius:6, background:T.surface, border:`1px solid ${T.border2}`,
+        fontFamily:'Space Mono', fontSize:10, color:T.muted, cursor:'pointer', flexShrink:0 }}>newest ▾</div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CATEGORY SIDEBAR
+// ─────────────────────────────────────────────────────────────────────────────
+function CategorySidebar({ active = 'all' }) {
+  return (
+    <div style={{ width:162, flexShrink:0, margin:'0 0 10px 10px',
+      background:T.panel, borderRadius:T.panelRadius || 12,
+      boxShadow:T.shadow, border:`1px solid ${T.border}`,
+      display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'10px 12px 7px', borderBottom:`1px solid ${T.border}` }}>
+        <span style={{ fontFamily:'Space Mono', fontSize:9, letterSpacing:'0.11em',
+          textTransform:'uppercase', color:T.muted2 }}>Albums</span>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'4px 6px' }}>
+        {CATS.map(cat => {
+          const isActive = cat.id === active;
+          return (
+            <div key={cat.id} style={{ display:'flex', alignItems:'center', gap:7,
+              padding:'6px 8px', borderRadius:7, cursor:'pointer', marginBottom:1,
+              background: isActive ? T.surface : 'transparent' }}>
+              <div style={{ width:8, height:8, borderRadius:'50%', background:cat.color, flexShrink:0 }} />
+              <span style={{ fontFamily:'Poppins', fontSize:12, fontWeight: isActive ? 500 : 400,
+                color: isActive ? T.text : T.muted, flex:1, overflow:'hidden',
+                textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{cat.label}</span>
+              <span style={{ fontFamily:'Space Mono', fontSize:9, color:T.muted2 }}>{cat.count}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ borderTop:`1px solid ${T.border}` }}>
+        <div style={{ padding:'5px 8px', borderBottom:`1px solid ${T.border}` }}>
+          <span style={{ fontFamily:'Poppins', fontSize:11, color:T.muted, cursor:'pointer',
+            padding:'3px 6px', display:'block' }}>+ New album</span>
+        </div>
+        {/* Brut button — highlighted when active */}
+        <div style={{ padding:'6px 8px' }}>
+          <div style={{ padding:'6px 10px', borderRadius:7, cursor:'pointer',
+            background:'rgba(124,58,237,0.09)', border:'1px solid rgba(124,58,237,0.3)',
+            display:'flex', alignItems:'center', gap:7 }}>
+            <span style={{ fontFamily:'Space Mono', fontSize:11, color:'#6D28D9' }}>⍜</span>
+            <span style={{ fontFamily:'Poppins', fontSize:12, fontWeight:500, color:'#6D28D9' }}>Brut</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COLLECTION TABS (alternative to sidebar)
+// ─────────────────────────────────────────────────────────────────────────────
+function CollectionTabs({ active = 'all' }) {
+  return (
+    <div style={{ margin:'0 10px 0', display:'flex', alignItems:'center', gap:2, flexShrink:0, padding:'0 2px' }}>
+      {CATS.map(cat => {
+        const isActive = cat.id === active;
+        return (
+          <div key={cat.id} style={{ display:'flex', alignItems:'center', gap:5,
+            padding:'5px 11px', borderRadius:6, cursor:'pointer',
+            background: isActive ? T.surface : 'transparent',
+            border:`1px solid ${isActive ? T.border2 : 'transparent'}` }}>
+            <div style={{ width:6, height:6, borderRadius:'50%', background:cat.color }} />
+            <span style={{ fontFamily:'Poppins', fontSize:12, fontWeight: isActive ? 500 : 400,
+              color: isActive ? T.text : T.muted }}>{cat.label}</span>
+            <span style={{ fontFamily:'Space Mono', fontSize:9, color:T.muted2 }}>{cat.count}</span>
+          </div>
+        );
+      })}
+      <div style={{ marginLeft:'auto', padding:'5px 8px', fontFamily:'Poppins', fontSize:11, color:T.muted, cursor:'pointer' }}>+ Album</div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GALLERY CARD
+// variant: 'border' | 'strip' | 'tint' | 'badge'
+// ─────────────────────────────────────────────────────────────────────────────
+function GalleryCard({ item, variant = 'border' }) {
+  const st = ST[item.state];
+  const hasState = item.state !== 'unreviewed';
+
+  const borderColor = variant === 'border' && hasState ? st.border
+    : variant === 'tint' && hasState ? st.border + '66'
+    : T.border;
+  const borderWidth = variant === 'border' && hasState ? 2 : 1;
+
+  return (
+    <div style={{
+      position:'relative', borderRadius:6, overflow:'hidden', aspectRatio:'7/9',
+      cursor:'pointer', flexShrink:0,
+      border:`${borderWidth}px solid ${borderColor}`,
+      outline: item.selected ? `2px solid ${T.blue}` : 'none',
+      outlineOffset: 1,
+      boxShadow: variant === 'border' && hasState ? `0 0 0 1px ${st.border}22` : 'none',
+    }}>
+      <img src={item.src} alt="" style={{ width:'100%', height:'100%',
+        objectFit:'cover', objectPosition:'top', display:'block' }} />
+
+      {/* Tint overlay */}
+      {variant === 'tint' && hasState && (
+        <div style={{ position:'absolute', inset:0, background: st.bg, pointerEvents:'none' }} />
+      )}
+
+      {/* Bottom color strip */}
+      {variant === 'strip' && hasState && (
+        <div style={{ position:'absolute', bottom:0, left:0, right:0, height:3, background:st.strip }} />
+      )}
+
+      {/* Glass status badge (badge + tint variants) */}
+      {(variant === 'badge' || variant === 'tint') && hasState && (
+        <div style={{
+          position:'absolute', bottom:5, left:'50%', transform:'translateX(-50%)',
+          background:'rgba(0,0,0,0.68)', backdropFilter:'blur(6px)',
+          borderRadius:10, padding:'2px 7px',
+          display:'flex', alignItems:'center', gap:4,
+        }}>
+          <div style={{ width:5, height:5, borderRadius:'50%', background:st.dot, flexShrink:0 }} />
+          <span style={{ fontFamily:'Space Mono', fontSize:8, color:'#fff', letterSpacing:'0.05em' }}>
+            {st.label.toUpperCase()}
+          </span>
+        </div>
+      )}
+
+      {/* Select checkbox */}
+      {item.selected && (
+        <div style={{ position:'absolute', top:5, left:5,
+          width:17, height:17, borderRadius:4, background:T.blue,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          boxShadow:'0 1px 4px rgba(0,0,0,0.3)' }}>
+          <span style={{ color:'#fff', fontSize:10, lineHeight:1, fontFamily:'Poppins', fontWeight:600 }}>✓</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION DIVIDER (age grouping)
+// ─────────────────────────────────────────────────────────────────────────────
+function AgeSection({ cols }) {
+  return (
+    <div style={{ gridColumn: `1 / -1`, display:'flex', alignItems:'center', gap:8,
+      margin:'4px 0 2px' }}>
+      <div style={{ flex:1, height:1, background:T.border2 }} />
+      <div style={{ display:'flex', alignItems:'center', gap:5,
+        padding:'3px 8px', background:T.surface2, borderRadius:10, border:`1px solid ${T.border2}` }}>
+        <div style={{ width:5, height:5, borderRadius:'50%', background:'#D97706' }} />
+        <span style={{ fontFamily:'Space Mono', fontSize:8, color:'#92400E',
+          letterSpacing:'0.08em', textTransform:'uppercase' }}>14+ days · unreviewed · 8 images</span>
+      </div>
+      <div style={{ flex:1, height:1, background:T.border2 }} />
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BULK ACTION BAR
+// ─────────────────────────────────────────────────────────────────────────────
+function BulkActionBar({ count = 14 }) {
+  return (
+    <div style={{
+      position:'absolute', bottom:10, left:'50%', transform:'translateX(-50%)',
+      background:T.panel, borderRadius:12, boxShadow:T.shadow,
+      border:`1px solid ${T.border2}`, padding:'8px 12px',
+      display:'flex', alignItems:'center', gap:8, zIndex:20, whiteSpace:'nowrap',
+    }}>
+      <span style={{ fontFamily:'Poppins', fontSize:12, color:T.text, fontWeight:500 }}>{count} selected</span>
+      <div style={{ width:1, height:16, background:T.border2 }} />
+      <div style={{ padding:'5px 12px', borderRadius:7, background:'rgba(22,163,74,0.1)',
+        border:'1px solid #16A34A', fontFamily:'Poppins', fontSize:11, fontWeight:500,
+        color:'#047857', cursor:'pointer' }}>✓ Approve</div>
+      <div style={{ padding:'5px 12px', borderRadius:7, background:'rgba(217,119,6,0.08)',
+        border:'1px solid #D97706', fontFamily:'Poppins', fontSize:11, fontWeight:500,
+        color:'#92400E', cursor:'pointer' }}>◎ Review</div>
+      <div style={{ padding:'5px 12px', borderRadius:7, background:'rgba(220,38,38,0.08)',
+        border:'1px solid #DC2626', fontFamily:'Poppins', fontSize:11, fontWeight:500,
+        color:'#B91C1C', cursor:'pointer' }}>✕ Decline</div>
+      <div style={{ width:1, height:16, background:T.border2 }} />
+      <div style={{ padding:'5px 10px', borderRadius:7, background:T.surface,
+        border:`1px solid ${T.border2}`, fontFamily:'Poppins', fontSize:11,
+        color:T.muted, cursor:'pointer' }}>Deselect all</div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DETAIL PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+function DetailPanel({ item = RECENT_ITEMS[4] }) {
+  const st = ST[item.state];
+  return (
+    <div style={{ position:'absolute', top:0, right:0, bottom:0, width:320,
+      background:T.panel, borderLeft:`1px solid ${T.border}`,
+      display:'flex', flexDirection:'column', zIndex:10, overflow:'hidden' }}>
+      {/* Header */}
+      <div style={{ padding:'10px 12px 8px', borderBottom:`1px solid ${T.border}`,
+        display:'flex', alignItems:'flex-start', gap:8 }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontFamily:'Space Mono', fontSize:10, color:T.text,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.name}</div>
+          <div style={{ fontFamily:'Space Mono', fontSize:9, color:T.muted2, marginTop:2 }}>
+            May 18, 2026 · 2.4 MB · 896×1152</div>
+        </div>
+        <div style={{ color:T.muted, fontSize:13, cursor:'pointer', paddingTop:1 }}>✕</div>
+      </div>
+
+      {/* Image preview */}
+      <div style={{ margin:'8px 8px 0', borderRadius:6, overflow:'hidden', aspectRatio:'7/9', flexShrink:0,
+        border:`1px solid ${T.border}` }}>
+        <img src={item.src} alt="" style={{ width:'100%', height:'100%',
+          objectFit:'cover', objectPosition:'top', display:'block' }} />
+      </div>
+
+      {/* Status buttons */}
+      <div style={{ padding:'8px', display:'flex', gap:5 }}>
+        {[
+          { label:'Review',  color:'#D97706', active: item.state==='review'  },
+          { label:'Approve', color:'#16A34A', active: item.state==='approved'},
+          { label:'Decline', color:'#DC2626', active: item.state==='declined'},
+        ].map(btn => (
+          <div key={btn.label} style={{ flex:1, padding:'6px 0', textAlign:'center',
+            borderRadius:6, cursor:'pointer',
+            background: btn.active ? btn.color+'18' : T.surface,
+            border:`1px solid ${btn.active ? btn.color : T.border}`,
+            fontFamily:'Poppins', fontSize:11, fontWeight: btn.active ? 600 : 400,
+            color: btn.active ? btn.color : T.muted }}>{btn.label}</div>
+        ))}
+      </div>
+
+      {/* Category */}
+      <div style={{ padding:'0 8px 8px', borderBottom:`1px solid ${T.border}` }}>
+        <div style={{ fontFamily:'Space Mono', fontSize:8, letterSpacing:'0.1em',
+          textTransform:'uppercase', color:T.muted2, marginBottom:4 }}>Category</div>
+        <div style={{ padding:'5px 8px', background:T.surface, borderRadius:6,
+          border:`1px solid ${T.border}`, display:'flex', alignItems:'center',
+          justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <div style={{ width:7, height:7, borderRadius:'50%', background:'#B91C1C' }} />
+            <span style={{ fontFamily:'Poppins', fontSize:12, color:T.text }}>Body Horror</span>
+          </div>
+          <span style={{ color:T.muted2, fontSize:10 }}>▾</span>
+        </div>
+      </div>
+
+      {/* Tags */}
+      <div style={{ padding:'8px', borderBottom:`1px solid ${T.border}` }}>
+        <div style={{ fontFamily:'Space Mono', fontSize:8, letterSpacing:'0.1em',
+          textTransform:'uppercase', color:T.muted2, marginBottom:5 }}>Tags</div>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+          {['dark','body horror','strong comp'].map(tag => (
+            <div key={tag} style={{ padding:'2px 7px', background:T.surface2, borderRadius:10,
+              border:`1px solid ${T.border}`, fontFamily:'Poppins', fontSize:10, color:T.muted,
+              display:'flex', alignItems:'center', gap:4 }}>
+              {tag} <span style={{ color:T.muted2, fontSize:9 }}>×</span>
+            </div>
+          ))}
+          <div style={{ padding:'2px 8px', border:`1px dashed ${T.border2}`, borderRadius:10,
+            fontFamily:'Poppins', fontSize:10, color:T.muted2, cursor:'pointer' }}>+ tag</div>
+        </div>
+      </div>
+
+      {/* Metadata accordion */}
+      <div style={{ padding:'8px', flex:1, overflowY:'auto' }}>
+        <div style={{ fontFamily:'Space Mono', fontSize:9, letterSpacing:'0.08em',
+          textTransform:'uppercase', color:T.muted2, marginBottom:6,
+          display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <span>PNG Metadata</span>
+          <span style={{ color:T.orange }}>▾</span>
+        </div>
+        {[
+          ['Checkpoint', 'NovaComicXL_v8'],
+          ['LoRAs',      'PlantMilk ×0.8, Kuroimori ×0.7'],
+          ['Seed',       '2847193847'],
+          ['Steps',      '30 · CFG 5.0 · euler_a'],
+          ['Size',       '896 × 1152'],
+        ].map(([k,v]) => (
+          <div key={k} style={{ display:'flex', gap:8, marginBottom:5 }}>
+            <span style={{ fontFamily:'Space Mono', fontSize:9, color:T.muted2, width:66, flexShrink:0 }}>{k}</span>
+            <span style={{ fontFamily:'Space Mono', fontSize:9, color:T.text, lineHeight:1.4, wordBreak:'break-all' }}>{v}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer actions */}
+      <div style={{ padding:'8px', borderTop:`1px solid ${T.border}`, display:'flex', gap:6 }}>
+        <div style={{ flex:1, padding:'7px', textAlign:'center', borderRadius:7,
+          background:T.surface, border:`1px solid ${T.border2}`,
+          fontFamily:'Poppins', fontSize:11, fontWeight:500, color:T.orange, cursor:'pointer' }}>
+          → Remix
+        </div>
+        <div style={{ flex:1, padding:'7px', textAlign:'center', borderRadius:7,
+          background:T.surface, border:`1px solid ${T.border2}`,
+          fontFamily:'Poppins', fontSize:11, fontWeight:500, color:T.blue, cursor:'pointer' }}>
+          ⊞ IMG2IMG
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPARE MODE overlay
+// ─────────────────────────────────────────────────────────────────────────────
+function CompareMode() {
+  const A = RECENT_ITEMS[3];
+  const B = RECENT_ITEMS[9];
+  return (
+    <div style={{ position:'absolute', inset:0, background:T.bg,
+      display:'flex', flexDirection:'column', zIndex:30 }}>
+      {/* Header bar */}
+      <div style={{ height:46, background:T.chrome, borderBottom:`1px solid ${T.border2}`,
+        display:'flex', alignItems:'center', padding:'0 14px', gap:10, flexShrink:0 }}>
+        <div style={{ display:'flex', gap:6 }}>
+          {['#FF5F57','#FFBD2E','#28CA41'].map((c,i) => (
+            <div key={i} style={{ width:12, height:12, borderRadius:'50%', background:c }} />
+          ))}
+        </div>
+        <div style={{ width:1, height:18, background:T.border2 }} />
+        <span style={{ fontFamily:'Poppins', fontSize:13, fontWeight:500, color:T.text }}>Compare</span>
+        <span style={{ fontFamily:'Space Mono', fontSize:10, color:T.muted2 }}>2 of 28 images selected</span>
+        <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+          <div style={{ padding:'4px 10px', borderRadius:6, background:T.surface,
+            border:`1px solid ${T.border2}`, fontFamily:'Poppins', fontSize:11,
+            color:T.muted, cursor:'pointer' }}>← Back to grid</div>
+        </div>
+      </div>
+
+      {/* Split view */}
+      <div style={{ flex:1, display:'flex', overflow:'hidden', gap:0 }}>
+        {[A, B].map((item, idx) => (
+          <div key={idx} style={{ flex:1, display:'flex', flexDirection:'column',
+            borderRight: idx===0 ? `1px solid ${T.border2}` : 'none' }}>
+            {/* Image */}
+            <div style={{ flex:1, position:'relative', overflow:'hidden', background:'#1A1917' }}>
+              <img src={item.src} alt="" style={{ width:'100%', height:'100%',
+                objectFit:'contain', objectPosition:'center top', display:'block' }} />
+              {/* Corner label */}
+              <div style={{ position:'absolute', top:10, left:10,
+                background:'rgba(0,0,0,0.72)', backdropFilter:'blur(6px)',
+                borderRadius:6, padding:'3px 9px',
+                fontFamily:'Space Mono', fontSize:11, fontWeight:700,
+                color:'#fff', letterSpacing:'0.04em' }}>{idx===0 ? 'A' : 'B'}</div>
+            </div>
+
+            {/* Controls */}
+            <div style={{ padding:'10px 14px', background:T.panel,
+              borderTop:`1px solid ${T.border}`, display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontFamily:'Space Mono', fontSize:9, color:T.muted2,
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.name}</div>
+                <div style={{ fontFamily:'Space Mono', fontSize:8, color:T.muted2, marginTop:2 }}>
+                  May 18, 2026 · 896×1152</div>
+              </div>
+              <div style={{ display:'flex', gap:5 }}>
+                <div style={{ padding:'6px 12px', borderRadius:7,
+                  background:'rgba(22,163,74,0.1)', border:'1px solid #16A34A',
+                  fontFamily:'Poppins', fontSize:11, fontWeight:500,
+                  color:'#047857', cursor:'pointer' }}>✓ Approve</div>
+                <div style={{ padding:'6px 10px', borderRadius:7, background:T.surface,
+                  border:`1px solid ${T.border2}`, fontFamily:'Poppins', fontSize:11,
+                  color:T.muted, cursor:'pointer' }}>Review</div>
+                <div style={{ padding:'6px 12px', borderRadius:7,
+                  background:'rgba(220,38,38,0.08)', border:'1px solid #DC2626',
+                  fontFamily:'Poppins', fontSize:11, fontWeight:500,
+                  color:'#B91C1C', cursor:'pointer' }}>✕ Decline</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GALLERY GRID — grid of cards + optional detail panel overlay
+// ─────────────────────────────────────────────────────────────────────────────
+function GalleryGrid({ variant, cols, items, showDetail, showAgeSection, showBulk }) {
+  const selectedCount = items.filter(i => i.selected).length;
+  return (
+    <div style={{ flex:1, minHeight:0, position:'relative', overflow:'hidden' }}>
+      <div style={{ height:'100%', overflowY:'auto',
+        padding:`6px ${showDetail ? 328 : 10}px 10px 10px` }}>
+        <div style={{ display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`, gap:5 }}>
+          {showAgeSection ? (
+            <>
+              {items.filter(i => !i.old).map(item => (
+                <GalleryCard key={item.id} item={item} variant={variant} />
+              ))}
+              <AgeSection cols={cols} />
+              {items.filter(i => i.old).map(item => (
+                <GalleryCard key={item.id} item={item} variant={variant} />
+              ))}
+            </>
+          ) : (
+            items.map(item => <GalleryCard key={item.id} item={item} variant={variant} />)
+          )}
+        </div>
+      </div>
+      {showDetail && <DetailPanel item={RECENT_ITEMS[4]} />}
+      {showBulk && <BulkActionBar count={selectedCount} />}
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MOCKUP ASSEMBLER
+// ─────────────────────────────────────────────────────────────────────────────
+function GalleryMockup({ variant='border', nav='sidebar', cols=7, items=ALL_ITEMS,
+  showDetail=false, showAgeSection=false, showBulk=false, showCompare=false }) {
+  const selectedCount = items.filter(i => i.selected).length;
+  return (
+    <div style={{ width:'100%', height:'100%', background:T.bg,
+      display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
+      <TitleBar />
+      <div style={{ height:8 }} />
+      <FilterBar active="All" showCompare={selectedCount===2} selectMode={showBulk} selectedCount={selectedCount} />
+      <div style={{ height: nav==='tabs' ? 4 : 6 }} />
+      {nav==='tabs' && <CollectionTabs />}
+      {nav==='tabs' && <div style={{ height:6 }} />}
+      <div style={{ flex:1, display:'flex', minHeight:0 }}>
+        {nav==='sidebar' && <CategorySidebar />}
+        <GalleryGrid variant={variant} cols={cols} items={items}
+          showDetail={showDetail} showAgeSection={showAgeSection} showBulk={showBulk} />
+      </div>
+      {showCompare && <CompareMode />}
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT
+// ─────────────────────────────────────────────────────────────────────────────
+function App() {
+  return (
+    <DesignCanvas>
+
+      <DCSection id="nav" title="Category Navigation" subtitle="How gallery albums/categories are browsed">
+        <DCArtboard id="A" label="A — Sidebar + Colored Borders + Detail Panel" width={1280} height={860}>
+          <GalleryMockup variant="border" nav="sidebar" cols={6} items={ALL_ITEMS}
+            showDetail={true} showAgeSection={true} />
+        </DCArtboard>
+        <DCArtboard id="B" label="B — Tab Strip + Bottom Bar + Bulk Select" width={1280} height={860}>
+          <GalleryMockup variant="strip" nav="tabs" cols={8} items={BULK_ITEMS}
+            showBulk={true} />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="states" title="State Indicators" subtitle="Three ways to show review/approved/declined in warm light mode">
+        <DCArtboard id="C" label="C — Ambient Tint (full-card wash)" width={1280} height={860}>
+          <GalleryMockup variant="tint" nav="sidebar" cols={7} items={ALL_ITEMS} />
+        </DCArtboard>
+        <DCArtboard id="D" label="D — Glass Badge Pill (most minimal)" width={1280} height={860}>
+          <GalleryMockup variant="badge" nav="sidebar" cols={7} items={ALL_ITEMS} />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="interaction" title="Interactions" subtitle="Special states and overlays">
+        <DCArtboard id="E" label="E — Compare Mode (2 selected → split view)" width={1280} height={860}>
+          <GalleryMockup variant="border" nav="sidebar" cols={6} items={RECENT_ITEMS}
+            showCompare={true} />
+        </DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
