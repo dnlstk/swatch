@@ -1017,7 +1017,10 @@ function updatePromptBadge(key){
   if(!card)return;
   const existing=card.querySelector('.lora-card-prompt-badge');
   if(hasPromptData(key)){
-    if(!existing){card.insertAdjacentHTML('beforeend','<span class="lora-card-prompt-badge">P</span>');}
+    if(!existing){
+      const nameRow=card.querySelector('.lora-card-name-row');
+      if(nameRow)nameRow.insertAdjacentHTML('beforeend','<span class="lora-card-prompt-badge">P</span>');
+    }
   }else{
     if(existing)existing.remove();
   }
@@ -3029,12 +3032,14 @@ function mkLoraCard(l){
     +statusBadge
     +favBtn
     +adultBadge
-    +promptBadge
-    +'<div class="lora-card-overlay"><div class="lora-card-footer">'
-    +'<div class="lora-card-name">'+l.model_name+'</div>'
+    +'<div class="lora-card-overlay"></div>'
+    +'<div class="lora-card-footer">'
+    +'<div class="lora-card-name-row"><div class="lora-card-name">'+l.model_name+'</div>'
     +(type?'<div class="lora-card-type">'+type+'</div>':'')
+    +promptBadge
+    +'</div>'
     +'<div class="lora-card-actions">'+enableBtn+infoBtn+'</div>'
-    +'</div></div>'
+    +'</div>'
     +'</div>';
 }
 
