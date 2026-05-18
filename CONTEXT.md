@@ -125,6 +125,15 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 **Backlog:**
 - **Per-LoRA weight override on active LoRAs** — right-click a LoRA trigger chip (in the right panel) to set a one-off weight for this generation, without changing the LoRA's saved default. Currently you have to disable → change default → re-enable, which breaks flow.
 
+**Recently shipped (Claude Code session 30 — Git repo + design session prep):**
+- **GitHub repo created** — private repo at `https://github.com/dnlstk/prompt-gen` (@dnlstk). GitHub CLI (`gh`) installed and authenticated. All source files tracked: app.js, comfy-prompt-gen.html, CONTEXT.md, ROADMAP.md, electron-app/ (copied into _tools/ for now), fonts/. `.gitignore` excludes app-data.json, lora-images/, Archive/, node_modules/, dist/. Commits happen at end of sessions.
+- **Screenshots folder** — `screenshots/` in repo with current-state captures of all tabs (Generate image/video/img2img, LoRAs grid/detail, Gallery grid/detail). End-of-session checklist updated to include screenshot capture as step 6.
+- **Claude Design summary** — wrote `claude-design-summary.txt` as a handoff doc for Claude Design sessions (what each tab does, recent changes, in-progress/broken items).
+- **DESIGN_NOTES.md** — Claude Design session completed covering Generate and LoRAs tab redesign. Establishes new design language: light-mode-primary, floating panel system, warm off-white palette (P1) + midnight dark palette (P2), Craft/Things aesthetic. Key decisions: no Generate tab sidebar (replaced with inline management), panel-on-left for active tools / panel-on-right for inspectors, global queue bar, collections as tab strip not sidebar. Gallery tab design is next.
+- **Video-mode sidebar bug fixed** — `.video-mode` class stayed on `.app` when switching tabs, locking the sidebar (pointer-events:none) on LoRAs/Gallery tabs. Fixed in `switchTab()`: remove class when leaving Generate, restore when returning if still in video mode.
+- **Housekeeping note** — electron-app files are currently duplicated (canonical at `~/Tools/ComfyUI/electron-app/`, copy in `_tools/electron-app/` for git). Need to consolidate into `_tools/` in a future session so both the running app and the repo point to the same files.
+- **No rebuild needed** — only app.js changed (video-mode fix), served live.
+
 **Recently shipped (Claude Code session 29 — Wave 4: Video Generation):**
 - **Video sub-tab in Generate** — Image|Video toggle buttons below the main tabs. Switching to Video hides the LoRA panel, tag categories, subject/xneg textareas, and image send config. Shows video-specific UI instead. Mode persists in localStorage across reloads.
 - **Video prompt area** — full-width textarea with motion-oriented placeholder. Separate from the image Subject field.
