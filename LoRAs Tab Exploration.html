@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prompt Gen — LoRAs Tab Exploration</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{background:#111}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel">
+
+/* ══ PALETTES ══════════════════════════════════════ */
+const P1 = {
+  bg:'#F5F4F0',chrome:'#EDEBE6',panel:'#FFFFFF',
+  surface:'#E6E4DE',surface2:'#DFDDDA',
+  border:'rgba(0,0,0,0.08)',border2:'rgba(0,0,0,0.14)',
+  text:'#1A1917',muted:'#78756E',muted2:'#B2B0A9',
+  orange:'#D96A14',orangeSoft:'rgba(217,106,20,0.09)',
+  green:'#047857',amber:'#92400E',blue:'#1D4ED8',red:'#B91C1C',
+  shadow:'0 0 0 1px rgba(0,0,0,0.06), 0 8px 40px rgba(0,0,0,0.12)',
+  mode:'light',
+};
+const P2 = {
+  bg:'#090909',chrome:'#0f0f11',panel:'#131315',
+  surface:'#161618',surface2:'#1d1d20',
+  border:'rgba(255,255,255,0.07)',border2:'rgba(255,255,255,0.13)',
+  text:'#E8E8E6',muted:'#6B6B72',muted2:'#3D3D44',
+  orange:'#FB923C',orangeSoft:'rgba(251,146,60,0.10)',
+  green:'#34D399',amber:'#F59E0B',blue:'#818CF8',red:'#F87171',
+  shadow:'0 0 0 1px rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.8)',
+  mode:'dark',
+};
+
+/* ══ DATA ══════════════════════════════════════════ */
+const TYPE_L = {Character:'#0891B2',Style:'#7C3AED',Clothing:'#BE185D',Pose:'#059669',Concept:'#D97706'};
+const TYPE_D = {Character:'#67E8F9',Style:'#A78BFA',Clothing:'#F472B6',Pose:'#34D399',Concept:'#FB923C'};
+const STATUS_C = {verified:'#22C55E',testing:'#F59E0B',bad:'#EF4444'};
+const GRADS = [
+  ['#12062A','#3A1060'],['#051020','#103A5A'],['#1A0A04','#4A2010'],
+  ['#04120E','#102A20'],['#180404','#480A0A'],['#0A0A12','#1A1A36'],
+  ['#0A1208','#182A0E'],['#181008','#3A2818'],['#040A18','#0A183A'],
+];
+const LORAS = [
+  {name:'CyberSijren',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:0},
+  {name:'Holographic color style',type:'Concept',status:'verified',fav:false,enabled:false,adult:false,g:1},
+  {name:'Western Toon Style',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:2},
+  {name:'Arcane style | Goofy Ai',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:3},
+  {name:'Cartoon styles',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:4},
+  {name:'INCS',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:5},
+  {name:'厚塗り / ATNR STYLE',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:6},
+  {name:'Illustrious Realism Enhancer',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:7},
+  {name:'Cryosibilum Style | Illustrious',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:8},
+  {name:'Deimos',type:'Character',status:'verified',fav:true,enabled:true,adult:false,g:0},
+  {name:"Velvet's Mythic Fantasy",type:'Style',status:'testing',fav:false,enabled:false,adult:false,g:1},
+  {name:"not HL's styles",type:'Style',status:'verified',fav:false,enabled:false,adult:true,g:2},
+  {name:'MY NEW FANTASY – ILL',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:3},
+  {name:'Samurai Jack – ArtStyle',type:'Character',status:'verified',fav:true,enabled:true,adult:false,g:4},
+  {name:'Aertsy',type:'Style',status:'verified',fav:false,enabled:true,adult:false,g:5},
+  {name:'Nova Comic XL',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:6},
+  {name:'MidJourney Aesthetics',type:'Style',status:'testing',fav:false,enabled:false,adult:false,g:7},
+  {name:'Botanical Horror',type:'Concept',status:'verified',fav:false,enabled:false,adult:false,g:8},
+  {name:'Graphic Novel Lines',type:'Style',status:'testing',fav:false,enabled:false,adult:false,g:0},
+  {name:'Hyperrealistic Skin',type:'Style',status:'bad',fav:false,enabled:false,adult:true,g:1},
+  {name:'Illustrious 2.0 Boost',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:2},
+];
+
+/* ══ TITLE BAR ════════════════════════════════════ */
+const TL = () => (
+  <div style={{display:'flex',gap:8,padding:'0 16px',alignItems:'center',flexShrink:0}}>
+    {['#FF5F57','#FEBC2E','#28C840'].map(c=>(
+      <div key={c} style={{width:12,height:12,borderRadius:'50%',background:c,border:'0.5px solid rgba(0,0,0,0.18)'}} />
+    ))}
+  </div>
+);
+
+const TitleBar = ({p}) => (
+  <div style={{height:46,background:p.chrome,display:'flex',alignItems:'center',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+    <TL />
+    <div style={{width:1,height:20,background:p.border2,margin:'0 4px',flexShrink:0}} />
+    <div style={{display:'flex',alignItems:'center',gap:2,padding:'0 4px'}}>
+      {[{l:'Generate',a:false},{l:'LoRAs',a:true,badge:'3'},{l:'Gallery',a:false,badge:'642',bo:true}].map(t=>(
+        <button key={t.l} style={{padding:'4px 13px',borderRadius:6,border:`1px solid ${t.a?p.border2:'transparent'}`,background:t.a?p.surface:'transparent',color:t.a?p.text:p.muted,fontSize:13,fontWeight:t.a?500:400,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,userSelect:'none'}}>
+          {t.l}
+          {t.badge && <span style={{fontFamily:'Space Mono',fontSize:9,color:t.bo?p.orange:p.muted}}>○{t.badge}</span>}
+        </button>
+      ))}
+    </div>
+    <div style={{flex:1}} />
+    <div style={{display:'flex',alignItems:'center',gap:2,padding:'0 16px'}}>
+      {['SDXL','PONY','ILLUS'].map(m=>(
+        <button key={m} style={{padding:'3px 9px',borderRadius:5,border:`1px solid ${m==='ILLUS'?p.green:'transparent'}`,background:m==='ILLUS'?`${p.green}18`:'transparent',color:m==='ILLUS'?p.green:p.muted,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>{m}</button>
+      ))}
+      <div style={{width:1,height:16,background:p.border2,margin:'0 5px'}} />
+      <button style={{width:26,height:26,borderRadius:5,border:'none',background:'transparent',color:p.muted,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>☀</button>
+      <button style={{padding:'2px 7px',borderRadius:5,border:`1px solid ${p.blue}44`,background:`${p.blue}10`,color:p.blue,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>⍜ Brut</button>
+      <div style={{width:1,height:16,background:p.border2,margin:'0 5px'}} />
+      <button style={{width:26,height:26,borderRadius:5,border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⊡</button>
+    </div>
+  </div>
+);
+
+/* ══ FILTER + COLLECTION TABS ═════════════════════ */
+const FilterBar = ({p}) => (
+  <div style={{margin:'8px 16px 0',background:p.panel,border:`1px solid ${p.border}`,borderRadius:8,padding:'6px 12px',display:'flex',alignItems:'center',gap:8,flexShrink:0,boxShadow:p.mode==='light'?'0 1px 4px rgba(0,0,0,0.06)':'0 1px 6px rgba(0,0,0,0.3)'}}>
+    <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:p.surface2,border:`1px solid ${p.border}`,borderRadius:6,width:200,cursor:'text',flexShrink:0}}>
+      <span style={{color:p.muted,opacity:0.55,fontSize:13}}>⌕</span>
+      <span style={{fontFamily:'Space Mono',fontSize:11,color:p.muted2}}>search loras…</span>
+    </div>
+    <div style={{display:'flex',gap:3}}>
+      {['All','Favs'].map((f,i)=>(
+        <button key={f} style={{padding:'3px 10px',borderRadius:5,border:`1px solid ${i===0?p.border2:'transparent'}`,background:i===0?p.surface:'transparent',color:i===0?p.text:p.muted,fontFamily:'Space Mono',fontSize:10,cursor:'pointer'}}>{f}</button>
+      ))}
+    </div>
+    <div style={{width:1,height:16,background:p.border2}} />
+    <button style={{padding:'3px 10px',borderRadius:5,border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:10,cursor:'pointer'}}>Verified: All ▾</button>
+    <button style={{padding:'3px 10px',borderRadius:5,border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:10,cursor:'pointer'}}>Cleaned: All ▾</button>
+    <div style={{flex:1}} />
+    <span style={{fontFamily:'Space Mono',fontSize:10,color:p.muted,flexShrink:0}}>234 loaded</span>
+  </div>
+);
+
+// Collections as a lightweight tab strip — no sidebar needed
+const CollectionTabs = ({p}) => (
+  <div style={{margin:'5px 16px 0',display:'flex',alignItems:'center',gap:3}}>
+    {[
+      {label:'All LoRAs',count:234,active:false},
+      {label:'Stylish',count:8,active:true},
+      {label:'Uncategorized',count:223,active:false},
+    ].map(col=>(
+      <button key={col.label} style={{padding:'4px 12px',borderRadius:6,border:`1px solid ${col.active?p.border2:'transparent'}`,background:col.active?p.surface:'transparent',color:col.active?p.text:p.muted,fontSize:12,fontWeight:col.active?500:400,cursor:'pointer',display:'flex',alignItems:'center',gap:6,userSelect:'none'}}>
+        {col.label}
+        <span style={{fontFamily:'Space Mono',fontSize:9,color:p.muted}}>{col.count}</span>
+      </button>
+    ))}
+    <button style={{marginLeft:'auto',padding:'3px 10px',borderRadius:5,border:`1px dashed ${p.border2}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>+ collection</button>
+  </div>
+);
+
+/* ══ LORA CARD ════════════════════════════════════ */
+// All elements float over the image — no solid bar below
+const LoraCard = ({p, name, type, status, fav, enabled, adult=false, g=0, imgSrc=null}) => {
+  const [c1,c2] = GRADS[g % GRADS.length];
+  const tc = (p.mode==='light' ? TYPE_L : TYPE_D)[type] || p.muted;
+  const sc = STATUS_C[status] || p.muted;
+  return (
+    <div style={{borderRadius:10,overflow:'hidden',border:`1.5px solid ${enabled?p.orange+'88':tc+'33'}`,position:'relative',aspectRatio:'2/3',cursor:'pointer',boxShadow:enabled?`0 0 0 1px ${p.orange}22,inset 0 0 0 1px ${p.orange}11`:'none'}}>
+      {/* Background */}
+      {imgSrc
+        ? <img src={imgSrc} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'top'}} />
+        : <>
+            <div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${c1},${c2})`}} />
+            <div style={{position:'absolute',inset:0,background:'repeating-linear-gradient(45deg,rgba(255,255,255,0.018) 0,rgba(255,255,255,0.018) 1px,transparent 0,transparent 14px)'}} />
+          </>
+      }
+      {/* Gradient overlay — bottom 68% */}
+      <div style={{position:'absolute',bottom:0,left:0,right:0,height:'68%',background:'linear-gradient(to top,rgba(0,0,0,0.94) 0%,rgba(0,0,0,0.55) 40%,transparent 100%)'}} />
+      {/* Status — square pill top left */}
+      <div style={{position:'absolute',top:7,left:7,padding:'2px 7px',borderRadius:5,background:sc,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,color:'#fff',fontWeight:700,lineHeight:1}}>{status==='verified'?'✓':status==='testing'?'T':'✗'}</span>
+      </div>
+      {/* Top-right: adult ⍜ + fav ★ */}
+      <div style={{position:'absolute',top:6,right:7,display:'flex',gap:5,alignItems:'center'}}>
+        {adult && <span style={{fontSize:12,color:'rgba(167,139,250,0.95)',textShadow:'0 0 6px rgba(0,0,0,0.8)'}}>⍜</span>}
+        <span style={{fontSize:14,color:fav?'#FFD700':'rgba(255,255,255,0.2)',textShadow:fav?'0 0 6px rgba(255,215,0,0.5)':'none'}}>★</span>
+      </div>
+      {/* Name + type + P — sits above enable bar */}
+      <div style={{position:'absolute',bottom:36,left:8,right:8}}>
+        <div style={{fontSize:11,fontWeight:500,color:'#fff',lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:4,textShadow:'0 1px 6px rgba(0,0,0,0.7)'}}>{name}</div>
+        <div style={{display:'flex',alignItems:'center',gap:5}}>
+          <span style={{fontFamily:'Space Mono',fontSize:8,padding:'2px 7px',borderRadius:5,background:`${tc}66`,color:tc,border:`1px solid ${tc}88`,letterSpacing:'0.04em'}}>{type}</span>
+          <span style={{fontFamily:'Space Mono',fontSize:7,padding:'2px 5px',borderRadius:4,background:'rgba(255,255,255,0.14)',color:'rgba(255,255,255,0.65)',border:'1px solid rgba(255,255,255,0.22)',lineHeight:1}}>P</span>
+        </div>
+      </div>
+      {/* Enable + i — floating bar at very bottom */}
+      <div style={{position:'absolute',bottom:0,left:0,right:0,display:'flex',gap:4,padding:'5px',background:'rgba(0,0,0,0.62)'}}>
+        <button style={{flex:1,padding:'5px 0',borderRadius:5,border:`1px solid ${enabled?p.orange+'88':'rgba(255,255,255,0.2)'}`,background:enabled?`${p.orange}44`:'rgba(255,255,255,0.07)',color:enabled?p.orange:'rgba(255,255,255,0.75)',fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.04em',cursor:'pointer'}}>{enabled?'Enabled':'Enable'}</button>
+        <button style={{width:26,height:26,borderRadius:5,border:'1px solid rgba(255,255,255,0.2)',background:'rgba(255,255,255,0.07)',color:'rgba(255,255,255,0.7)',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Space Mono',flexShrink:0}}>i</button>
+      </div>
+    </div>
+  );
+};
+
+const CardGrid = ({p, loras}) => (
+  <div style={{flex:1,minWidth:0,overflowY:'auto',padding:'10px 16px'}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))',gap:8}}>
+      {loras.map((l,i)=><LoraCard key={i} p={p} {...l} />)}
+    </div>
+  </div>
+);
+
+/* ══ DETAIL PANEL (RIGHT) ═════════════════════════ */
+const DetailPanel = ({p}) => {
+  const TC = p.mode==='light' ? TYPE_L : TYPE_D;
+  return (
+    <div style={{width:440,flexShrink:0,background:p.panel,display:'flex',flexDirection:'column',height:'calc(100% - 20px)',margin:'10px 10px 10px 0',borderRadius:12,boxShadow:p.shadow,border:`1px solid ${p.border}`,overflow:'hidden'}}>
+      <div style={{padding:'14px 16px 10px',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:16,fontWeight:600,color:p.text,marginBottom:5}}>Deimos</div>
+            <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+              <span style={{fontFamily:'Space Mono',fontSize:9,padding:'2px 8px',borderRadius:10,background:`${TC.Character}14`,color:TC.Character,border:`1px solid ${TC.Character}40`}}>Character</span>
+              <span style={{fontFamily:'Space Mono',fontSize:9,padding:'2px 8px',borderRadius:10,background:'rgba(34,197,94,0.1)',color:'#16A34A',border:'1px solid rgba(34,197,94,0.28)'}}>✓ Verified</span>
+              <a style={{fontFamily:'Space Mono',fontSize:9,padding:'2px 8px',borderRadius:10,background:p.surface2,color:p.muted,border:`1px solid ${p.border}`,textDecoration:'none',cursor:'pointer'}}>↗ CivitAI</a>
+            </div>
+          </div>
+          <button style={{width:28,height:28,border:`1px solid ${p.border}`,borderRadius:6,background:'transparent',color:p.muted,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>✕</button>
+        </div>
+        <div style={{display:'flex',gap:2}}>
+          {['Overview','Notes','Settings'].map((t,i)=>(
+            <button key={t} style={{padding:'5px 12px',borderRadius:6,border:`1px solid ${i===0?p.border2:'transparent'}`,background:i===0?p.surface:'transparent',color:i===0?p.text:p.muted,fontSize:12,cursor:'pointer',fontWeight:i===0?500:400}}>{t}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'14px 16px'}}>
+        <div style={{display:'flex',gap:14,marginBottom:16}}>
+          <div style={{width:120,height:160,borderRadius:8,flexShrink:0,overflow:'hidden',position:'relative',border:`1px solid ${p.border}`}}>
+            <div style={{position:'absolute',inset:0,background:'linear-gradient(160deg,#0e0618,#2a0a4a)'}} />
+            <div style={{position:'absolute',inset:0,background:'repeating-linear-gradient(45deg,rgba(255,255,255,0.02) 0,rgba(255,255,255,0.02) 1px,transparent 0,transparent 14px)'}} />
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',gap:5,marginBottom:12,flexWrap:'wrap'}}>
+              {[{l:'✓',c:'#22C55E',a:true},{l:'⧗',c:p.amber,a:false},{l:'✗',c:p.red,a:false},{l:'★',c:'#D97706',a:true},{l:'⍜',c:p.blue,a:false}].map((b,i)=>(
+                <button key={i} style={{width:30,height:30,borderRadius:6,border:`1px solid ${b.a?b.c+'55':p.border}`,background:b.a?`${b.c}14`:'transparent',color:b.a?b.c:p.muted,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{b.l}</button>
+              ))}
+            </div>
+            <div style={{marginBottom:12}}>
+              <div style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:6}}>Default Strength</div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <div style={{flex:1,height:3,background:p.surface2,borderRadius:2,position:'relative'}}>
+                  <div style={{width:'80%',height:'100%',background:p.orange,borderRadius:2}} />
+                  <div style={{position:'absolute',left:'80%',top:'50%',transform:'translate(-50%,-50%)',width:10,height:10,borderRadius:'50%',background:p.orange,border:`2px solid ${p.panel}`}} />
+                </div>
+                <span style={{fontFamily:'Space Mono',fontSize:11,color:p.text,flexShrink:0,fontWeight:600}}>0.80</span>
+              </div>
+            </div>
+            <div style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,padding:'5px 8px',background:p.surface2,borderRadius:5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              d3imos_v2.safetensors
+            </div>
+          </div>
+        </div>
+        {/* Trigger words — "click to copy" removed */}
+        <div style={{marginBottom:14}}>
+          <div style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:7}}>Trigger Words</div>
+          <div style={{padding:'9px 11px',background:p.surface2,border:`1px solid ${p.border}`,borderRadius:7,fontFamily:'Space Mono',fontSize:11,color:p.muted,lineHeight:1.7,cursor:'pointer'}}>
+            *d3im0s, colored skin, grey skin, facial mark, *no eyes, *no nose, *no eyebrows, *no mouth, *bald, bandaged head, visor cap, black jacket…
+          </div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <div style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:7}}>Notes</div>
+          <div style={{padding:'9px 11px',background:p.surface2,border:`1px solid ${p.border}`,borderRadius:7,fontSize:13,color:p.muted,lineHeight:1.65}}>
+            Character LoRA for Deimos — bandaged, faceless figure. Works best at 0.75–0.85 with Illustrious. Avoid stacking with other character LoRAs.
+          </div>
+        </div>
+      </div>
+      <div style={{padding:'10px 16px',borderTop:`1px solid ${p.border}`,display:'flex',gap:8,flexShrink:0}}>
+        <button style={{flex:1,padding:'8px',border:`1px solid ${p.border}`,borderRadius:7,background:'transparent',color:p.muted,fontSize:13,cursor:'pointer',fontFamily:'Space Mono'}}>✎ Edit</button>
+        <button style={{flex:1,padding:'8px',border:`1px solid ${p.border}`,borderRadius:7,background:'transparent',color:p.muted,fontSize:13,cursor:'pointer'}}>Close</button>
+      </div>
+    </div>
+  );
+};
+
+/* ══ REAL IMAGE DATA ══════════════════════════════ */
+const LORAS_IMG = [
+  {name:'CyberSijren',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:0,imgSrc:'uploads/3Y3S_style.jpeg'},
+  {name:'Holographic color style',type:'Concept',status:'verified',fav:false,enabled:false,adult:false,g:1,imgSrc:'uploads/0_11Xx_B.jpeg'},
+  {name:'Western Toon Style',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:2,imgSrc:'uploads/748cm_C.jpeg'},
+  {name:'Arcane style',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:3,imgSrc:'uploads/11e10.jpeg'},
+  {name:'Cartoon styles',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:4,imgSrc:'uploads/6BDf4N7yeKYYNXC.jpeg'},
+  {name:'INCS',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:5,imgSrc:'uploads/0dor1_kus1miy4.jpeg'},
+  {name:'厚塗り / ATNR STYLE',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:6},
+  {name:'Illustrious Realism Enhancer',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:7},
+  {name:'Cryosibilum Style',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:8},
+  {name:'Deimos',type:'Character',status:'verified',fav:true,enabled:true,adult:false,g:0},
+  {name:"Velvet's Mythic Fantasy",type:'Style',status:'testing',fav:false,enabled:false,adult:false,g:1},
+  {name:"not HL's styles",type:'Style',status:'verified',fav:false,enabled:false,adult:true,g:2},
+  {name:'MY NEW FANTASY – ILL',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:3},
+  {name:'Samurai Jack – ArtStyle',type:'Character',status:'verified',fav:true,enabled:true,adult:false,g:4},
+];
+
+/* ══ CARD STATES ARTBOARD ═════════════════════════ */
+// Shows every badge/state combination clearly labeled
+const CardStatesDemo = ({p}) => {
+  const states = [
+    {name:'Normal LoRA',type:'Style',status:'verified',fav:false,enabled:false,adult:false,g:0},
+    {name:'Enabled + Active',type:'Style',status:'verified',fav:false,enabled:true,adult:false,g:1},
+    {name:'Favorited',type:'Character',status:'verified',fav:true,enabled:false,adult:false,g:2},
+    {name:'Enabled + Fav + P',type:'Character',status:'verified',fav:true,enabled:true,adult:false,g:3},
+    {name:'Adult / Brut',type:'Style',status:'verified',fav:false,enabled:false,adult:true,g:4},
+    {name:'Adult + Fav',type:'Concept',status:'verified',fav:true,enabled:false,adult:true,g:5},
+    {name:'Testing status',type:'Style',status:'testing',fav:false,enabled:false,adult:false,g:6},
+    {name:'Bad status',type:'Style',status:'bad',fav:false,enabled:false,adult:false,g:7},
+    {name:'Concept type',type:'Concept',status:'verified',fav:false,enabled:false,adult:false,g:8},
+    {name:'Character type',type:'Character',status:'verified',fav:false,enabled:false,adult:false,g:0},
+    {name:'Clothing type',type:'Clothing',status:'verified',fav:false,enabled:false,adult:false,g:1},
+    {name:'Pose type',type:'Pose',status:'verified',fav:false,enabled:false,adult:false,g:2},
+  ];
+  const labelStyle = {fontFamily:'Space Mono',fontSize:9,color:p.muted,textAlign:'center',marginTop:5,letterSpacing:'0.04em'};
+  return (
+    <div style={{width:1440,height:900,background:p.bg,fontFamily:"'Poppins',sans-serif",color:p.text,overflow:'hidden'}}>
+      <TitleBar p={p} />
+      <div style={{padding:'20px 28px'}}>
+        <div style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.15em',color:p.muted,textTransform:'uppercase',marginBottom:16}}>Card States Reference</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(12,1fr)',gap:10}}>
+          {states.map((s,i)=>(
+            <div key={i}>
+              <LoraCard p={p} {...s} />
+              <div style={labelStyle}>{s.name}</div>
+            </div>
+          ))}
+        </div>
+        {/* Type border legend */}
+        <div style={{marginTop:24,display:'flex',gap:16,alignItems:'center'}}>
+          <span style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,textTransform:'uppercase',letterSpacing:'0.1em'}}>Type border colors:</span>
+          {Object.entries(p.mode==='light'?TYPE_L:TYPE_D).map(([t,c])=>(
+            <div key={t} style={{display:'flex',alignItems:'center',gap:5}}>
+              <div style={{width:20,height:3,borderRadius:2,background:c}} />
+              <span style={{fontFamily:'Space Mono',fontSize:9,color:p.muted}}>{t}</span>
+            </div>
+          ))}
+          <span style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,marginLeft:12}}>Status dots:</span>
+          {Object.entries(STATUS_C).map(([s,c])=>(
+            <div key={s} style={{display:'flex',alignItems:'center',gap:5}}>
+              <div style={{width:7,height:7,borderRadius:'50%',background:c}} />
+              <span style={{fontFamily:'Space Mono',fontSize:9,color:p.muted}}>{s}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══ FULL SCREEN MOCK ═════════════════════════════ */
+const MockLorasScreen = ({p, showPanel=false}) => (
+  <div style={{width:1440,height:900,background:p.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:p.text}}>
+    <TitleBar p={p} />
+    <FilterBar p={p} />
+    <CollectionTabs p={p} />
+    <div style={{flex:1,display:'flex',overflow:'hidden',marginTop:6}}>
+      <CardGrid p={p} loras={showPanel?LORAS.slice(0,14):LORAS} />
+      {showPanel && <DetailPanel p={p} />}
+    </div>
+  </div>
+);
+
+/* ══ APP ════════════════════════════════════════════ */
+const App = () => (
+  <DesignCanvas>
+    <DCSection id="loras" title="LoRAs Tab">
+      <DCArtboard id="l1" label="1 — Light · Grid view" width={1440} height={900}>
+        <MockLorasScreen p={P1} />
+      </DCArtboard>
+      <DCArtboard id="l2" label="2 — Light · Detail panel open" width={1440} height={900}>
+        <MockLorasScreen p={P1} showPanel={true} />
+      </DCArtboard>
+      <DCArtboard id="l3" label="3 — Dark · Grid view" width={1440} height={900}>
+        <MockLorasScreen p={P2} />
+      </DCArtboard>
+      <DCArtboard id="l4" label="4 — Dark · Detail panel open" width={1440} height={900}>
+        <MockLorasScreen p={P2} showPanel={true} />
+      </DCArtboard>
+    </DCSection>
+    <DCSection id="card-states" title="Card States Reference">
+      <DCArtboard id="cs1" label="5 — Light · All card states" width={1440} height={900}>
+        <CardStatesDemo p={P1} />
+      </DCArtboard>
+      <DCArtboard id="cs2" label="6 — Dark · All card states" width={1440} height={900}>
+        <CardStatesDemo p={P2} />
+      </DCArtboard>
+    </DCSection>
+    <DCSection id="real-imgs" title="Cards with Real Images">
+      <DCArtboard id="ri1" label="7 — Light · Real LoRA images" width={1440} height={900}>
+        <div style={{width:1440,height:900,background:P1.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:P1.text}}>
+          <TitleBar p={P1} />
+          <FilterBar p={P1} />
+          <CollectionTabs p={P1} />
+          <CardGrid p={P1} loras={LORAS_IMG} />
+        </div>
+      </DCArtboard>
+      <DCArtboard id="ri2" label="8 — Dark · Real LoRA images" width={1440} height={900}>
+        <div style={{width:1440,height:900,background:P2.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:P2.text}}>
+          <TitleBar p={P2} />
+          <FilterBar p={P2} />
+          <CollectionTabs p={P2} />
+          <CardGrid p={P2} loras={LORAS_IMG} />
+        </div>
+      </DCArtboard>
+    </DCSection>
+  </DesignCanvas>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

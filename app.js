@@ -179,8 +179,6 @@ async function init(){
     document.body.classList.add('light');
     const btn=document.getElementById('theme-btn');
     if(btn)btn.textContent='🌙';
-    const cb=document.getElementById('collapsed-theme-btn');
-    if(cb)cb.textContent='🌙';
   }
   renderTagSections();
   renderHistory();
@@ -297,7 +295,7 @@ async function saveAppData(){
 // ===================== MODEL =====================
 function setModel(m){
   model=m;
-  document.querySelectorAll('.mbtn,.cmbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.mbtn,.cmbtn,.titlebar-btn[data-m]').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll(`[data-m="${m}"]`).forEach(b=>b.classList.add('active'));
   const mn=document.getElementById('model-notice');if(mn)mn.classList.toggle('visible',m!=='sdxl');
   renderTagSections();
@@ -475,17 +473,21 @@ function renderLoraNav(){
 function scrollToCategory(id){
   const el=document.getElementById('sec-'+id);
   if(!el)return;
-  const tabsH=(document.querySelector('.tabs')?.offsetHeight||48)+12;
-  const top=el.getBoundingClientRect().top+document.documentElement.scrollTop-tabsH;
-  document.documentElement.scrollTo({top,behavior:'smooth'});
+  const main=document.querySelector('.main');
+  if(!main)return;
+  const mainTop=main.getBoundingClientRect().top;
+  const elTop=el.getBoundingClientRect().top;
+  main.scrollTo({top:main.scrollTop+(elTop-mainTop)-12,behavior:'smooth'});
 }
 
 function scrollToLoraSection(id){
   const el=document.getElementById('lsec-'+id);
   if(!el)return;
-  const tabsH=(document.querySelector('.tabs')?.offsetHeight||48)+12;
-  const top=el.getBoundingClientRect().top+document.documentElement.scrollTop-tabsH;
-  document.documentElement.scrollTo({top,behavior:'smooth'});
+  const main=document.querySelector('.main');
+  if(!main)return;
+  const mainTop=main.getBoundingClientRect().top;
+  const elTop=el.getBoundingClientRect().top;
+  main.scrollTo({top:main.scrollTop+(elTop-mainTop)-12,behavior:'smooth'});
 }// LoRA collection nav drag
 let _loraNavDragSrc=null;
 function loraNavDragStart(e,id){_loraNavDragSrc=id;e.dataTransfer.effectAllowed='move';}
@@ -542,9 +544,11 @@ function navDrop(e,cid){
 function scrollTo(id){
   const el=document.getElementById('sec-'+id);
   if(!el)return;
-  const tabsH=document.querySelector('.tabs')?.offsetHeight||48;
-  const top=el.getBoundingClientRect().top+window.scrollY-tabsH-12;
-  window.scrollTo({top,behavior:'smooth'});
+  const main=document.querySelector('.main');
+  if(!main)return;
+  const mainTop=main.getBoundingClientRect().top;
+  const elTop=el.getBoundingClientRect().top;
+  main.scrollTo({top:main.scrollTop+(elTop-mainTop)-12,behavior:'smooth'});
 }
 // ===================== TAG SECTIONS =====================
 function getCollapsedCats(){
@@ -577,7 +581,7 @@ function renderTagSections(){
     const div=document.createElement('div');
     div.className='tgroup'+(isCollapsed?' collapsed':'');div.id='sec-'+cat.id;
     div.innerHTML=`
-      <div class="theader">
+      <div class="theader" onclick="toggleCatCollapse('${cat.id}')">
         <span class="cat-group-chev">▾</span>
         <div class="ttitle"><span class="ttitle-dot" style="background:${cat.color}"></span>${cat.label}</div>
         ${activeCount>0?`<span class="cat-active-badge" style="background:${cat.color}22;color:${cat.color}">${activeCount}</span>`:''}
@@ -754,7 +758,7 @@ function toggleTagBrut(cid,tag){
 function toggleTagBrutFilter(){
   const isHidden=document.body.classList.contains('hide-tag-brut');
   document.body.classList.toggle('hide-tag-brut',!isHidden);
-  document.querySelectorAll('#tags-brut-btn,#cgal-brut-tags').forEach(b=>{
+  document.querySelectorAll('#tags-brut-btn').forEach(b=>{
     b.classList.toggle('adult-active',isHidden);
     b.classList.toggle('active',isHidden);
   });
@@ -1013,7 +1017,10 @@ function updatePromptBadge(key){
   if(!card)return;
   const existing=card.querySelector('.lora-card-prompt-badge');
   if(hasPromptData(key)){
-    if(!existing){card.insertAdjacentHTML('beforeend','<span class="lora-card-prompt-badge">P</span>');}
+    if(!existing){
+      const nameRow=card.querySelector('.lora-card-name-row');
+      if(nameRow)nameRow.insertAdjacentHTML('beforeend','<span class="lora-card-prompt-badge">P</span>');
+    }
   }else{
     if(existing)existing.remove();
   }
@@ -2622,7 +2629,7 @@ function promptAddToCol(colId){
 
 function toggleAdult(){
   showAdult=!showAdult;
-  document.querySelectorAll('#ladult-btn,#cgal-brut-lora').forEach(b=>{
+  document.querySelectorAll('#ladult-btn').forEach(b=>{
     b.classList.toggle('adult-active',showAdult);
     b.classList.toggle('active',showAdult);
   });
@@ -3025,12 +3032,14 @@ function mkLoraCard(l){
     +statusBadge
     +favBtn
     +adultBadge
-    +promptBadge
-    +'<div class="lora-card-overlay"><div class="lora-card-footer">'
-    +'<div class="lora-card-name">'+l.model_name+'</div>'
+    +'<div class="lora-card-overlay"></div>'
+    +'<div class="lora-card-footer">'
+    +'<div class="lora-card-name-row"><div class="lora-card-name">'+l.model_name+'</div>'
     +(type?'<div class="lora-card-type">'+type+'</div>':'')
+    +promptBadge
+    +'</div>'
     +'<div class="lora-card-actions">'+enableBtn+infoBtn+'</div>'
-    +'</div></div>'
+    +'</div>'
     +'</div>';
 }
 
@@ -3195,12 +3204,10 @@ function toggleTabVisibility(tabName,visible){
 }
 function applyTabVisibility(){
   const hidden=(appData.settings?.hiddenTabs)||['history','presets'];
-  const tabMap=['tags','loras','checkpoints','history','presets','gallery'];
-  const tabEls=document.querySelectorAll('.tabs > .tab');
-  tabMap.forEach((name,i)=>{
-    if(!tabEls[i])return;
+  document.querySelectorAll('.tab[data-tab]').forEach(el=>{
+    const name=el.dataset.tab;
     if(['tags','loras','gallery'].includes(name))return;
-    tabEls[i].style.display=hidden.includes(name)?'none':'';
+    el.style.display=hidden.includes(name)?'none':'';
   });
 }
 function applyBrutSetting(hide){
@@ -3316,11 +3323,10 @@ function renderChangelog(){
 
 // ===================== TABS =====================
 function switchTab(tab){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab[data-tab]').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  const tabs=['tags','loras','checkpoints','history','presets','gallery'];
-  const idx=tabs.indexOf(tab);
-  if(idx>=0)document.querySelectorAll('.tab')[idx]?.classList.add('active');
+  const tabEl=document.querySelector(`.tab[data-tab="${tab}"]`);
+  if(tabEl)tabEl.classList.add('active');
   document.getElementById('panel-'+tab)?.classList.add('active');
   const app=document.querySelector('.app');
   app.classList.toggle('tags-tab-active', tab==='tags');
@@ -3355,7 +3361,7 @@ let _genMode = 'image';
 function switchGenMode(mode) {
   _genMode = mode;
   localStorage.setItem('cpg-gen-mode', mode);
-  document.querySelectorAll('.gen-subtab').forEach(t => t.classList.toggle('active', t.textContent.trim().toLowerCase() === mode));
+  document.querySelectorAll('.gen-subtab').forEach(t => t.classList.toggle('active', (t.dataset.mode || t.textContent.trim().toLowerCase()) === mode));
   document.querySelectorAll('.gen-sub-image').forEach(el => el.classList.toggle('active', mode === 'image'));
   document.querySelectorAll('.gen-sub-video').forEach(el => el.classList.toggle('active', mode === 'video'));
   document.querySelector('.app')?.classList.toggle('video-mode', mode === 'video');
@@ -3567,8 +3573,6 @@ function toggleTheme(){
   const light=document.body.classList.toggle('light');
   const icon=light?'🌙':'☀';
   document.getElementById('theme-btn').textContent=icon;
-  const cb=document.getElementById('collapsed-theme-btn');
-  if(cb)cb.textContent=icon;
   localStorage.setItem('cpg-theme',light?'light':'dark');
 }
 
@@ -4897,7 +4901,7 @@ function exitGallerySelectMode(){
   gallerySelectMode=false;
   gallerySelected.clear();
   _galleryLastClicked=null;
-  document.querySelectorAll('#gsc-select,#cgal-select').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#gsc-select').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.gthumb.gsel').forEach(c=>c.classList.remove('gsel'));
   document.querySelectorAll('.gallery-grid').forEach(g=>g.classList.remove('select-mode'));
   updateBulkBar();
@@ -4914,7 +4918,7 @@ function galleryCardClick(file,e){
     e.stopPropagation();
     if(!gallerySelectMode){
       gallerySelectMode=true;
-      document.querySelectorAll('#gsc-select,#cgal-select').forEach(b=>b.classList.add('active'));
+      document.querySelectorAll('#gsc-select').forEach(b=>b.classList.add('active'));
       document.querySelectorAll('.gallery-grid').forEach(g=>g.classList.add('select-mode'));
     }
     if(e.shiftKey&&_galleryLastClicked){
@@ -4945,7 +4949,7 @@ function galleryCardClick(file,e){
 
 function toggleGallerySelect(){
   gallerySelectMode=!gallerySelectMode;
-  document.querySelectorAll('#gsc-select,#cgal-select').forEach(b=>b.classList.toggle('active',gallerySelectMode));
+  document.querySelectorAll('#gsc-select').forEach(b=>b.classList.toggle('active',gallerySelectMode));
   if(!gallerySelectMode){
     gallerySelected.clear();
     _galleryLastClicked=null;
@@ -5130,9 +5134,6 @@ function toggleGallerySize(){
   galleryLargeCards=!galleryLargeCards;
   const label=galleryLargeCards?'Large':'Small';
   document.querySelectorAll('#gsc-size').forEach(b=>b.classList.toggle('active',galleryLargeCards));
-  const sizeLabel=document.getElementById('gsc-size-label');
-  if(sizeLabel)sizeLabel.textContent=label;
-  document.querySelectorAll('#cgal-size').forEach(b=>b.classList.toggle('active',galleryLargeCards));
   document.querySelectorAll('.gallery-grid').forEach(g=>g.classList.toggle('gallery-large',galleryLargeCards));
 }
 
@@ -5197,7 +5198,7 @@ function setGalleryCatFilter(id){
 // Gallery adult (Brut) toggle
 function toggleGalleryAdult(){
   showGalleryAdult=!showGalleryAdult;
-  document.querySelectorAll('#gsc-brut,#cgal-brut').forEach(b=>b.classList.toggle('active',showGalleryAdult));
+  document.querySelectorAll('#gsc-brut').forEach(b=>b.classList.toggle('active',showGalleryAdult));
   renderGalleryNav();
   renderGallery();
 }

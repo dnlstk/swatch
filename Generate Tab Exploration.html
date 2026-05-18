@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prompt Gen — Design Directions</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #111; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel">
+
+/* ══════════════════════════════════════════════════
+   PALETTES
+══════════════════════════════════════════════════ */
+
+const P1 = { // Warm Light
+  bg:'#F5F4F0', sidebar:'#EDEBE6', chrome:'#EDEBE6', panel:'#FFFFFF',
+  surface:'#E6E4DE', surface2:'#DFDDDA', surface3:'#D5D2CC',
+  border:'rgba(0,0,0,0.08)', border2:'rgba(0,0,0,0.14)',
+  text:'#1A1917', muted:'#78756E', muted2:'#B2B0A9',
+  orange:'#D96A14', orangeSoft:'rgba(217,106,20,0.09)',
+  purple:'#6D28D9', green:'#047857', amber:'#92400E',
+  blue:'#1D4ED8', pink:'#9D174D', cyan:'#0E7490', red:'#B91C1C',
+  shadow:'0 0 0 1px rgba(0,0,0,0.06), 0 8px 40px rgba(0,0,0,0.12)',
+  mode:'light',
+};
+
+const P2 = { // Midnight Refined
+  bg:'#090909', sidebar:'#0f0f11', chrome:'#0f0f11', panel:'#131315',
+  surface:'#161618', surface2:'#1d1d20', surface3:'#242427',
+  border:'rgba(255,255,255,0.07)', border2:'rgba(255,255,255,0.13)',
+  text:'#E8E8E6', muted:'#6B6B72', muted2:'#3D3D44',
+  orange:'#FB923C', orangeSoft:'rgba(251,146,60,0.10)',
+  purple:'#A78BFA', green:'#34D399', amber:'#F59E0B',
+  blue:'#818CF8', pink:'#F472B6', cyan:'#67E8F9', red:'#F87171',
+  shadow:'0 0 0 1px rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.8)',
+  mode:'dark',
+};
+
+const P3 = { // Studio — icon sidebar, cooler dark
+  bg:'#0C0C11', sidebar:'#131319', chrome:'#131319', panel:'#17171E',
+  surface:'#1C1C25', surface2:'#21212C', surface3:'#272733',
+  border:'rgba(255,255,255,0.06)', border2:'rgba(255,255,255,0.10)',
+  text:'#E0E0EE', muted:'#5E5E78', muted2:'#363648',
+  orange:'#FF6E2A', orangeSoft:'rgba(255,110,42,0.12)',
+  purple:'#9966FF', green:'#22EE88', amber:'#FFAA22',
+  blue:'#5588FF', pink:'#FF55AA', cyan:'#22DDFF', red:'#FF4455',
+  shadow:'0 0 0 1px rgba(255,255,255,0.04), 0 16px 60px rgba(0,0,0,0.95)',
+  mode:'dark',
+};
+
+/* ══════════════════════════════════════════════════
+   DATA
+══════════════════════════════════════════════════ */
+
+const CATS = [
+  { label:'Quality & Rating',     color:'#a78bfa' },
+  { label:'Physical Descriptors', color:'#34d399' },
+  { label:'Subject / Action',     color:'#fb923c' },
+  { label:'Style / Type',         color:'#818cf8' },
+  { label:'Lighting',             color:'#f59e0b' },
+  { label:'Camera / Focus',       color:'#67e8f9' },
+  { label:'Mood / Atmosphere',    color:'#f472b6' },
+  { label:'Color Palette',        color:'#94a3b8' },
+  { label:'Negative (avoid)',      color:'#f87171' },
+];
+
+const QUALITY = [
+  {l:'masterpiece',a:false},{l:'best quality',a:false},{l:'newest',a:false},
+  {l:'highres',a:true},{l:'8k',a:false},{l:'HDR',a:true},
+  {l:'ultra detailed',a:true},{l:'sharp detail',a:false},{l:'rating safe',a:false},
+];
+
+const PHYS = [
+  {l:'1boy',a:true},{l:'lean',a:false},{l:'muscular',a:false},
+  {l:'pale skin',a:true},{l:'dark skin',a:false},
+  {l:'short messy hair',a:true},{l:'stubble',a:false},{l:'beard',a:false},
+];
+
+const SUBJ = [
+  {l:'solitary figure',a:false},{l:'close-up face',a:false},
+  {l:'full body shot',a:false},{l:'solo',a:false},
+];
+
+/* ══════════════════════════════════════════════════
+   SHARED COMPONENTS
+══════════════════════════════════════════════════ */
+
+const TrafficLights = () => (
+  <div style={{display:'flex',gap:8,padding:'0 16px',alignItems:'center',flexShrink:0}}>
+    {['#FF5F57','#FEBC2E','#28C840'].map(c=>(
+      <div key={c} style={{width:12,height:12,borderRadius:'50%',background:c,border:'0.5px solid rgba(0,0,0,0.18)'}} />
+    ))}
+  </div>
+);
+
+const PGTabBar = ({p}) => (
+  <div style={{height:44,background:p.chrome,borderBottom:`1px solid ${p.border}`,display:'flex',alignItems:'center',padding:'0 24px',flexShrink:0}}>
+    {[
+      {l:'Generate',active:true,badge:null},
+      {l:'LoRAs',active:false,badge:'3',badgeOrange:false},
+      {l:'Gallery',active:false,badge:'642',badgeOrange:true},
+    ].map(t=>(
+      <div key={t.l} style={{height:'100%',display:'flex',alignItems:'center',gap:5,padding:'0 16px',fontSize:14,color:t.active?p.text:p.muted,borderBottom:t.active?`2px solid ${p.text}`:'2px solid transparent',cursor:'pointer',marginBottom:-1,userSelect:'none'}}>
+        {t.l}
+        {t.badge && <span style={{fontFamily:'Space Mono',fontSize:10,color:t.badgeOrange?p.orange:p.muted,letterSpacing:'0.02em'}}>○{t.badge}</span>}
+      </div>
+    ))}
+  </div>
+);
+
+const PGSidebar = ({p,iconOnly=false}) => {
+  const w = iconOnly ? 56 : 220;
+  if (iconOnly) return (
+    <div style={{width:w,flexShrink:0,background:p.sidebar,borderRight:`1px solid ${p.border}`,display:'flex',flexDirection:'column',height:'100%',alignItems:'center',padding:'10px 0',gap:2}}>
+      {CATS.map((cat,i)=>(
+        <div key={cat.label} title={cat.label} style={{width:38,height:38,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',background:i===0?`${cat.color}18`:'transparent',border:i===0?`1px solid ${cat.color}40`:`1px solid transparent`,transition:'all .12s'}}>
+          <div style={{width:8,height:8,borderRadius:'50%',background:cat.color,opacity:i===0?1:0.45}} />
+        </div>
+      ))}
+      <div style={{width:30,height:1,background:p.border,margin:'6px 0'}} />
+      <div style={{width:38,height:38,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:p.muted,fontSize:18,border:`1px dashed ${p.border2}`}}>+</div>
+      <div style={{flex:1}} />
+      <div style={{display:'flex',flexDirection:'column',gap:4,paddingBottom:8}}>
+        {['☀','⠿'].map(ic=>(
+          <div key={ic} style={{width:38,height:38,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:p.muted,fontSize:14}}>{ic}</div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{width:w,flexShrink:0,background:p.sidebar,borderRight:`1px solid ${p.border}`,display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+      {/* Model buttons */}
+      <div style={{padding:'10px 12px 12px',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+        <div style={{display:'flex',gap:4}}>
+          {['SDXL','PONY','ILLUS'].map(m=>(
+            <button key={m} style={{flex:1,padding:'5px 4px',border:`1px solid ${m==='ILLUS'?p.green:p.border}`,background:m==='ILLUS'?`${p.green}18`:'transparent',borderRadius:5,fontFamily:'Space Mono',fontSize:8,letterSpacing:'0.05em',color:m==='ILLUS'?p.green:p.muted,cursor:'pointer'}}>
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Categories label */}
+      <div style={{padding:'10px 14px 4px',fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.15em',color:p.muted2,textTransform:'uppercase',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+        <span>Categories</span>
+        <span style={{fontSize:16,lineHeight:1,color:p.muted,cursor:'pointer'}}>+</span>
+      </div>
+      {/* Nav */}
+      <div style={{flex:1,overflowY:'auto',padding:'2px 8px'}}>
+        {CATS.map((cat,i)=>(
+          <div key={cat.label} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 8px',borderRadius:5,cursor:'pointer',color:i===0?p.text:p.muted,background:i===0?p.surface:'transparent',border:`1px solid ${i===0?p.border:'transparent'}`,fontSize:13,marginBottom:1,userSelect:'none'}}>
+            <div style={{width:7,height:7,borderRadius:'50%',background:cat.color,flexShrink:0}} />
+            <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat.label}</span>
+            <span style={{fontFamily:'Space Mono',fontSize:9,background:p.surface2,padding:'1px 5px',borderRadius:8,color:p.muted,flexShrink:0}}>0</span>
+          </div>
+        ))}
+      </div>
+      {/* Bottom */}
+      <div style={{padding:'10px 12px 12px',borderTop:`1px solid ${p.border}`,flexShrink:0}}>
+        <div style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,marginBottom:8}}>0 tags · 3 LoRAs</div>
+        <button style={{width:'100%',padding:'6px 10px',border:`1px solid ${p.red}55`,background:'transparent',borderRadius:6,fontFamily:'Space Mono',fontSize:11,color:`${p.red}CC`,cursor:'pointer',marginBottom:6}}>✕ Clear all</button>
+        <div style={{display:'flex',gap:4}}>
+          <button style={{flex:1,padding:'5px 4px',border:`1px solid ${p.blue}40`,background:`${p.blue}10`,borderRadius:6,fontFamily:'Space Mono',fontSize:10,color:p.blue,cursor:'pointer'}}>⍜ Brut</button>
+          <button style={{width:28,height:28,border:`1px solid ${p.border}`,background:'transparent',borderRadius:6,color:p.muted,cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>☀</button>
+          <button style={{width:28,height:28,border:`1px solid ${p.border}`,background:'transparent',borderRadius:6,color:p.muted,cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center'}}>⠿</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PGChip = ({l,a,catColor,p}) => {
+  const col = a?(catColor||p.orange):p.muted;
+  const bg  = a?`${catColor||p.orange}18`:p.surface2;
+  const bdr = a?`${catColor||p.orange}88`:p.border2;
+  return (
+    <div style={{padding:'5px 13px',border:`1px solid ${bdr}`,borderRadius:18,background:bg,color:col,fontSize:13,cursor:'pointer',userSelect:'none',display:'inline-flex',alignItems:'center',gap:5,whiteSpace:'nowrap',flexShrink:0}}>
+      {l}
+      {a && <span style={{fontFamily:'Space Mono',fontSize:8,opacity:0.55}}>1.0</span>}
+    </div>
+  );
+};
+
+const PGCatSection = ({p,cat,chips}) => (
+  <div style={{marginBottom:24}}>
+    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+      <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'3px 10px 3px 6px',borderRadius:20,background:p.mode==='light'?'rgba(0,0,0,0.05)':'rgba(0,0,0,0.28)'}}>
+        <div style={{width:7,height:7,borderRadius:'50%',background:cat.color}} />
+        <span style={{fontFamily:'Space Mono',fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:p.muted,fontWeight:700}}>{cat.label}</span>
+      </div>
+      <span style={{marginLeft:'auto',fontFamily:'Space Mono',fontSize:10,color:p.muted,cursor:'pointer'}}>— clear</span>
+    </div>
+    <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+      {chips.map(c=><PGChip key={c.l} l={c.l} a={c.a} catColor={cat.color} p={p} />)}
+    </div>
+  </div>
+);
+
+const PGCenter = ({p}) => (
+  <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',background:p.bg,overflowY:'auto'}}>
+    {/* Image/Video toggle */}
+    <div style={{padding:'14px 24px 12px',flexShrink:0}}>
+      <div style={{display:'flex',gap:6}}>
+        {['IMAGE','VIDEO'].map((m,i)=>(
+          <button key={m} style={{padding:'5px 14px',border:`1px solid ${i===0?p.border2:p.border}`,borderRadius:6,background:i===0?p.surface:'transparent',color:i===0?p.text:p.muted,fontFamily:'Space Mono',fontSize:11,letterSpacing:'0.08em',cursor:'pointer',fontWeight:i===0?600:400}}>{m}</button>
+        ))}
+      </div>
+    </div>
+    {/* Subject */}
+    <div style={{padding:'0 24px 14px',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5,height:18}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.12em',color:p.muted,textTransform:'uppercase'}}>Subject</span>
+        <button style={{marginLeft:'auto',background:'transparent',border:`1px solid ${p.border}`,color:p.muted,width:22,height:18,borderRadius:4,fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⤢</button>
+      </div>
+      <div style={{padding:'10px 13px',background:p.surface2,border:`1px solid ${p.border}`,borderRadius:7,color:p.muted,fontSize:14,minHeight:72,lineHeight:1.55}}>
+        e.g. solitary figure in a ruined cathedral, wearing a long coat...
+      </div>
+    </div>
+    {/* Extra neg */}
+    <div style={{padding:'12px 24px 14px',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.12em',color:'#F87171',textTransform:'uppercase'}}>Extra Neg</span>
+        <button style={{marginLeft:'auto',background:'transparent',border:`1px solid ${p.border}`,color:p.muted,width:22,height:18,borderRadius:4,fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⤢</button>
+      </div>
+      <div style={{padding:'8px 12px',background:p.surface2,border:'1px solid rgba(248,113,113,0.16)',borderRadius:7,color:p.muted2,fontFamily:'Space Mono',fontSize:12,minHeight:50}}>
+        appended to negative — e.g. blurry, dof, bokeh
+      </div>
+    </div>
+    {/* Tag sections */}
+    <div style={{padding:'22px 24px',flex:1}}>
+      <PGCatSection p={p} cat={CATS[0]} chips={QUALITY} />
+      <PGCatSection p={p} cat={CATS[1]} chips={PHYS} />
+      <PGCatSection p={p} cat={CATS[2]} chips={SUBJ} />
+      {/* Fade out */}
+      <div style={{height:40,background:`linear-gradient(to bottom, transparent, ${p.bg})`,marginTop:-20,pointerEvents:'none'}} />
+    </div>
+  </div>
+);
+
+const TChip = ({label,req,active,p}) => {
+  const col = req?p.orange:(active?p.blue:p.muted);
+  const bg  = req?p.orangeSoft:(active?`${p.blue}14`:'transparent');
+  const bdr = req?`${p.orange}66`:(active?`${p.blue}55`:p.border2);
+  return (
+    <div style={{padding:'3px 10px',border:`1px solid ${bdr}`,borderRadius:14,background:bg,color:col,fontSize:12,display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap',flexShrink:0,cursor:req?'default':'pointer',userSelect:'none'}}>
+      {req && <span style={{fontSize:9,lineHeight:1}}>★</span>}
+      {label}
+    </div>
+  );
+};
+
+const PGRightPanel = ({p,floating=false}) => {
+  const outerStyle = floating ? {
+    width:380,flexShrink:0,background:p.panel,display:'flex',flexDirection:'column',
+    height:'calc(100% - 20px)',margin:'10px 10px 10px 0',
+    borderRadius:12,boxShadow:p.shadow,border:`1px solid ${p.border}`,overflow:'hidden',
+  } : {
+    width:380,flexShrink:0,background:p.panel,display:'flex',flexDirection:'column',
+    height:'100%',borderLeft:`1px solid ${p.border}`,overflow:'hidden',
+  };
+
+  return (
+    <div style={outerStyle}>
+      {/* Queue bar */}
+      <div style={{padding:'0 14px',height:40,borderBottom:`1px solid ${p.border}`,display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase',flexShrink:0}}>Queue</span>
+        <span style={{fontFamily:'Space Mono',fontSize:10,color:p.orange,flexShrink:0}}>3 · 45%</span>
+        <div style={{flex:1,height:3,background:p.surface2,borderRadius:2,overflow:'hidden',minWidth:0}}>
+          <div style={{width:'45%',height:'100%',background:p.orange,borderRadius:2}} />
+        </div>
+        {['■','✕'].map(ic=>(
+          <button key={ic} style={{padding:'2px 6px',border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,borderRadius:3,cursor:'pointer',flexShrink:0}}>{ic}</button>
+        ))}
+        <button style={{padding:'2px 6px',border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,borderRadius:3,cursor:'pointer',flexShrink:0}}>recent ▴</button>
+      </div>
+
+      {/* Recent thumbnails */}
+      <div style={{padding:'8px 14px',borderBottom:`1px solid ${p.border}`,display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,textTransform:'uppercase',letterSpacing:'0.1em',flexShrink:0}}>Recent</span>
+        <div style={{display:'flex',gap:5}}>
+          {[0,1,2].map(i=>(
+            <div key={i} style={{width:34,height:44,borderRadius:5,background:p.surface2,border:`1px solid ${i===0?p.orange+'55':p.border}`,flexShrink:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {i===0 && <div style={{width:'100%',height:'100%',background:`linear-gradient(135deg,${p.surface3},${p.surface2})`}} />}
+            </div>
+          ))}
+        </div>
+        <button style={{marginLeft:'auto',padding:'2px 8px',border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,borderRadius:4,cursor:'pointer',flexShrink:0}}>clear</button>
+      </div>
+
+      {/* LoRAs + Triggers */}
+      <div style={{flex:1,overflowY:'auto',padding:'12px 14px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+          <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase'}}>LoRAs</span>
+          <span style={{fontFamily:'Space Mono',fontSize:9,padding:'1px 7px',borderRadius:10,background:p.orangeSoft,color:p.orange}}>3 active</span>
+          <div style={{width:7,height:7,borderRadius:'50%',background:p.green,marginLeft:2}} />
+        </div>
+
+        {/* Triggers header */}
+        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:p.orange}} />
+          <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase'}}>Triggers</span>
+        </div>
+
+        {/* LoRA 1 */}
+        <div style={{marginBottom:14}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+            <span style={{fontSize:11,color:p.text,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>Samurai Jack – G. Tartakovsky</span>
+            <span style={{fontFamily:'Space Mono',fontSize:10,color:p.muted,flexShrink:0}}>×0.85</span>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+            <TChip label="s4ck-style" req={true} p={p} />
+            <TChip label="toon (style)" req={true} p={p} />
+          </div>
+        </div>
+
+        {/* LoRA 2 */}
+        <div style={{marginBottom:14,paddingTop:10,borderTop:`1px solid ${p.border}`}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+            <span style={{fontSize:11,color:p.text,fontWeight:500,flex:1}}>Aertsy</span>
+            <span style={{fontFamily:'Space Mono',fontSize:10,color:p.muted,flexShrink:0}}>×0.70</span>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:5,alignItems:'center'}}>
+            <TChip label="artsy" active={true} p={p} />
+            <TChip label="traditional media" active={true} p={p} />
+            <button style={{padding:'3px 10px',border:`1px solid ${p.border2}`,borderRadius:14,background:'transparent',color:p.muted,fontSize:11,fontFamily:'Space Mono',cursor:'pointer',flexShrink:0}}>Options 2/2 ▾</button>
+          </div>
+        </div>
+
+        {/* Embeddings */}
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',paddingTop:10,borderTop:`1px solid ${p.border}`}}>
+          <div style={{padding:'3px 10px',border:`1px solid ${p.blue}44`,borderRadius:14,background:`${p.blue}10`,color:p.blue,fontSize:12,display:'flex',alignItems:'center',gap:4}}>
+            <span>+</span><span>lazypos</span>
+          </div>
+          <div style={{padding:'3px 10px',border:`1px solid ${p.border2}`,borderRadius:14,background:'transparent',color:p.muted,fontSize:12,display:'flex',alignItems:'center',gap:4}}>
+            <span>−</span><span>lazyneg</span>
+          </div>
+          <div style={{marginLeft:'auto',padding:'3px 10px',border:`1px solid ${p.orange}44`,borderRadius:14,background:p.orangeSoft,color:p.orange,fontSize:12,display:'flex',alignItems:'center',gap:4}}>
+            <span>♂</span><span>dude</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ★ COLLAPSED SEND CONFIG — the key UX change */}
+      <div style={{padding:'10px 14px',borderTop:`1px solid ${p.border}`,flexShrink:0}}>
+        <button style={{width:'100%',padding:'9px 12px',border:`1px solid ${p.border}`,borderRadius:8,background:p.surface,color:p.muted,fontFamily:'Space Mono',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',textAlign:'left',gap:8}}>
+          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>Toonmix +1 · 896×1152 · 30 steps · CFG 5 · euler</span>
+          <span style={{opacity:0.5,flexShrink:0}}>▾</span>
+        </button>
+      </div>
+
+      {/* Send button */}
+      <div style={{padding:'4px 14px 14px',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+          <div style={{width:40,height:34,background:p.surface,border:`1px solid ${p.border}`,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+            <span style={{fontFamily:'Space Mono',fontSize:11,color:p.muted}}>×3</span>
+          </div>
+          <button style={{flex:1,padding:'10px 0',background:p.orange,border:'none',borderRadius:8,color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',letterSpacing:'0.02em'}}>→ Process 3 jobs</button>
+        </div>
+        <div style={{fontFamily:'Space Mono',fontSize:10,color:p.muted,textAlign:'center',letterSpacing:'0.03em'}}>
+          Illustrious · 896×1152 · 30 steps · seed 98204…
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════
+   MOCK SCREENS
+══════════════════════════════════════════════════ */
+
+const MockScreen = ({p, iconOnly=false, floating=false}) => (
+  <div style={{width:1440,height:900,background:p.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:p.text,position:'relative'}}>
+    {/* Title bar */}
+    <div style={{height:40,background:p.chrome,display:'flex',alignItems:'center',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <TrafficLights />
+      <div style={{flex:1,textAlign:'center',fontFamily:'Space Mono',fontSize:12,color:p.muted,letterSpacing:'0.08em'}}>Prompt Gen</div>
+      <div style={{width:80}} />
+    </div>
+    {/* Tab bar */}
+    <PGTabBar p={p} />
+    {/* Main */}
+    <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative'}}>
+      <PGSidebar p={p} iconOnly={iconOnly} />
+      <PGCenter p={p} />
+      <PGRightPanel p={p} floating={floating} />
+    </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════
+   ROUND 2 — FLOATING TOOLBAR
+══════════════════════════════════════════════════ */
+
+// Light-mode-aware chip — vivid border at full opacity when active
+const PGChipPop = ({l, a, catColor, p}) => {
+  const isLight = p.mode === 'light';
+  const col = a ? catColor : p.muted;
+  const bg  = a ? `${catColor}14` : p.surface2;
+  const bdr = a ? catColor : p.border2;
+  const bw  = a && isLight ? '1.5px' : '1px';
+  return (
+    <div style={{padding:'5px 13px',border:`${bw} solid ${bdr}`,borderRadius:18,background:bg,color:col,fontSize:13,cursor:'pointer',userSelect:'none',display:'inline-flex',alignItems:'center',gap:5,whiteSpace:'nowrap',flexShrink:0}}>
+      {l}
+      {a && <span style={{fontFamily:'Space Mono',fontSize:8,opacity:0.55}}>1.0</span>}
+    </div>
+  );
+};
+
+const PGCatSectionPop = ({p, cat, chips}) => (
+  <div style={{marginBottom:24}}>
+    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+      <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'3px 10px 3px 6px',borderRadius:20,background:p.mode==='light'?'rgba(0,0,0,0.05)':'rgba(0,0,0,0.28)'}}>
+        <div style={{width:7,height:7,borderRadius:'50%',background:cat.color}} />
+        <span style={{fontFamily:'Space Mono',fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:p.muted,fontWeight:700}}>{cat.label}</span>
+      </div>
+      <span style={{marginLeft:'auto',fontFamily:'Space Mono',fontSize:10,color:p.muted,cursor:'pointer'}}>— clear</span>
+    </div>
+    <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+      {chips.map(c=><PGChipPop key={c.l} l={c.l} a={c.a} catColor={cat.color} p={p} />)}
+    </div>
+  </div>
+);
+
+// Two floating pills — left = nav, right = controls
+const FloatingToolbar = ({p}) => {
+  const pill = {
+    display:'flex', alignItems:'center',
+    background:p.panel,
+    border:`1px solid ${p.border2}`,
+    borderRadius:10,
+    padding:'4px',
+    boxShadow:p.mode==='light'
+      ? '0 2px 10px rgba(0,0,0,0.09)'
+      : '0 2px 16px rgba(0,0,0,0.55)',
+  };
+  return (
+    <div style={{padding:'12px 16px 2px',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0,gap:10}}>
+      {/* Left: tabs */}
+      <div style={pill}>
+        {[
+          {l:'Generate',active:true,badge:null},
+          {l:'LoRAs',active:false,badge:'3',badgeOrange:false},
+          {l:'Gallery',active:false,badge:'642',badgeOrange:true},
+        ].map(t=>(
+          <div key={t.l} style={{padding:'6px 14px',borderRadius:7,background:t.active?p.surface:'transparent',color:t.active?p.text:p.muted,fontSize:13,fontWeight:t.active?500:400,cursor:'pointer',display:'flex',alignItems:'center',gap:5,userSelect:'none'}}>
+            {t.l}
+            {t.badge && <span style={{fontFamily:'Space Mono',fontSize:9,color:t.badgeOrange?p.orange:p.muted}}>○{t.badge}</span>}
+          </div>
+        ))}
+      </div>
+      {/* Right: controls */}
+      <div style={{...pill,gap:0}}>
+        {/* Model selector */}
+        {['SDXL','PONY','ILLUS'].map(m=>(
+          <button key={m} style={{padding:'5px 11px',borderRadius:7,border:`1px solid ${m==='ILLUS'?p.green:'transparent'}`,background:m==='ILLUS'?`${p.green}18`:'transparent',color:m==='ILLUS'?p.green:p.muted,fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.05em',cursor:'pointer',fontWeight:m==='ILLUS'?700:400}}>{m}</button>
+        ))}
+        <div style={{width:1,height:20,background:p.border2,margin:'0 5px'}} />
+        {/* Image / Video */}
+        {[['IMG',true],['VID',false]].map(([m,active])=>(
+          <button key={m} style={{padding:'5px 10px',borderRadius:7,background:active?p.surface:'transparent',border:`1px solid ${active?p.border2:'transparent'}`,color:active?p.text:p.muted,fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.05em',cursor:'pointer'}}>{m}</button>
+        ))}
+        <div style={{width:1,height:20,background:p.border2,margin:'0 5px'}} />
+        {/* Utility */}
+        <button title="Toggle theme" style={{width:30,height:28,borderRadius:7,border:'none',background:'transparent',color:p.muted,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>☀</button>
+        <button style={{padding:'4px 8px',borderRadius:7,border:`1px solid ${p.blue}44`,background:`${p.blue}10`,color:p.blue,fontFamily:'Space Mono',fontSize:9,cursor:'pointer',letterSpacing:'0.04em'}}>⍜ Brut</button>
+        <button style={{width:30,height:28,borderRadius:7,border:`1px solid ${p.red}44`,background:'transparent',color:`${p.red}BB`,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',marginLeft:2}}>✕</button>
+      </div>
+    </div>
+  );
+};
+
+// Full-width center — no sidebar
+const PGCenterFull = ({p}) => (
+  <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',background:p.bg,overflowY:'auto'}}>
+    <div style={{padding:'16px 28px 14px',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.12em',color:p.muted,textTransform:'uppercase'}}>Subject</span>
+        <button style={{marginLeft:'auto',background:'transparent',border:`1px solid ${p.border}`,color:p.muted,width:22,height:18,borderRadius:4,fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⤢</button>
+      </div>
+      <div style={{padding:'10px 14px',background:p.surface2,border:`1px solid ${p.border}`,borderRadius:7,color:p.muted,fontSize:14,minHeight:72,lineHeight:1.55}}>
+        e.g. solitary figure in a ruined cathedral, wearing a long coat...
+      </div>
+    </div>
+    <div style={{padding:'12px 28px 14px',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.12em',color:'#F87171',textTransform:'uppercase'}}>Extra Neg</span>
+        <button style={{marginLeft:'auto',background:'transparent',border:`1px solid ${p.border}`,color:p.muted,width:22,height:18,borderRadius:4,fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⤢</button>
+      </div>
+      <div style={{padding:'8px 12px',background:p.surface2,border:'1px solid rgba(248,113,113,0.16)',borderRadius:7,color:p.muted2,fontFamily:'Space Mono',fontSize:12,minHeight:44}}>
+        appended to negative — e.g. blurry, dof, bokeh
+      </div>
+    </div>
+    <div style={{padding:'22px 28px',flex:1}}>
+      <PGCatSectionPop p={p} cat={CATS[0]} chips={QUALITY} />
+      <PGCatSectionPop p={p} cat={CATS[1]} chips={PHYS} />
+      <PGCatSectionPop p={p} cat={CATS[2]} chips={SUBJ} />
+      <div style={{height:40,background:`linear-gradient(to bottom, transparent, ${p.bg})`,marginTop:-20,pointerEvents:'none'}} />
+    </div>
+  </div>
+);
+
+// Mock screen v2 — floating toolbar, no sidebar
+const MockScreenV2 = ({p}) => (
+  <div style={{width:1440,height:900,background:p.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:p.text,position:'relative'}}>
+    <div style={{height:40,background:p.chrome,display:'flex',alignItems:'center',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <TrafficLights />
+      <div style={{flex:1,textAlign:'center',fontFamily:'Space Mono',fontSize:12,color:p.muted,letterSpacing:'0.08em'}}>Prompt Gen</div>
+      <div style={{width:80}} />
+    </div>
+    <FloatingToolbar p={p} />
+    <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative'}}>
+      <PGCenterFull p={p} />
+      <PGRightPanel p={p} floating={true} />
+    </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════
+   ROUND 3 — LEFT PANEL
+══════════════════════════════════════════════════ */
+
+// Global queue status bar — full-width strip between toolbar and content
+const GlobalQueueBar = ({p}) => (
+  <div style={{margin:'8px 16px 0',background:p.panel,border:`1px solid ${p.border}`,borderRadius:8,padding:'6px 12px',display:'flex',alignItems:'center',gap:8,flexShrink:0,boxShadow:p.mode==='light'?'0 1px 4px rgba(0,0,0,0.06)':'0 1px 6px rgba(0,0,0,0.3)'}}>
+    <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase',flexShrink:0}}>Queue</span>
+    <span style={{fontFamily:'Space Mono',fontSize:10,color:p.orange,flexShrink:0}}>3 generating · 45%</span>
+    <div style={{flex:1,height:3,background:p.surface2,borderRadius:2,overflow:'hidden',minWidth:0}}>
+      <div style={{width:'45%',height:'100%',background:p.orange,borderRadius:2}} />
+    </div>
+    <button style={{padding:'2px 7px',border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,borderRadius:4,cursor:'pointer',flexShrink:0}}>■ stop</button>
+    <button style={{padding:'2px 7px',border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,borderRadius:4,cursor:'pointer',flexShrink:0}}>✕ clear</button>
+    <button style={{padding:'2px 7px',border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,borderRadius:4,cursor:'pointer',flexShrink:0}}>jobs ▴</button>
+  </div>
+);
+
+// Send config: checkpoint + seed always visible, rest accordion
+const SendConfig = ({p, open=false}) => {
+  const inputSt = {padding:'7px 10px',background:p.surface2,border:`1px solid ${p.border}`,borderRadius:6,color:p.text,fontFamily:'Space Mono',fontSize:11,width:'100%',display:'block'};
+  const selectSt = {...inputSt,cursor:'pointer',appearance:'none',paddingRight:28};
+  const labelSt  = {fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase',display:'block',marginBottom:4};
+  const rowSt    = {display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:8};
+
+  return (
+    <div style={{padding:'10px 14px',borderTop:`1px solid ${p.border}`,flexShrink:0}}>
+      {/* Checkpoint — always visible */}
+      <label style={labelSt}>Checkpoint</label>
+      <div style={{position:'relative'}}>
+        <div style={{...inputSt,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span>Toonmix +1 more</span>
+          <span style={{opacity:0.5,fontSize:10}}>▾</span>
+        </div>
+      </div>
+
+      {/* Seed — always visible */}
+      <div style={{marginTop:10}}>
+        <label style={labelSt}>Seed</label>
+        <div style={{display:'flex',gap:6}}>
+          <div style={{...inputSt,flex:1,width:'auto'}}>9820432812365</div>
+          {/* Dice */}
+          <button style={{width:32,height:32,border:`1px solid ${p.border}`,background:p.surface,borderRadius:6,color:p.muted,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>⚄</button>
+          {/* Seed lock — orange when locked */}
+          <button style={{width:32,height:32,border:`1px solid ${p.orange}55`,background:p.orangeSoft,borderRadius:6,color:p.orange,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>🔒</button>
+        </div>
+      </div>
+
+      {/* Dimensions accordion */}
+      <div style={{marginTop:10}}>
+        <button style={{width:'100%',padding:'7px 12px',border:`1px solid ${p.border}`,borderRadius:7,background:p.surface,color:p.muted,fontFamily:'Space Mono',fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',textAlign:'left'}}>
+          <span>896×1152 · 30 steps · CFG 5 · euler</span>
+          <span style={{opacity:0.5}}>{open?'▾':'▸'}</span>
+        </button>
+
+        {open && (
+          <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8,padding:'10px 12px',background:p.surface,border:`1px solid ${p.border}`,borderRadius:7}}>
+            <div style={rowSt}>
+              <div><label style={labelSt}>W</label><div style={inputSt}>896</div></div>
+              <div><label style={labelSt}>H</label><div style={inputSt}>1152</div></div>
+            </div>
+            <div style={rowSt}>
+              <div><label style={labelSt}>Steps</label><div style={inputSt}>30</div></div>
+              <div><label style={labelSt}>CFG</label><div style={inputSt}>5</div></div>
+            </div>
+            <div style={rowSt}>
+              <div><label style={labelSt}>Sampler</label>
+                <div style={{...inputSt,display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}><span>euler_ancestral</span><span style={{opacity:0.5,fontSize:10}}>▾</span></div>
+              </div>
+              <div><label style={labelSt}>Scheduler</label>
+                <div style={{...inputSt,display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}><span>exponential</span><span style={{opacity:0.5,fontSize:10}}>▾</span></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Left panel — floating on the LEFT side of the content area
+const PGLeftPanel = ({p, configOpen=false}) => (
+  <div style={{width:380,flexShrink:0,background:p.panel,display:'flex',flexDirection:'column',height:'calc(100% - 20px)',margin:'10px 0 10px 10px',borderRadius:12,boxShadow:p.shadow,border:`1px solid ${p.border}`,overflow:'hidden'}}>
+    {/* Recent strip */}
+    <div style={{padding:'10px 14px',borderBottom:`1px solid ${p.border}`,display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+      <span style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,textTransform:'uppercase',letterSpacing:'0.1em',flexShrink:0}}>Recent</span>
+      <div style={{display:'flex',gap:5}}>
+        {[0,1,2].map(i=>(
+          <div key={i} style={{width:34,height:44,borderRadius:5,background:p.surface2,border:`1px solid ${i===0?p.orange+'55':p.border}`,flexShrink:0}} />
+        ))}
+      </div>
+      <button style={{marginLeft:'auto',padding:'2px 8px',border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,borderRadius:4,cursor:'pointer',flexShrink:0}}>clear</button>
+    </div>
+
+    {/* LoRAs + Triggers — scrollable */}
+    <div style={{flex:1,overflowY:'auto',padding:'12px 14px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase'}}>LoRAs</span>
+        <span style={{fontFamily:'Space Mono',fontSize:9,padding:'1px 7px',borderRadius:10,background:p.orangeSoft,color:p.orange}}>3 active</span>
+        <div style={{width:7,height:7,borderRadius:'50%',background:p.green,marginLeft:2}} />
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+        <div style={{width:7,height:7,borderRadius:'50%',background:p.orange}} />
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase'}}>Triggers</span>
+      </div>
+      <div style={{marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+          <span style={{fontSize:11,color:p.text,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>Samurai Jack – G. Tartakovsky</span>
+          <span style={{fontFamily:'Space Mono',fontSize:10,color:p.muted,flexShrink:0}}>×0.85</span>
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+          <TChip label="s4ck-style" req={true} p={p} />
+          <TChip label="toon (style)" req={true} p={p} />
+        </div>
+      </div>
+      <div style={{marginBottom:14,paddingTop:10,borderTop:`1px solid ${p.border}`}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+          <span style={{fontSize:11,color:p.text,fontWeight:500,flex:1}}>Aertsy</span>
+          <span style={{fontFamily:'Space Mono',fontSize:10,color:p.muted}}>×0.70</span>
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:5,alignItems:'center'}}>
+          <TChip label="artsy" active={true} p={p} />
+          <TChip label="traditional media" active={true} p={p} />
+          <button style={{padding:'3px 10px',border:`1px solid ${p.border2}`,borderRadius:14,background:'transparent',color:p.muted,fontSize:11,fontFamily:'Space Mono',cursor:'pointer'}}>Options 2/2 ▾</button>
+        </div>
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',paddingTop:10,borderTop:`1px solid ${p.border}`}}>
+        <div style={{padding:'3px 10px',border:`1px solid ${p.blue}44`,borderRadius:14,background:`${p.blue}10`,color:p.blue,fontSize:12,display:'flex',alignItems:'center',gap:4}}><span>+</span><span>lazypos</span></div>
+        <div style={{padding:'3px 10px',border:`1px solid ${p.border2}`,borderRadius:14,background:'transparent',color:p.muted,fontSize:12,display:'flex',alignItems:'center',gap:4}}><span>−</span><span>lazyneg</span></div>
+        <div style={{marginLeft:'auto',padding:'3px 10px',border:`1px solid ${p.orange}44`,borderRadius:14,background:p.orangeSoft,color:p.orange,fontSize:12,display:'flex',alignItems:'center',gap:4}}><span>♂</span><span>dude</span></div>
+      </div>
+    </div>
+
+    {/* Send config (checkpoint + seed always visible, dimensions accordion) */}
+    <SendConfig p={p} open={configOpen} />
+
+    {/* Send button */}
+    <div style={{padding:'4px 14px 14px',flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+        <div style={{width:40,height:34,background:p.surface,border:`1px solid ${p.border}`,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+          <span style={{fontFamily:'Space Mono',fontSize:11,color:p.muted}}>×3</span>
+        </div>
+        <button style={{flex:1,padding:'10px 0',background:p.orange,border:'none',borderRadius:8,color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',letterSpacing:'0.02em'}}>→ Process 3 jobs</button>
+      </div>
+      <div style={{fontFamily:'Space Mono',fontSize:10,color:p.muted,textAlign:'center',letterSpacing:'0.03em'}}>
+        Illustrious · 896×1152 · 30 steps · seed 98204…
+      </div>
+    </div>
+  </div>
+);
+
+// Mock v3 — floating toolbar + global queue bar + LEFT panel
+const MockScreenV3 = ({p, configOpen=false}) => (
+  <div style={{width:1440,height:900,background:p.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:p.text}}>
+    <div style={{height:40,background:p.chrome,display:'flex',alignItems:'center',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <TrafficLights />
+      <div style={{flex:1,textAlign:'center',fontFamily:'Space Mono',fontSize:12,color:p.muted,letterSpacing:'0.08em'}}>Prompt Gen</div>
+      <div style={{width:80}} />
+    </div>
+    <FloatingToolbar p={p} />
+    <GlobalQueueBar p={p} />
+    <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative',marginTop:8}}>
+      <PGLeftPanel p={p} configOpen={configOpen} />
+      <PGCenterFull p={p} />
+    </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════
+   ROUND 4 — MERGED TITLE BAR + CATEGORY MANAGEMENT
+══════════════════════════════════════════════════ */
+
+// Traffic lights + tabs + all controls merged into one bar
+const TitleBarWithTabs = ({p}) => (
+  <div style={{height:46,background:p.chrome,display:'flex',alignItems:'center',borderBottom:`1px solid ${p.border}`,flexShrink:0,gap:0}}>
+    <TrafficLights />
+    <div style={{width:1,height:22,background:p.border2,flexShrink:0,margin:'0 2px'}} />
+    {/* Tabs */}
+    {[
+      {l:'Generate',active:true,badge:null},
+      {l:'LoRAs',active:false,badge:'3',bo:false},
+      {l:'Gallery',active:false,badge:'642',bo:true},
+    ].map(t=>(
+      <div key={t.l} style={{height:'100%',display:'flex',alignItems:'center',gap:5,padding:'0 14px',fontSize:13,fontWeight:t.active?500:400,color:t.active?p.text:p.muted,borderBottom:t.active?`2px solid ${p.text}`:'2px solid transparent',cursor:'pointer',marginBottom:-1,userSelect:'none'}}>
+        {t.l}
+        {t.badge && <span style={{fontFamily:'Space Mono',fontSize:9,color:t.bo?p.orange:p.muted}}>○{t.badge}</span>}
+      </div>
+    ))}
+    <div style={{flex:1}} />
+    {/* Right controls */}
+    <div style={{display:'flex',alignItems:'center',gap:2,padding:'0 12px',flexShrink:0}}>
+      {['SDXL','PONY','ILLUS'].map(m=>(
+        <button key={m} style={{padding:'3px 9px',borderRadius:5,border:`1px solid ${m==='ILLUS'?p.green:'transparent'}`,background:m==='ILLUS'?`${p.green}18`:'transparent',color:m==='ILLUS'?p.green:p.muted,fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.04em',cursor:'pointer'}}>{m}</button>
+      ))}
+      <div style={{width:1,height:16,background:p.border2,margin:'0 5px'}} />
+      {[['IMG',true],['VID',false]].map(([m,a])=>(
+        <button key={m} style={{padding:'3px 9px',borderRadius:5,background:a?p.surface:'transparent',border:`1px solid ${a?p.border2:'transparent'}`,color:a?p.text:p.muted,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>{m}</button>
+      ))}
+      <div style={{width:1,height:16,background:p.border2,margin:'0 5px'}} />
+      <button title="Toggle theme" style={{width:26,height:26,borderRadius:5,border:'none',background:'transparent',color:p.muted,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>☀</button>
+      <button title="Brut/Adult" style={{padding:'2px 7px',borderRadius:5,border:`1px solid ${p.blue}44`,background:`${p.blue}10`,color:p.blue,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>⍜</button>
+      <button title="Clear all" style={{width:26,height:26,borderRadius:5,border:`1px solid ${p.red}44`,background:'transparent',color:`${p.red}BB`,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+      <div style={{width:1,height:16,background:p.border2,margin:'0 5px'}} />
+      <button title="Portrait view" style={{width:26,height:26,borderRadius:5,border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⊡</button>
+    </div>
+  </div>
+);
+
+// Category section with inline management controls + optional edit mode
+const CatSectionManage = ({p, cat, chips, editMode=false}) => (
+  <div style={{marginBottom:24}}>
+    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+      <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'3px 10px 3px 6px',borderRadius:20,background:p.mode==='light'?'rgba(0,0,0,0.05)':'rgba(0,0,0,0.28)'}}>
+        <div style={{width:7,height:7,borderRadius:'50%',background:cat.color}} />
+        <span style={{fontFamily:'Space Mono',fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:p.muted,fontWeight:700}}>{cat.label}</span>
+      </div>
+      {/* Management controls */}
+      <div style={{display:'flex',gap:4,alignItems:'center',marginLeft:'auto'}}>
+        <button style={{padding:'2px 8px',border:`1px solid ${p.border}`,borderRadius:4,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,cursor:'pointer',letterSpacing:'0.04em'}}>+ tag</button>
+        <button style={{padding:'2px 7px',border:`1px solid ${editMode?cat.color+'66':p.border}`,borderRadius:4,background:editMode?`${cat.color}10`:'transparent',color:editMode?cat.color:p.muted,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>✎</button>
+        <button style={{padding:'2px 7px',border:`1px solid ${p.red}33`,borderRadius:4,background:'transparent',color:`${p.red}77`,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>—</button>
+      </div>
+    </div>
+    <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+      {chips.map(c => editMode ? (
+        // Edit mode: drag handle + chip + × delete
+        <div key={c.l} style={{padding:'5px 10px 5px 8px',border:`1px solid ${cat.color}44`,borderRadius:18,background:`${cat.color}0C`,color:p.muted,fontSize:13,cursor:'grab',display:'inline-flex',alignItems:'center',gap:6,userSelect:'none'}}>
+          <span style={{opacity:0.35,fontSize:11,cursor:'grab',lineHeight:1}}>⠿</span>
+          <span>{c.l}</span>
+          <span style={{color:`${p.red}99`,fontSize:11,cursor:'pointer',lineHeight:1,marginLeft:2}}>×</span>
+        </div>
+      ) : (
+        <PGChipPop key={c.l} l={c.l} a={c.a} catColor={cat.color} p={p} />
+      ))}
+      {editMode && (
+        <div style={{padding:'5px 12px',border:`1px dashed ${cat.color}55`,borderRadius:18,color:`${cat.color}88`,fontSize:12,cursor:'text',display:'inline-flex',alignItems:'center',gap:5}}>
+          <span style={{fontSize:14,lineHeight:1}}>+</span>
+          <span style={{fontFamily:'Space Mono',fontSize:10}}>add tag…</span>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// Right-click weight popup (shown floating near a chip)
+const WeightPopup = ({p}) => (
+  <div style={{position:'absolute',top:320,left:340,zIndex:10,background:p.panel,border:`1px solid ${p.border2}`,borderRadius:10,padding:'12px 14px',boxShadow:p.shadow,width:200}}>
+    <div style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:10}}>Tag Weight</div>
+    <div style={{display:'flex',gap:6,marginBottom:10}}>
+      <button style={{flex:1,padding:'5px',border:`1px solid ${p.purple}55`,borderRadius:7,background:`${p.purple}12`,color:p.purple,fontFamily:'Space Mono',fontSize:10,cursor:'pointer'}}>( ) wrap</button>
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+      <div style={{flex:1,height:3,background:p.surface2,borderRadius:2,position:'relative'}}>
+        <div style={{width:'70%',height:'100%',background:p.orange,borderRadius:2}} />
+        <div style={{position:'absolute',left:'70%',top:'50%',transform:'translate(-50%,-50%)',width:10,height:10,borderRadius:'50%',background:p.orange,border:`2px solid ${p.panel}`}} />
+      </div>
+      <span style={{fontFamily:'Space Mono',fontSize:11,color:p.text,flexShrink:0}}>1.40</span>
+    </div>
+    <div style={{display:'flex',gap:6}}>
+      {['0.5','0.8','1.0','1.2','1.5'].map(v=>(
+        <button key={v} style={{flex:1,padding:'4px 0',border:`1px solid ${v==='1.40'?p.orange:p.border}`,borderRadius:5,background:v==='1.40'?p.orangeSoft:'transparent',color:v==='1.40'?p.orange:p.muted,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>{v}</button>
+      ))}
+    </div>
+  </div>
+);
+
+// Left panel V4 — embeddings/dude row bottom-justified
+const PGLeftPanelV4 = ({p, configOpen=false}) => (
+  <div style={{width:380,flexShrink:0,background:p.panel,display:'flex',flexDirection:'column',height:'calc(100% - 20px)',margin:'10px 0 10px 10px',borderRadius:12,boxShadow:p.shadow,border:`1px solid ${p.border}`,overflow:'hidden'}}>
+    {/* Recent */}
+    <div style={{padding:'10px 14px',borderBottom:`1px solid ${p.border}`,display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+      <span style={{fontFamily:'Space Mono',fontSize:9,color:p.muted,textTransform:'uppercase',letterSpacing:'0.1em',flexShrink:0}}>Recent</span>
+      <div style={{display:'flex',gap:5}}>
+        {[0,1,2].map(i=>(
+          <div key={i} style={{width:34,height:44,borderRadius:5,background:p.surface2,border:`1px solid ${i===0?p.orange+'55':p.border}`,flexShrink:0}} />
+        ))}
+      </div>
+      <button style={{marginLeft:'auto',padding:'2px 8px',border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontFamily:'Space Mono',fontSize:9,borderRadius:4,cursor:'pointer',flexShrink:0}}>clear</button>
+    </div>
+
+    {/* Triggers — scrollable column so embeddings pins to bottom */}
+    <div style={{flex:1,overflowY:'auto',padding:'12px 14px',display:'flex',flexDirection:'column',minHeight:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase'}}>LoRAs</span>
+        <span style={{fontFamily:'Space Mono',fontSize:9,padding:'1px 7px',borderRadius:10,background:p.orangeSoft,color:p.orange}}>3 active</span>
+        <div style={{width:7,height:7,borderRadius:'50%',background:p.green,marginLeft:2}} />
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+        <div style={{width:7,height:7,borderRadius:'50%',background:p.orange}} />
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.1em',color:p.muted,textTransform:'uppercase'}}>Triggers</span>
+      </div>
+      <div style={{marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+          <span style={{fontSize:11,color:p.text,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>Samurai Jack – G. Tartakovsky</span>
+          <span style={{fontFamily:'Space Mono',fontSize:10,color:p.muted,flexShrink:0}}>×0.85</span>
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+          <TChip label="s4ck-style" req={true} p={p} />
+          <TChip label="toon (style)" req={true} p={p} />
+        </div>
+      </div>
+      <div style={{paddingTop:10,borderTop:`1px solid ${p.border}`,marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+          <span style={{fontSize:11,color:p.text,fontWeight:500,flex:1}}>Aertsy</span>
+          <span style={{fontFamily:'Space Mono',fontSize:10,color:p.muted}}>×0.70</span>
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:5,alignItems:'center'}}>
+          <TChip label="artsy" active={true} p={p} />
+          <TChip label="traditional media" active={true} p={p} />
+          <button style={{padding:'3px 10px',border:`1px solid ${p.border2}`,borderRadius:14,background:'transparent',color:p.muted,fontSize:11,fontFamily:'Space Mono',cursor:'pointer'}}>Options 2/2 ▾</button>
+        </div>
+      </div>
+      {/* Spacer pushes embeddings to bottom */}
+      <div style={{flex:1}} />
+      {/* Embeddings + dude — bottom justified */}
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',paddingTop:10,borderTop:`1px solid ${p.border}`}}>
+        <div style={{padding:'3px 10px',border:`1px solid ${p.blue}44`,borderRadius:14,background:`${p.blue}10`,color:p.blue,fontSize:12,display:'flex',alignItems:'center',gap:4}}><span>+</span><span>lazypos</span></div>
+        <div style={{padding:'3px 10px',border:`1px solid ${p.border2}`,borderRadius:14,background:'transparent',color:p.muted,fontSize:12,display:'flex',alignItems:'center',gap:4}}><span>−</span><span>lazyneg</span></div>
+        <div style={{marginLeft:'auto',padding:'3px 10px',border:`1px solid ${p.orange}44`,borderRadius:14,background:p.orangeSoft,color:p.orange,fontSize:12,display:'flex',alignItems:'center',gap:4}}><span>♂</span><span>dude</span></div>
+      </div>
+    </div>
+
+    {/* Checkpoint + Seed always visible */}
+    <SendConfig p={p} open={configOpen} />
+
+    {/* Send */}
+    <div style={{padding:'4px 14px 14px',flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+        <div style={{width:40,height:34,background:p.surface,border:`1px solid ${p.border}`,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+          <span style={{fontFamily:'Space Mono',fontSize:11,color:p.muted}}>×3</span>
+        </div>
+        <button style={{flex:1,padding:'10px 0',background:p.orange,border:'none',borderRadius:8,color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',letterSpacing:'0.02em'}}>→ Process 3 jobs</button>
+      </div>
+      {/* Updated meta — connection status instead of redundant dimensions */}
+      <div style={{fontFamily:'Space Mono',fontSize:10,color:p.green,textAlign:'center',letterSpacing:'0.03em'}}>
+        ● ComfyUI connected · ready
+      </div>
+    </div>
+  </div>
+);
+
+// Center V4 — with category management controls
+const PGCenterV4 = ({p, editCat=null, showWeightPopup=false}) => (
+  <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',background:p.bg,overflowY:'auto',position:'relative'}}>
+    <div style={{padding:'16px 28px 14px',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.12em',color:p.muted,textTransform:'uppercase'}}>Subject</span>
+        <button style={{marginLeft:'auto',background:'transparent',border:`1px solid ${p.border}`,color:p.muted,width:22,height:18,borderRadius:4,fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⤢</button>
+      </div>
+      <div style={{padding:'10px 14px',background:p.surface2,border:`1px solid ${p.border}`,borderRadius:7,color:p.muted,fontSize:14,minHeight:72,lineHeight:1.55}}>
+        e.g. solitary figure in a ruined cathedral, wearing a long coat...
+      </div>
+    </div>
+    <div style={{padding:'12px 28px 14px',borderBottom:`1px solid ${p.border}`,flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+        <span style={{fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.12em',color:'#F87171',textTransform:'uppercase'}}>Extra Neg</span>
+        <button style={{marginLeft:'auto',background:'transparent',border:`1px solid ${p.border}`,color:p.muted,width:22,height:18,borderRadius:4,fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⤢</button>
+      </div>
+      <div style={{padding:'8px 12px',background:p.surface2,border:'1px solid rgba(248,113,113,0.16)',borderRadius:7,color:p.muted2,fontFamily:'Space Mono',fontSize:12,minHeight:44}}>
+        appended to negative — e.g. blurry, dof, bokeh
+      </div>
+    </div>
+    <div style={{padding:'22px 28px',flex:1}}>
+      <CatSectionManage p={p} cat={CATS[0]} chips={QUALITY} editMode={editCat===0} />
+      <CatSectionManage p={p} cat={CATS[1]} chips={PHYS} editMode={editCat===1} />
+      <CatSectionManage p={p} cat={CATS[2]} chips={SUBJ} editMode={editCat===2} />
+      {/* Add new category button */}
+      <button style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:5,cursor:'pointer',color:p.muted,fontSize:11,border:`1px dashed ${p.border2}`,background:'transparent',width:'100%',marginTop:4}}>
+        <span style={{fontSize:14,lineHeight:1}}>+</span>
+        <span style={{fontFamily:'Space Mono',fontSize:10,letterSpacing:'0.06em'}}>Add category</span>
+      </button>
+    </div>
+    {/* Weight popup overlay */}
+    {showWeightPopup && <WeightPopup p={p} />}
+  </div>
+);
+
+const MockScreenV4 = ({p, editCat=null, configOpen=false, showWeightPopup=false}) => (
+  <div style={{width:1440,height:900,background:p.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:p.text}}>
+    <TitleBarWithTabs p={p} />
+    <GlobalQueueBar p={p} />
+    <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative',marginTop:8}}>
+      <PGLeftPanelV4 p={p} configOpen={configOpen} />
+      <PGCenterV4 p={p} editCat={editCat} showWeightPopup={showWeightPopup} />
+    </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════
+   ROUND 5 — TAB TREATMENT VARIANTS
+══════════════════════════════════════════════════ */
+
+const RIGHT_CONTROLS = ({p}) => (
+  <>
+    {['SDXL','PONY','ILLUS'].map(m=>(
+      <button key={m} style={{padding:'3px 9px',borderRadius:5,border:`1px solid ${m==='ILLUS'?p.green:'transparent'}`,background:m==='ILLUS'?`${p.green}18`:'transparent',color:m==='ILLUS'?p.green:p.muted,fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.04em',cursor:'pointer'}}>{m}</button>
+    ))}
+    <div style={{width:1,height:16,background:p.border2,margin:'0 5px'}} />
+    {[['IMG',true],['VID',false]].map(([m,a])=>(
+      <button key={m} style={{padding:'3px 9px',borderRadius:5,background:a?p.surface:'transparent',border:`1px solid ${a?p.border2:'transparent'}`,color:a?p.text:p.muted,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>{m}</button>
+    ))}
+    <div style={{width:1,height:16,background:p.border2,margin:'0 5px'}} />
+    <button style={{width:26,height:26,borderRadius:5,border:'none',background:'transparent',color:p.muted,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>☀</button>
+    <button style={{padding:'2px 7px',borderRadius:5,border:`1px solid ${p.blue}44`,background:`${p.blue}10`,color:p.blue,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>⍜</button>
+    <button style={{width:26,height:26,borderRadius:5,border:`1px solid ${p.red}44`,background:'transparent',color:`${p.red}BB`,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+    <div style={{width:1,height:16,background:p.border2,margin:'0 5px'}} />
+    <button style={{width:26,height:26,borderRadius:5,border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⊡</button>
+  </>
+);
+
+const TABS_DATA = [
+  {l:'Generate',active:true,badge:null,bo:false},
+  {l:'LoRAs',active:false,badge:'3',bo:false},
+  {l:'Gallery',active:false,badge:'642',bo:true},
+];
+
+// Option A — floating pill group for tabs
+const TitleBarPillTabs = ({p}) => (
+  <div style={{height:46,background:p.chrome,display:'flex',alignItems:'center',borderBottom:`1px solid ${p.border}`,flexShrink:0,padding:'0 12px',gap:0}}>
+    <TrafficLights />
+    {/* Tab pill */}
+    <div style={{display:'flex',alignItems:'center',gap:2,background:p.surface,border:`1px solid ${p.border2}`,borderRadius:8,padding:'3px',boxShadow:p.mode==='light'?'0 1px 5px rgba(0,0,0,0.08)':'0 1px 6px rgba(0,0,0,0.4)',margin:'0 6px'}}>
+      {TABS_DATA.map(t=>(
+        <div key={t.l} style={{padding:'4px 13px',borderRadius:6,background:t.active?p.panel:'transparent',color:t.active?p.text:p.muted,fontSize:13,fontWeight:t.active?500:400,cursor:'pointer',display:'flex',alignItems:'center',gap:5,userSelect:'none',boxShadow:t.active?(p.mode==='light'?'0 1px 3px rgba(0,0,0,0.1)':'0 1px 4px rgba(0,0,0,0.4)'):'none'}}>
+          {t.l}
+          {t.badge && <span style={{fontFamily:'Space Mono',fontSize:9,color:t.bo?p.orange:p.muted}}>○{t.badge}</span>}
+        </div>
+      ))}
+    </div>
+    <div style={{flex:1}} />
+    <div style={{display:'flex',alignItems:'center',gap:2,padding:'0 4px'}}><RIGHT_CONTROLS p={p} /></div>
+  </div>
+);
+
+// Option B — button-style tabs (same visual language as the right-side controls)
+const TitleBarButtonTabs = ({p}) => (
+  <div style={{height:46,background:p.chrome,display:'flex',alignItems:'center',borderBottom:`1px solid ${p.border}`,flexShrink:0,gap:0}}>
+    <TrafficLights />
+    <div style={{width:1,height:20,background:p.border2,margin:'0 4px',flexShrink:0}} />
+    {/* Button tabs — same style as right controls */}
+    <div style={{display:'flex',alignItems:'center',gap:2,padding:'0 4px'}}>
+      {TABS_DATA.map(t=>(
+        <button key={t.l} style={{padding:'4px 13px',borderRadius:6,border:`1px solid ${t.active?p.border2:'transparent'}`,background:t.active?p.surface:'transparent',color:t.active?p.text:p.muted,fontSize:13,fontWeight:t.active?500:400,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,userSelect:'none'}}>
+          {t.l}
+          {t.badge && <span style={{fontFamily:'Space Mono',fontSize:9,color:t.bo?p.orange:p.muted}}>○{t.badge}</span>}
+        </button>
+      ))}
+    </div>
+    <div style={{flex:1}} />
+    <div style={{display:'flex',alignItems:'center',gap:2,padding:'0 16px'}}><RIGHT_CONTROLS p={p} /></div>
+  </div>
+);
+
+const MockScreenV5 = ({p, tabStyle='pill'}) => (
+  <div style={{width:1440,height:900,background:p.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:p.text}}>
+    {tabStyle==='pill' ? <TitleBarPillTabs p={p} /> : <TitleBarButtonTabs p={p} />}
+    <GlobalQueueBar p={p} />
+    <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative',marginTop:8}}>
+      <PGLeftPanelV4 p={p} />
+      <PGCenterV4 p={p} />
+    </div>
+  </div>
+);
+
+// Option C — three independent floating pills
+const TitleBarThreePills = ({p}) => {
+  const pill = {
+    display:'flex',alignItems:'center',
+    background:p.panel,
+    border:`1px solid ${p.border2}`,
+    borderRadius:9,
+    boxShadow:p.mode==='light'?'0 1px 6px rgba(0,0,0,0.09)':'0 1px 8px rgba(0,0,0,0.5)',
+  };
+  return (
+    <div style={{height:46,background:p.chrome,display:'flex',alignItems:'center',borderBottom:`1px solid ${p.border}`,flexShrink:0,padding:'0 10px',gap:8}}>
+      {/* Traffic lights pill */}
+      <div style={{...pill,padding:'7px 11px',gap:7}}>
+        {['#FF5F57','#FEBC2E','#28C840'].map(c=>(
+          <div key={c} style={{width:11,height:11,borderRadius:'50%',background:c,border:'0.5px solid rgba(0,0,0,0.16)'}} />
+        ))}
+      </div>
+      {/* Tabs pill */}
+      <div style={{...pill,padding:'3px',gap:2}}>
+        {TABS_DATA.map(t=>(
+          <div key={t.l} style={{padding:'4px 13px',borderRadius:7,background:t.active?p.bg:'transparent',color:t.active?p.text:p.muted,fontSize:13,fontWeight:t.active?500:400,cursor:'pointer',display:'flex',alignItems:'center',gap:5,userSelect:'none',boxShadow:t.active?'0 1px 3px rgba(0,0,0,0.08)':'none'}}>
+            {t.l}
+            {t.badge && <span style={{fontFamily:'Space Mono',fontSize:9,color:t.bo?p.orange:p.muted}}>○{t.badge}</span>}
+          </div>
+        ))}
+      </div>
+      <div style={{flex:1}} />
+      {/* Controls pill */}
+      <div style={{...pill,padding:'3px',gap:2}}>
+        {['SDXL','PONY','ILLUS'].map(m=>(
+          <button key={m} style={{padding:'3px 9px',borderRadius:6,border:`1px solid ${m==='ILLUS'?p.green:'transparent'}`,background:m==='ILLUS'?`${p.green}18`:'transparent',color:m==='ILLUS'?p.green:p.muted,fontFamily:'Space Mono',fontSize:9,letterSpacing:'0.04em',cursor:'pointer'}}>{m}</button>
+        ))}
+        <div style={{width:1,height:16,background:p.border2,margin:'0 4px'}} />
+        {[['IMG',true],['VID',false]].map(([m,a])=>(
+          <button key={m} style={{padding:'3px 9px',borderRadius:6,background:a?p.surface:'transparent',border:`1px solid ${a?p.border2:'transparent'}`,color:a?p.text:p.muted,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>{m}</button>
+        ))}
+        <div style={{width:1,height:16,background:p.border2,margin:'0 4px'}} />
+        <button style={{width:26,height:26,borderRadius:6,border:'none',background:'transparent',color:p.muted,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>☀</button>
+        <button style={{padding:'2px 7px',borderRadius:6,border:`1px solid ${p.blue}44`,background:`${p.blue}10`,color:p.blue,fontFamily:'Space Mono',fontSize:9,cursor:'pointer'}}>⍜</button>
+        <button style={{width:26,height:26,borderRadius:6,border:`1px solid ${p.red}44`,background:'transparent',color:`${p.red}BB`,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+        <div style={{width:1,height:16,background:p.border2,margin:'0 4px'}} />
+        <button style={{width:26,height:26,borderRadius:6,border:`1px solid ${p.border}`,background:'transparent',color:p.muted,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⊡</button>
+      </div>
+    </div>
+  );
+};
+
+const MockScreenV6 = ({p}) => (
+  <div style={{width:1440,height:900,background:p.bg,display:'flex',flexDirection:'column',fontFamily:"'Poppins',sans-serif",overflow:'hidden',color:p.text}}>
+    <TitleBarThreePills p={p} />
+    <GlobalQueueBar p={p} />
+    <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative',marginTop:8}}>
+      <PGLeftPanelV4 p={p} />
+      <PGCenterV4 p={p} />
+    </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════
+   APP
+══════════════════════════════════════════════════ */
+
+const App = () => (
+  <DesignCanvas>
+    <DCSection id="gen-tab" title="Generate Tab — Three Directions">
+      <DCArtboard id="d1" label="1 — Warm Light" width={1440} height={900}>
+        <MockScreen p={P1} floating={true} />
+      </DCArtboard>
+      <DCArtboard id="d2" label="2 — Midnight Refined" width={1440} height={900}>
+        <MockScreen p={P2} floating={true} />
+      </DCArtboard>
+      <DCArtboard id="d3" label="3 — Studio (icon sidebar)" width={1440} height={900}>
+        <MockScreen p={P3} iconOnly={true} floating={true} />
+      </DCArtboard>
+    </DCSection>
+    <DCSection id="gen-tab-v2" title="Round 2 — Floating Toolbar, No Sidebar">
+      <DCArtboard id="d4" label="4 — Horizon Light" width={1440} height={900}>
+        <MockScreenV2 p={P1} />
+      </DCArtboard>
+      <DCArtboard id="d5" label="5 — Horizon Dark" width={1440} height={900}>
+        <MockScreenV2 p={P2} />
+      </DCArtboard>
+      <DCArtboard id="d6" label="6 — Horizon Studio" width={1440} height={900}>
+        <MockScreenV2 p={P3} />
+      </DCArtboard>
+    </DCSection>
+    <DCSection id="gen-tab-v3" title="Round 3 — Left Panel, Queue Bar, Always-Visible Checkpoint + Seed">
+      <DCArtboard id="d7" label="7 — Left Panel · Light (config collapsed)" width={1440} height={900}>
+        <MockScreenV3 p={P1} configOpen={false} />
+      </DCArtboard>
+      <DCArtboard id="d8" label="8 — Left Panel · Light (config open)" width={1440} height={900}>
+        <MockScreenV3 p={P1} configOpen={true} />
+      </DCArtboard>
+      <DCArtboard id="d9" label="9 — Left Panel · Dark (config collapsed)" width={1440} height={900}>
+        <MockScreenV3 p={P2} configOpen={false} />
+      </DCArtboard>
+    </DCSection>
+    <DCSection id="gen-tab-v4" title="Round 4 — Merged Title Bar + Category Management">
+      <DCArtboard id="d10" label="10 — Light · Normal state" width={1440} height={900}>
+        <MockScreenV4 p={P1} />
+      </DCArtboard>
+      <DCArtboard id="d11" label="11 — Light · Category edit mode" width={1440} height={900}>
+        <MockScreenV4 p={P1} editCat={1} />
+      </DCArtboard>
+      <DCArtboard id="d12" label="12 — Light · Tag weight popup" width={1440} height={900}>
+        <MockScreenV4 p={P1} showWeightPopup={true} />
+      </DCArtboard>
+      <DCArtboard id="d13" label="13 — Light · Config expanded" width={1440} height={900}>
+        <MockScreenV4 p={P1} configOpen={true} />
+      </DCArtboard>
+      <DCArtboard id="d14" label="14 — Dark · Normal state" width={1440} height={900}>
+        <MockScreenV4 p={P2} />
+      </DCArtboard>
+    </DCSection>
+    <DCSection id="gen-tab-v5" title="Round 5 — Tab Treatment Variants (Light)">
+      <DCArtboard id="d15" label="A — Pill tabs (floating group)" width={1440} height={900}>
+        <MockScreenV5 p={P1} tabStyle="pill" />
+      </DCArtboard>
+      <DCArtboard id="d16" label="B — Button tabs (same style as controls)" width={1440} height={900}>
+        <MockScreenV5 p={P1} tabStyle="button" />
+      </DCArtboard>
+      <DCArtboard id="d17" label="C — Three pills (traffic lights + tabs + controls each separate)" width={1440} height={900}>
+        <MockScreenV6 p={P1} />
+      </DCArtboard>
+    </DCSection>
+  </DesignCanvas>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
