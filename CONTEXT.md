@@ -197,6 +197,17 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 - **Demo mode (hideBrut setting)**: Settings → LoRAs section → "Brut / Adult Content" dropdown. Set to "Hidden" to: hide all ⍜ Brut toolbar buttons, hide adult-flagged LoRAs from grid, hide adult badges on cards, hide Brut context menu items and detail panel button. CSS via `body.hide-brut` class. Setting persists in `appData.settings.hideBrut`. Applied on startup via `applyBrutSetting()` called in `init()`.
 - **Do not repeat**: `\"` inside a double-quoted HTML attribute is a parse error — use single-quoted or unquoted values inside `onerror`/`onclick` string attributes. When embedding HTML in onerror, never use `\\\"` to try to include double-quotes — they will break the outer attribute.
 
+**Recently shipped (Claude Code session 31 — full UI redesign implementation from FULL-HANDOFF.md):**
+- **PR [#1](https://github.com/dnlstk/prompt-gen/pull/1)** — 4 commits on branch `claude/gracious-darwin-fc93b5`
+- **Shared CSS tokens**: `:root` dark palette updated to match DESIGN_NOTES.md (P2 Midnight). `body.light` warm palette (P1 Warm Light) with 59 override rules. Space Mono `@font-face` for `--mono`. Floating panel system: `border-radius:12px; box-shadow:var(--shadow); border:1px solid var(--border)`. Gallery state tokens (`--gstate-*-border`).
+- **Title bar restructure**: Single 46px bar (`grid-column:1/-1; grid-row:1`). Left: button-style tabs with `data-tab` attributes (replacing fragile index-based selection). Right: model buttons (XL/PN/IL with green active), IMG/VID toggle, theme ☀, brut ⍜, layout ⊡. `-webkit-app-region:drag` on bar, `no-drag` on controls.
+- **Grid layout**: `grid-template-columns:230px 1fr 380px; grid-template-rows:var(--tabs-h) 1fr`. Generate tab overrides to `380px 1fr` — sidebar hidden, footer becomes LEFT panel (`grid-column:1`). Other tabs use `no-right-panel` class for `230px 1fr`.
+- **LoRA card overlay style**: Full 2:3 image, 68% bottom gradient, all UI floats over image. Enable+i bar in `rgba(0,0,0,.62)` container. Square type pills with colored backgrounds. Status badges (✓/T/✗) top-left.
+- **Gallery cards**: State borders (1px default, 2px colored for review/approved/declined). Floating sidebar (162px) + detail panel (320px) as floating cards. Age divider styling.
+- **Generate tab**: Send config panel moves from right to left. Content reordered: LoRAs strip → queue bar → recent strip → triggers → send config → send footer. Compose-sticky at `top:0`. Per-category collapse with clickable ▾ headers (was previously hidden/disabled). Footer constrained with `max-height + overflow:hidden`.
+- **Light/dark toggle**: Already fully wired (`toggleTheme()` → `body.classList.toggle('light')` → localStorage). 59 `body.light` overrides cover all panels, inputs, cards, labels.
+- **Key decisions**: Sidebar hidden on Generate tab (never used). Panel on LEFT for Generate (active tool), RIGHT for LoRAs/Gallery (inspectors). All scrollbars hidden. `data-tab` attributes replace index-based tab selection.
+
 **Recently shipped (Claude Code session 17 — right panel polish, gallery multiselect, remix fixes, queue count, category management):**
 - **Right panel strip reorder + visual cleanup**: Queue → Recent → LoRAs order. All strip backgrounds transparent. QUEUE/RECENT/LORAS labels in `var(--text)`. Sidebar HR full-width. Separator below categories removed.
 - **Auto-lock seed on remix**: `setSeedLocked(true)` called in `applyRemixToSendPanel` when metadata contains a seed.
