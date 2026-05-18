@@ -581,7 +581,7 @@ function renderTagSections(){
     const div=document.createElement('div');
     div.className='tgroup'+(isCollapsed?' collapsed':'');div.id='sec-'+cat.id;
     div.innerHTML=`
-      <div class="theader">
+      <div class="theader" onclick="toggleCatCollapse('${cat.id}')">
         <span class="cat-group-chev">▾</span>
         <div class="ttitle"><span class="ttitle-dot" style="background:${cat.color}"></span>${cat.label}</div>
         ${activeCount>0?`<span class="cat-active-badge" style="background:${cat.color}22;color:${cat.color}">${activeCount}</span>`:''}

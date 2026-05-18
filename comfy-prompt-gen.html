@@ -76,6 +76,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15
 .app.no-right-panel{grid-template-columns:230px 1fr;}
 .app.no-right-panel.sidebar-collapsed{grid-template-columns:36px 1fr;}
 
+/* GENERATE TAB: sidebar hidden, footer becomes left panel */
+.app.tags-tab-active{grid-template-columns:380px 1fr;}
+.app.tags-tab-active .sidebar{display:none;}
+.app.tags-tab-active .footer{grid-column:1;margin:0 0 10px 10px;}
+.app.tags-tab-active .main{grid-column:2;}
+
 /* SIDEBAR */
 .sidebar{grid-row:2;background:var(--panel);padding:18px 14px;display:flex;flex-direction:column;gap:4px;height:calc(100vh - var(--tabs-h));overflow-y:auto;transition:all .2s ease;overflow:hidden;border-radius:12px;margin:0 0 10px 10px;box-shadow:var(--shadow);border:1px solid var(--border);scrollbar-width:none;}
 .sidebar::-webkit-scrollbar{display:none;}
@@ -990,10 +996,11 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
   background:var(--panel);
   display:flex;
   flex-direction:column;
-  overflow:visible;
+  overflow:hidden;
   position:relative;
   width:auto;
   height:auto;
+  max-height:calc(100vh - var(--tabs-h));
   padding:0;
   margin:0 10px 10px 0;
   border-radius:12px;
@@ -1218,7 +1225,7 @@ body.light .send-footer{background:#dddbd7;border-top-color:rgba(0,0,0,.1);}
 #panel-tags.active{padding:0;}
 .compose-sticky{
   position:sticky;
-  top:var(--tabs-h);
+  top:0;
   z-index:10;
   background:var(--bg);
   border-bottom:1px solid var(--border);
@@ -1320,7 +1327,7 @@ body.light .send-config-video .icon-btn.locked{background:rgba(224,117,32,.12);b
 
 /* Per-category collapse wrapper */
 .tgroup{margin-bottom:22px;}
-.theader{display:flex;align-items:center;gap:8px;margin-bottom:9px;cursor:default;padding:5px 0;}
+.theader{display:flex;align-items:center;gap:8px;margin-bottom:9px;cursor:pointer;padding:5px 0;user-select:none;}
 .tgroup .ttitle{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted);background:rgba(0,0,0,.22);padding:3px 10px 3px 6px;border-radius:20px;margin:0;}
 body.light .tgroup .ttitle{background:rgba(0,0,0,.07);}
 .cat-group-chev{font-size:10px;color:var(--muted2);transition:transform .15s;flex-shrink:0;font-family:var(--mono);}
@@ -1345,8 +1352,7 @@ body.light .tag-chip:hover{border-color:var(--border3);color:var(--text);}
 .main::-webkit-scrollbar,.sidebar-nav::-webkit-scrollbar{display:none;}
 .main,.sidebar-nav{scrollbar-width:none;}
 
-/* Hide category collapse chevrons — collapse still works, just no visual indicator */
-.cat-group-chev{display:none;}
+/* Category collapse: clicking header toggles .collapsed class */
 
 /* Traffic-light clearance — push sidebar top content below macOS window buttons */
 .sidebar-top{padding-top:36px !important;}
@@ -1483,8 +1489,8 @@ body.light .send-config .cfg-sel{
 <!-- TITLE BAR (spans all columns, row 1) -->
 <div class="tabs" id="titlebar">
   <div class="tabs-left">
-    <div class="tab" data-tab="tags" onclick="switchTab('tags')">Generate</div>
-    <div class="tab active" data-tab="loras" onclick="switchTab('loras')">LoRAs <span id="loras-tab-ac" class="tab-badge tab-badge-orange" style="display:none;"></span></div>
+    <div class="tab active" data-tab="tags" onclick="switchTab('tags')">Generate</div>
+    <div class="tab" data-tab="loras" onclick="switchTab('loras')">LoRAs <span id="loras-tab-ac" class="tab-badge tab-badge-orange" style="display:none;"></span></div>
     <div class="tab" data-tab="checkpoints" onclick="switchTab('checkpoints')">Checkpoints</div>
     <div class="tab" data-tab="history" onclick="switchTab('history')" style="display:none;">History</div>
     <div class="tab" data-tab="presets" onclick="switchTab('presets')" style="display:none;">Presets</div>
@@ -1768,29 +1774,7 @@ body.light .send-config .cfg-sel{
 
 <!-- RIGHT PANEL (was footer) — moved inside .app so it's the third grid column -->
 <div class="footer" id="footer">
-  <!-- 1. Queue bar -->
-  <div class="queue-bar">
-    <span class="queue-bar-label" id="queue-bar-label">Queue</span>
-    <span class="queue-pill" id="queue-pill">idle</span>
-    <div class="queue-progress" id="queue-progress"><div class="queue-progress-inner" id="queue-progress-inner"></div></div>
-    <button class="queue-recent-toggle" id="queue-panel-toggle" onclick="toggleQueuePanel()" title="Toggle queue panel">queue</button>
-    <button class="queue-recent-toggle" id="queue-recent-toggle" onclick="toggleRecentStrip()" title="Toggle recent outputs strip">recent</button>
-  </div>
-
-  <!-- Queue jobs panel (floating left sidebar) -->
-  <div class="queue-jobs" id="queue-jobs">
-    <div class="queue-jobs-title">Queue</div>
-    <div id="queue-jobs-list"></div>
-  </div>
-
-  <!-- 2. Recent strip (toggleable) -->
-  <div class="recent-strip" id="recent-strip">
-    <span class="recent-strip-label">Recent</span>
-    <div class="recent-thumbs" id="recent-thumbs"></div>
-    <button class="recent-clear" onclick="clearRecentStrip()" title="Hide current recents — only newer images will appear">clear</button>
-  </div>
-
-  <!-- 3. Panel header: LoRAs strip -->
+  <!-- 1. LoRAs strip -->
   <div class="panel-header">
     <div class="lora-strip">
       <div class="lora-hdr">
@@ -1799,6 +1783,28 @@ body.light .send-config .cfg-sel{
         <span class="lora-conn" id="lora-conn"></span>
       </div>
     </div>
+  </div>
+
+  <!-- 2. Queue bar -->
+  <div class="queue-bar">
+    <span class="queue-bar-label" id="queue-bar-label">Queue</span>
+    <span class="queue-pill" id="queue-pill">idle</span>
+    <div class="queue-progress" id="queue-progress"><div class="queue-progress-inner" id="queue-progress-inner"></div></div>
+    <button class="queue-recent-toggle" id="queue-panel-toggle" onclick="toggleQueuePanel()" title="Toggle queue panel">queue</button>
+    <button class="queue-recent-toggle" id="queue-recent-toggle" onclick="toggleRecentStrip()" title="Toggle recent outputs strip">recent</button>
+  </div>
+
+  <!-- Queue jobs panel (floating overlay) -->
+  <div class="queue-jobs" id="queue-jobs">
+    <div class="queue-jobs-title">Queue</div>
+    <div id="queue-jobs-list"></div>
+  </div>
+
+  <!-- 3. Recent strip (toggleable) -->
+  <div class="recent-strip" id="recent-strip">
+    <span class="recent-strip-label">Recent</span>
+    <div class="recent-thumbs" id="recent-thumbs"></div>
+    <button class="recent-clear" onclick="clearRecentStrip()" title="Hide current recents — only newer images will appear">clear</button>
   </div>
 
   <!-- 3. Panel body: triggers fill the space -->
