@@ -3329,6 +3329,8 @@ function switchTab(tab){
   app.classList.toggle('footer-hidden', tab!=='tags');
   // v5 redesign: hide the entire right-panel grid column on non-Generate tabs
   app.classList.toggle('no-right-panel', tab!=='tags');
+  if (tab === 'tags') { if (_genMode === 'video') app.classList.add('video-mode'); }
+  else app.classList.remove('video-mode');
   renderNav();
   if(tab==='checkpoints')renderCheckpoints();
   if(tab==='loras'){renderLoraTab();updateFooterH();}
