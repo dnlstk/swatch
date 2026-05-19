@@ -125,6 +125,14 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 **Backlog:**
 - **Per-LoRA weight override on active LoRAs** — right-click a LoRA trigger chip (in the right panel) to set a one-off weight for this generation, without changing the LoRA's saved default. Currently you have to disable → change default → re-enable, which breaks flow.
 
+**Recently shipped (Claude Code session 32 — layout-right conflict fix + per-tab grid overrides):**
+- **Generate tab panel position fixed** — root cause: `layout-right` class (auto-applied on portrait monitors via `checkLayout()`) set `position:fixed; z-index:60` on the footer, ripping it out of the CSS grid and covering the title bar controls. Fixed with a compound CSS selector `.app.tags-tab-active.layout-right .footer` (specificity 0,3,1 beats 0,2,1) that resets `position:static; width:auto; height:auto; z-index:auto`. Also added explicit `position:static` to the base `.app.tags-tab-active .footer` rule.
+- **LoRAs tab sidebar removed** — per FULL-HANDOFF.md spec, LoRAs tab uses full width for the card grid (no left sidebar). Added `.app.lora-tab-active .sidebar{display:none}` with `grid-template-columns:1fr` and specificity overrides for `no-right-panel` and `sidebar-collapsed` compound states.
+- **Gallery tab sidebar narrowed** — 162px (down from 230px) per design spec. Added `--gallery-sidebar-w:162px` and `--gallery-panel-w:320px` CSS variables to both dark and light palettes. Gallery-specific grid override uses the variable.
+- **URL tab parameter** — `?tab=loras` / `?tab=gallery` / etc. in the URL now overrides the default Generate tab on load. Useful for testing individual tabs.
+- **Key learning**: CSS specificity conflicts between `tags-tab-active` and `layout-right` were invisible because both had specificity 0,2,1 but `layout-right` appeared later in the stylesheet. The `position:fixed` took the footer out of the grid flow entirely, making `grid-column:1` a no-op. Compound selectors are the clean fix — no `!important` needed.
+- **No rebuild needed** — all changes in app.js and comfy-prompt-gen.html (served live from `_tools/`).
+
 **Recently shipped (Claude Code session 30 — Git repo + design session prep):**
 - **GitHub repo created** — private repo at `https://github.com/dnlstk/prompt-gen` (@dnlstk). GitHub CLI (`gh`) installed and authenticated. All source files tracked: app.js, comfy-prompt-gen.html, CONTEXT.md, ROADMAP.md, electron-app/ (copied into _tools/ for now), fonts/. `.gitignore` excludes app-data.json, lora-images/, Archive/, node_modules/, dist/. Commits happen at end of sessions.
 - **Screenshots folder** — `screenshots/` in repo with current-state captures of all tabs (Generate image/video/img2img, LoRAs grid/detail, Gallery grid/detail). End-of-session checklist updated to include screenshot capture as step 6.

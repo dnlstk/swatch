@@ -20,6 +20,8 @@
   --footer-h:200px;--tabs-h:46px;
   --shadow:0 0 0 1px rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.8);
   --shadow-sm:0 0 0 1px rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.4);
+  --gallery-sidebar-w:162px;
+  --gallery-panel-w:320px;
 }
 body.light{
   --bg:#F5F4F0;--chrome:#EDEBE6;--panel:#FFFFFF;--surface:#E6E4DE;--surface2:#DFDDDA;--surface3:#D5D3CE;--surface4:#C9C7C2;
@@ -79,8 +81,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15
 /* GENERATE TAB: sidebar hidden, footer becomes left panel */
 .app.tags-tab-active{grid-template-columns:380px 1fr;}
 .app.tags-tab-active .sidebar{display:none;}
-.app.tags-tab-active .footer{grid-column:1;margin:0 0 10px 10px;}
+.app.tags-tab-active .footer{grid-column:1;grid-row:2;position:static;margin:0 0 10px 10px;width:auto;height:auto;max-height:calc(100vh - var(--tabs-h));}
 .app.tags-tab-active .main{grid-column:2;}
+
+/* LORAS TAB: sidebar hidden, full-width card grid */
+.app.lora-tab-active,.app.lora-tab-active.no-right-panel,.app.lora-tab-active.sidebar-collapsed,.app.lora-tab-active.no-right-panel.sidebar-collapsed{grid-template-columns:1fr;}
+.app.lora-tab-active .sidebar{display:none;}
+.app.lora-tab-active .main{grid-column:1;}
+
+/* GALLERY TAB: narrower sidebar (162px) */
+.app.gallery-tab-active,.app.gallery-tab-active.no-right-panel{grid-template-columns:var(--gallery-sidebar-w) 1fr;}
+.app.gallery-tab-active.sidebar-collapsed,.app.gallery-tab-active.no-right-panel.sidebar-collapsed{grid-template-columns:36px 1fr;}
 
 /* SIDEBAR */
 .sidebar{grid-row:2;background:var(--panel);padding:18px 14px;display:flex;flex-direction:column;gap:4px;height:calc(100vh - var(--tabs-h));overflow-y:auto;transition:all .2s ease;overflow:hidden;border-radius:12px;margin:0 0 10px 10px;box-shadow:var(--shadow);border:1px solid var(--border);scrollbar-width:none;}
@@ -541,6 +552,13 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .app.layout-right .footer .send-fields{flex:0 0 auto;}
 .app.layout-right .panel{padding-right:24px;}
 .app.layout-right .panel.active{padding-bottom:24px;}
+
+/* Generate tab: footer is a grid-positioned left panel — override layout-right's fixed positioning */
+.app.tags-tab-active.layout-right .footer{position:static;width:auto;height:auto;border-left:none;z-index:auto;}
+.app.tags-tab-active.layout-right .footer .out-grid{grid-template-columns:1fr 1fr;flex:1 1 auto;min-height:0;overflow-y:auto;}
+.app.tags-tab-active.layout-right .footer .out-box{height:auto;min-height:50px;max-height:none;}
+.app.tags-tab-active.layout-right .footer .send-row{flex-direction:column;align-items:stretch;}
+.app.tags-tab-active.layout-right .footer .send-btn{width:100%;}
 .app:not(.layout-right) .panel.active{padding-bottom:calc(var(--footer-h) + 24px);}
 .layout-toggle{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:11px;padding:4px 8px;border-radius:4px;transition:all .12s;font-family:var(--mono);margin-left:6px;}
 .layout-toggle:hover{color:var(--text);border-color:var(--border2);}

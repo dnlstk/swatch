@@ -183,8 +183,9 @@ async function init(){
   renderTagSections();
   renderHistory();
   renderPresets();
-  // Start on Generate tab
-  switchTab('tags');
+  // Start on Generate tab (override via ?tab= for testing)
+  const _urlTab = new URLSearchParams(window.location.search).get('tab');
+  switchTab(_urlTab || 'tags');
   updateFooterH();
   // Restore layout preference
   const savedLayout=localStorage.getItem('cpg-layout');
