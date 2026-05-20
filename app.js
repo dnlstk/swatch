@@ -270,6 +270,7 @@ function showInlineConfirm(message,onConfirm,opts){
 
 function toggleSidebar(){
   const app=document.querySelector('.app');
+  if(app.classList.contains('gallery-tab-active'))return;
   app.classList.toggle('sidebar-collapsed');
   const collapsed=app.classList.contains('sidebar-collapsed');
   localStorage.setItem('cpg-sidebar-collapsed',collapsed?'1':'0');
@@ -394,8 +395,8 @@ function renderNav(){
     return;
   }
   if(isGalleryTab){
-    if(labelEl)labelEl.textContent='Categories';
-    if(addBtn){addBtn.style.display='';addBtn.title='New category';addBtn.onclick=showAddGalleryCat;}
+    if(labelEl)labelEl.textContent='Albums';
+    if(addBtn){addBtn.style.display='';addBtn.title='New album';addBtn.onclick=showAddGalleryCat;}
     renderGalleryNav();
     return;
   }
@@ -469,6 +470,30 @@ function renderLoraNav(){
     </div>`;
   }
   nav.innerHTML=html;
+  renderLoraCollectionTabs();
+}
+
+function renderLoraCollectionTabs(){
+  const el=document.getElementById('lora-collection-tabs');
+  if(!el)return;
+  const hideBrut=!showAdult||document.body.classList.contains('hide-brut');
+  const allCount=loraList.filter(l=>getLoraModels(l).includes(model)).length;
+  const uncatCount=loraList.filter(l=>{
+    if(!getLoraModels(l).includes(model))return false;
+    return !loraCols.some(c=>c.keys.includes(l.file_name));
+  }).length;
+  let html=`<button class="lora-col-tab active" onclick="scrollToLoraSection('__all')"><span class="ndot" style="background:var(--muted2)"></span>All LoRAs <span class="ncount">${allCount}</span></button>`;
+  loraCols.forEach(col=>{
+    const brutActive=isColBrut(col.id);
+    if(hideBrut&&brutActive)return;
+    const count=col.keys.filter(k=>loraList.find(l=>l.file_name===k&&getLoraModels(l).includes(model))).length;
+    html+=`<button class="lora-col-tab" onclick="scrollToLoraSection('${col.id}')"><span class="ndot" style="background:var(--orange)"></span>${col.label} <span class="ncount">${count}</span></button>`;
+  });
+  if(uncatCount>0){
+    html+=`<button class="lora-col-tab" onclick="scrollToLoraSection('__uncat')"><span class="ndot" style="background:var(--muted2)"></span>Uncategorized <span class="ncount">${uncatCount}</span></button>`;
+  }
+  html+=`<button class="lora-col-add" onclick="showAddLoraCol()">+ collection</button>`;
+  el.innerHTML=html;
 }
 
 function scrollToCategory(id){
@@ -587,10 +612,10 @@ function renderTagSections(){
         <div class="ttitle"><span class="ttitle-dot" style="background:${cat.color}"></span>${cat.label}</div>
         ${activeCount>0?`<span class="cat-active-badge" style="background:${cat.color}22;color:${cat.color}">${activeCount}</span>`:''}
         <div class="tactions" onclick="event.stopPropagation()">
-          <div class="tbtn ${isEdit?'eactive':''}" onclick="toggleEdit('${cat.id}')">${isEdit?'✓':'✏'}</div>
-          ${cat.selectAll?`<div class="tbtn" onclick="selectAllSec('${cat.id}')">all</div>`:''}
-          <div class="tbtn" onclick="clearSec('${cat.id}')">clear</div>
-          ${cat.custom?`<div class="tbtn" style="color:var(--red)" onclick="deleteCat('${cat.id}')">delete</div>`:''}
+          <div class="tbtn" onclick="if(!editModes['${cat.id}'])toggleEdit('${cat.id}');setTimeout(()=>{const i=document.getElementById('ai-${cat.id}');if(i)i.focus();},50)">+ tag</div>
+          <div class="tbtn ${isEdit?'eactive':''}" onclick="toggleEdit('${cat.id}')">✎</div>
+          ${cat.custom?`<div class="tbtn" onclick="deleteCat('${cat.id}')" title="Delete category">—</div>`:''}
+          <div class="tbtn" onclick="clearSec('${cat.id}')" style="margin-left:2px;">clear</div>
         </div>
       </div>
       <div class="tags tags-wrap" id="tags-${cat.id}">${all.map(t=>mkTag(cat.id,t)).join('')}</div>
@@ -1102,7 +1127,7 @@ function updateLoraStats(){
   document.getElementById('lora-ac').textContent=`${n} active`;
   document.getElementById('stat-loras').textContent=n;
   const badge=document.getElementById('loras-tab-ac');
-  if(badge)badge.textContent=n>0?n+'':'';
+  if(badge){badge.textContent=n>0?n+'':'';badge.style.display=n>0?'':'none';}
 }
 
 // ===================== LORA DETAIL PANEL =====================
@@ -2227,7 +2252,7 @@ function connectComfyWS(){
       clearTimeout(_comfyWSReconnectTimer);
       _comfyWSReconnectTimer=null;
       pollQueueOnce();
-      // Small delay: WS handshakes before /object_info is fully ready on fresh boot
+      updateSendStatus();
       setTimeout(loadComfyCheckpoints, 2000);
     };
     _comfyWS.onmessage=(e)=>{
@@ -2237,9 +2262,9 @@ function connectComfyWS(){
     };
     _comfyWS.onclose=()=>{
       _comfyWS=null;
-      // Mark pill disconnected and schedule reconnect
       const pill=document.getElementById('queue-pill');
       if(pill){pill.textContent='—';pill.classList.remove('busy');pill.classList.add('disconnected');}
+      updateSendStatus();
       _comfyWSReconnectTimer=setTimeout(connectComfyWS,5000);
     };
     _comfyWS.onerror=()=>{}; // onclose handles it
@@ -2543,26 +2568,20 @@ function restoreRecentStripState(){
 
 // ===================== SEND META ROW =====================
 function updateSendMeta(){
-  if (_genMode === 'video') {
-    const m=document.getElementById('send-meta-model');if(m)m.textContent='Wan 2.2 5B';
-    const w=document.getElementById('vcfg-w')?.value||'';
-    const h=document.getElementById('vcfg-h')?.value||'';
-    const f=document.getElementById('vcfg-frames')?.value||'';
-    const d=document.getElementById('send-meta-dims');if(d)d.textContent=`${w}×${h} · ${f}f`;
-    const s=document.getElementById('vcfg-steps')?.value||'';
-    const ss=document.getElementById('send-meta-steps');if(ss)ss.textContent=`${s} steps`;
-    const seedVal=document.getElementById('vcfg-seed')?.value||'';
-    const seedEl=document.getElementById('send-meta-seed');if(seedEl)seedEl.textContent=`seed ${seedVal||'random'}`;
-    return;
+  updateSendStatus();
+}
+function updateSendStatus(){
+  const row=document.getElementById('send-status-row');
+  const txt=document.getElementById('send-status-text');
+  if(!row||!txt)return;
+  const connected=_comfyWS&&_comfyWS.readyState===WebSocket.OPEN;
+  if(connected){
+    row.className='send-status-row';
+    txt.textContent='ComfyUI connected · ready';
+  }else{
+    row.className='send-status-row disconnected';
+    txt.textContent='ComfyUI disconnected';
   }
-  const m=document.getElementById('send-meta-model');if(m)m.textContent=({sdxl:'SDXL',pony:'Pony',illustrious:'Illustrious'})[model]||model;
-  const w=document.getElementById('cfg-w')?.value||'';
-  const h=document.getElementById('cfg-h')?.value||'';
-  const d=document.getElementById('send-meta-dims');if(d)d.textContent=`${w}×${h}`;
-  const s=document.getElementById('cfg-steps')?.value||'';
-  const ss=document.getElementById('send-meta-steps');if(ss)ss.textContent=`${s} steps`;
-  const seedVal=document.getElementById('cfg-seed')?.value||'';
-  const seedEl=document.getElementById('send-meta-seed');if(seedEl)seedEl.textContent=`seed ${seedVal||'random'}`;
 }
 
 
@@ -3341,7 +3360,7 @@ function switchTab(tab){
   renderNav();
   if(tab==='checkpoints')renderCheckpoints();
   if(tab==='loras'){renderLoraTab();updateFooterH();}
-  else if(tab==='gallery'){loadGallery();startGalleryAutoPoll();renderRecentStrip();}
+  else if(tab==='gallery'){app.classList.remove('sidebar-collapsed');loadGallery();startGalleryAutoPoll();renderRecentStrip();}
   else if(tab==='settings'){loadSettings();renderChangelog();}
   else updateFooterH();
   if(tab==='tags'){renderRecentStrip();updateSendMeta();}
@@ -3827,6 +3846,7 @@ let galleryCats=[];
 let galleryCatFilter=null; // null=all, string=cat id, '__uncat'=uncategorized
 let showGalleryAdult=false;
 let gallerySearchQuery='';
+let _gallerySortOrder='newest';
 
 async function loadGallery(){
   const grid=document.getElementById('gallery-grid');
@@ -3839,7 +3859,7 @@ async function loadGallery(){
     ]);
     const rawImages=rawRes.ok?(await rawRes.json()).map(img=>({...img,folder:'raw'})):[];
     const approvedImages=approvedRes.ok?(await approvedRes.json()).map(img=>({...img,folder:'approved'})):[];
-    galleryImages=[...rawImages,...approvedImages].sort((a,b)=>b.mtime-a.mtime);
+    galleryImages=[...rawImages,...approvedImages].sort((a,b)=>_gallerySortOrder==='oldest'?(a.mtime-b.mtime):(b.mtime-a.mtime));
     // Update auto-poll baseline so the tick doesn't re-fire on this fresh data
     _galleryLastMtime=rawImages.reduce((m,i)=>Math.max(m,i.mtime||0),0);
     // Sync approved state from folder contents
@@ -3871,13 +3891,10 @@ function mkGalleryCard(img,state){
   const media=isVid
     ?`<video src="${src}" muted preload="metadata" class="gthumb-vid"></video><div class="gvid-play">▶</div>`
     :`<img src="${src}" loading="lazy" alt="">`;
-  const ext=!/\.png$/i.test(img.name);
-  const ageDays=galleryAgeDays(img);
-  const ageRibbon=(s==='unreviewed'&&ageDays>=7)?`<div class="gage-ribbon ${ageDays>=14?'gage-urgent':'gage-warn'}">${galleryAgeLabel(ageDays)}</div>`:'';
   return `<div class="gthumb state-${s}${sel}" data-file="${img.name.replace(/"/g,'&quot;')}" onclick="galleryCardClick('${safeFile}',event)" oncontextmenu="openGalleryCtx('${safeFile}',event)">
     ${media}
     <div class="gthumb-overlay">${date}</div>
-    <div class="gsel-check">✓</div>${brut?'<div class="gbrut-badge">⍜</div>':''}${ext?'<div class="gext-badge">↗</div>':''}${ageRibbon}
+    <div class="gsel-check">✓</div>${brut?'<div class="gbrut-badge">⍜</div>':''}
   </div>`;
 }
 
@@ -4030,7 +4047,19 @@ function renderGallery(){
     grid.innerHTML='<p class="gallery-empty">No images here.</p>';
     return;
   }
-  grid.innerHTML=images.map(img=>mkGalleryCard(img,state)).join('');
+  const recentImgs=[];const oldImgs=[];
+  images.forEach(img=>{
+    const ageDays=galleryAgeDays(img);
+    const s=state[img.name]||'unreviewed';
+    if(s==='unreviewed'&&ageDays>=14)oldImgs.push(img);
+    else recentImgs.push(img);
+  });
+  let html=recentImgs.map(img=>mkGalleryCard(img,state)).join('');
+  if(oldImgs.length>0){
+    html+=`<div class="gallery-age-divider"><div class="age-divider-line"></div><div class="age-divider-pill"><span class="age-divider-dot"></span>14+ days · unreviewed · ${oldImgs.length} images</div><div class="age-divider-line"></div></div>`;
+    html+=oldImgs.map(img=>mkGalleryCard(img,state)).join('');
+  }
+  grid.innerHTML=html;
 }
 
 function updateGalleryFilterCounts(){
@@ -4867,19 +4896,6 @@ function patchGalleryCard(filename){
   if(card){
     const sel=card.classList.contains('gsel')?' gsel':'';
     card.className=`gthumb state-${s}${sel}`;
-    const existingRibbon=card.querySelector('.gage-ribbon');
-    const img=galleryImages.find(i=>i.name===filename);
-    if(s==='unreviewed'&&img){
-      const ageDays=galleryAgeDays(img);
-      if(ageDays>=7){
-        if(!existingRibbon){
-          const ribbon=document.createElement('div');
-          ribbon.className=`gage-ribbon ${ageDays>=14?'gage-urgent':'gage-warn'}`;
-          ribbon.textContent=galleryAgeLabel(ageDays);
-          card.appendChild(ribbon);
-        }
-      }else if(existingRibbon){existingRibbon.remove();}
-    }else if(existingRibbon){existingRibbon.remove();}
   }
   updateGalleryFilterCounts();
 }
@@ -4951,6 +4967,8 @@ function galleryCardClick(file,e){
 function toggleGallerySelect(){
   gallerySelectMode=!gallerySelectMode;
   document.querySelectorAll('#gsc-select').forEach(b=>b.classList.toggle('active',gallerySelectMode));
+  const gtfSel=document.getElementById('gtf-select');
+  if(gtfSel)gtfSel.classList.toggle('active',gallerySelectMode);
   if(!gallerySelectMode){
     gallerySelected.clear();
     _galleryLastClicked=null;
@@ -4958,6 +4976,12 @@ function toggleGallerySelect(){
   }
   document.querySelectorAll('.gallery-grid').forEach(g=>g.classList.toggle('select-mode',gallerySelectMode));
   updateBulkBar();
+}
+
+function setGallerySort(val){
+  _gallerySortOrder=val;
+  galleryImages.sort((a,b)=>val==='oldest'?(a.mtime-b.mtime):(b.mtime-a.mtime));
+  renderGallery();
 }
 
 function gallerySelectAll(){
@@ -4980,8 +5004,8 @@ function updateBulkBar(){
   bar.style.display=(gallerySelectMode&&n>0)?'flex':'none';
   const count=document.getElementById('gbulk-count');
   if(count)count.textContent=`${n} selected`;
-  const compare=document.getElementById('gbulk-compare');
-  if(compare)compare.style.display=(n===2)?'':'none';
+  const compareBtn=document.getElementById('gtf-compare');
+  if(compareBtn)compareBtn.style.display=(gallerySelectMode&&n===2)?'':'none';
 }
 
 async function galleryBulkApprove(){

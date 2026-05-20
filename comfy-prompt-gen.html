@@ -63,7 +63,16 @@ body.light .hist-btn:last-child{color:var(--red);}
 body.light .abtn.copied{border-color:var(--green);color:var(--green);}
 /* LORA TOOLBAR - only visible on LoRAs tab */
 .lora-toolbar{display:none !important;}
-.lora-tab-active .lora-toolbar{display:flex !important;align-items:center;gap:5px;padding:6px 12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin:8px 10px 0;box-shadow:var(--shadow-sm);flex-wrap:wrap;}
+.lora-tab-active .lora-toolbar{display:flex !important;align-items:center;gap:5px;padding:6px 12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin:8px 10px 0;box-shadow:var(--shadow-sm);flex-shrink:0;z-index:501;}
+.lora-collection-tabs{display:none !important;}
+.lora-tab-active .lora-collection-tabs{display:flex !important;align-items:center;gap:2px;padding:6px 10px 0;flex-shrink:0;z-index:501;}
+.lora-col-tab{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;cursor:pointer;transition:all .1s;background:transparent;border:1px solid transparent;font-family:var(--sans);font-size:12px;color:var(--muted);font-weight:400;}
+.lora-col-tab:hover{background:var(--surface);}
+.lora-col-tab.active{background:var(--surface);border-color:var(--border2);font-weight:500;color:var(--text);}
+.lora-col-tab .ndot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.lora-col-tab .ncount{font-family:var(--mono);font-size:9px;color:var(--muted2);}
+.lora-col-add{margin-left:auto;padding:5px 9px;border-radius:6px;cursor:pointer;border:1px dashed var(--border2);background:none;font-family:var(--sans);font-size:11px;color:var(--muted2);transition:all .12s;}
+.lora-col-add:hover{border-color:var(--border3);color:var(--muted);}
 .lora-card-fav.active{color:#FFD700 !important;text-shadow:0 0 6px rgba(255,215,0,.7) !important;}
 body.light .lora-card-fav.active{color:#d97706;text-shadow:0 0 5px rgba(217,119,6,.5);}
 @media(max-width:860px){
@@ -117,6 +126,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15
 .gallery-tab-active .gallery-brut-btn{display:inline-flex !important;}
 body.hide-brut .tags-brut-btn,body.hide-brut .lora-brut-btn,body.hide-brut .gallery-brut-btn,body.hide-brut #lp-adult-btn,body.hide-brut .lora-card-adult,body.hide-brut #lora-ctx-adult-item,body.hide-brut .gbulk-brut,body.hide-brut .wpbtn.brut-toggle{display:none !important;}
 .gallery-tab-active .sstats{display:none;}
+.gallery-tab-active .sidebar .logo{display:none;}
+.gallery-tab-active .sidebar .sidebar-toggle{display:none;}
+.gallery-tab-active .sidebar .sidebar-clear-btn{display:none;}
+.gallery-tab-active .sidebar .gallery-brut-btn{display:none !important;}
+.gallery-new-album-btn{display:none;background:none;border:none;font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;padding:3px 6px;text-align:left;width:100%;transition:color .12s;}
+.gallery-new-album-btn:hover{color:var(--text);}
+.gallery-tab-active .gallery-new-album-btn{display:block;}
+.gallery-tab-active .sidebar .sidebar-bottom-wrap{border-top:1px solid var(--border);padding:5px 8px;}
+.gallery-tab-active .sidebar-bottom{gap:0;}
 .sidebar-toggle{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;border-radius:4px;transition:all .12s;line-height:1;}
 .sidebar-toggle:hover{color:var(--text);background:var(--surface2);}
 
@@ -602,12 +620,12 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .lora-card.type-clothing .lora-card-type{background:rgba(244,114,182,.66);border:1px solid rgba(244,114,182,.88);color:#000;}
 .lora-card.type-pose .lora-card-type{background:rgba(52,211,153,.66);border:1px solid rgba(52,211,153,.88);color:#000;}
 .lora-card.type-concept .lora-card-type{background:rgba(251,146,60,.66);border:1px solid rgba(251,146,60,.88);color:#000;}
-.lora-card-actions{display:flex;gap:0;background:rgba(0,0,0,.62);border-radius:5px;overflow:hidden;pointer-events:all;}
-.lora-card-enable{flex:1;padding:5px 8px;border:none;background:transparent;color:rgba(255,255,255,.85);font-size:9px;font-family:var(--mono);cursor:pointer;transition:all .15s;text-align:center;}
-.lora-card-enable:hover{background:rgba(255,255,255,.1);color:#fff;}
-.lora-card-enable.active{background:rgba(251,146,60,.2);color:var(--orange);border-color:rgba(251,146,60,.4);}
-.lora-card-info-btn{width:26px;flex-shrink:0;border:none;border-left:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.6);font-size:11px;font-family:var(--mono);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
-.lora-card-info-btn:hover{background:rgba(255,255,255,.1);color:#fff;}
+.lora-card-actions{display:flex;gap:4px;padding:5px;background:rgba(0,0,0,.62);pointer-events:all;}
+.lora-card-enable{flex:1;padding:5px 0;border:1px solid rgba(255,255,255,.2);border-radius:5px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);font-size:9px;font-family:var(--mono);cursor:pointer;transition:all .15s;text-align:center;letter-spacing:.04em;}
+.lora-card-enable:hover{background:rgba(255,255,255,.12);color:#fff;}
+.lora-card-enable.active{background:rgba(251,146,60,.25);color:var(--orange);border-color:rgba(251,146,60,.55);}
+.lora-card-info-btn{width:26px;height:26px;flex-shrink:0;border:1px solid rgba(255,255,255,.2);border-radius:5px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);font-size:11px;font-family:var(--mono);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.lora-card-info-btn:hover{background:rgba(255,255,255,.12);color:#fff;}
 .lora-card-info-btn.cleaned{color:rgba(234,179,8,.9);}
 /* Badges on image (absolute) */
 .lora-card-status{position:absolute;top:7px;left:7px;border-radius:5px;padding:2px 6px;font-size:8px;font-weight:700;font-family:var(--mono);line-height:1.4;color:#fff;}
@@ -633,7 +651,7 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
   box-shadow:var(--shadow);border-radius:12px;
 }
 .lora-panel.open{transform:translateX(0);}
-.lora-panel-backdrop{position:fixed;inset:0;z-index:499;display:none;backdrop-filter:blur(2px);}
+.lora-panel-backdrop{position:fixed;inset:0;z-index:499;display:none;}
 .lora-panel-backdrop.open{display:block;}
 /* Header */
 .lp-header{padding:16px 18px 0;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -671,7 +689,7 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .lp-img-wrap{position:relative;background:var(--surface2);border-radius:8px;overflow:hidden;width:140px;cursor:zoom-in;}
 .lp-img-wrap img{width:140px;aspect-ratio:2/3;object-fit:cover;object-position:top;display:block;}
 .lp-img-placeholder{width:140px;min-height:180px;display:flex;align-items:center;justify-content:center;color:var(--muted2);font-size:11px;font-family:var(--mono);}
-.lp-img-status{position:absolute;top:6px;left:6px;}
+.lp-img-status{display:none !important;}
 .lp-img-fav{position:absolute;top:6px;right:6px;font-size:13px;line-height:1;text-shadow:0 1px 4px rgba(0,0,0,.8);}
 .lp-img-adult{position:absolute;top:6px;right:6px;font-size:13px;line-height:1;}
 .lp-img-adult.has-fav{top:28px;}
@@ -802,7 +820,7 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .gallery-empty{color:var(--muted);font-size:13px;padding:60px 0;text-align:center;grid-column:1/-1;}
 
 /* GALLERY DETAIL PANEL */
-.gallery-detail{position:fixed;top:var(--tabs-h);right:10px;width:320px;height:calc(100vh - var(--tabs-h) - 10px);background:var(--panel);border:1px solid var(--border);z-index:200;display:flex;flex-direction:column;transition:transform .2s ease;box-shadow:var(--shadow);border-radius:12px;transform:translateX(calc(100% + 10px));}
+.gallery-detail{position:fixed;top:calc(var(--tabs-h) + 8px);right:10px;bottom:10px;width:310px;background:var(--panel);border:1px solid var(--border);z-index:200;display:flex;flex-direction:column;transition:transform .2s ease;box-shadow:var(--shadow);border-radius:12px;transform:translateX(calc(100% + 10px));overflow:hidden;}
 .gallery-detail.open{transform:translateX(0);}
 .gallery-detail-backdrop{display:none;position:fixed;inset:0;z-index:199;}
 .gallery-detail-backdrop.visible{display:block;}
@@ -824,9 +842,17 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .gdp-rename-cancel:hover{color:var(--red);background:var(--surface2);border-color:var(--red);}
 .gallery-detail-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:6px 10px;border-radius:4px;line-height:1;transition:all .12s;font-family:var(--sans);flex-shrink:0;}
 .gallery-detail-close:hover{color:var(--text);background:var(--surface2);}
-.gallery-detail-img-wrap{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--surface2);padding:12px;min-height:120px;transition:flex .25s ease;}
-.gallery-detail-img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;cursor:zoom-in;}
-.gallery-detail-meta{padding:10px 16px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--border);flex-shrink:0;}
+.gallery-detail-body{flex:1;overflow-y:auto;scrollbar-width:none;min-height:0;}
+.gallery-detail-body::-webkit-scrollbar{display:none;}
+.gallery-detail-img-wrap{margin:8px 8px 0;border-radius:6px;overflow:hidden;aspect-ratio:7/9;border:1px solid var(--border);cursor:zoom-in;}
+.gallery-detail-img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
+.gallery-detail-footer{padding:8px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;}
+.gallery-detail-footer button{flex:1;padding:7px;text-align:center;border-radius:7px;background:var(--surface);border:1px solid var(--border2);font-family:var(--sans);font-size:11px;font-weight:500;cursor:pointer;transition:all .12s;}
+.gallery-detail-footer .gdp-remix{color:var(--orange);}
+.gallery-detail-footer .gdp-remix:hover{border-color:var(--orange);background:rgba(251,146,60,.06);}
+.gallery-detail-footer .gdp-i2i{color:var(--blue);}
+.gallery-detail-footer .gdp-i2i:hover{border-color:var(--blue);background:rgba(129,140,248,.06);}
+.gallery-detail-meta{padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .gallery-detail-meta span{font-family:var(--mono);font-size:10px;color:var(--muted);}
 .gdp-state-badge{margin-left:auto;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;}
 .gdp-state-badge.unreviewed{background:rgba(129,140,248,.12);color:var(--blue);}
@@ -852,8 +878,11 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .gdp-tags-input-cancel{color:var(--muted);}
 .gdp-tags-input-cancel:hover{color:var(--red);border-color:var(--red);background:var(--surface2);}
 .gdp-tags-none{font-family:var(--mono);font-size:10px;color:var(--muted2);font-style:italic;}
-.gbulk-compare{border-color:rgba(129,140,248,.4);color:var(--blue);}
-.gbulk-compare:hover{background:rgba(129,140,248,.1);}
+.gbulk-compare{background:var(--blue);color:#fff;border-color:var(--blue);}
+.gbulk-compare:hover{background:var(--blue);opacity:.85;}
+.gtf-sort{height:30px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:11px;padding:0 8px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;}
+.gtf-sort:hover{border-color:var(--border3);}
+#gtf-select.active{background:var(--orange);color:#fff;border-color:var(--orange);}
 .compare-overlay{display:none;position:fixed;inset:0;z-index:500;background:var(--bg);flex-direction:column;}
 .compare-overlay.open{display:flex;}
 .compare-header{display:flex;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;-webkit-app-region:no-drag;}
@@ -880,8 +909,8 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .gallery-back-top{position:fixed;bottom:24px;right:24px;width:36px;height:36px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:150;opacity:0;pointer-events:none;transition:opacity .2s,border-color .15s,color .15s;box-shadow:0 4px 16px rgba(0,0,0,.4);}
 .gallery-back-top.visible{opacity:1;pointer-events:auto;}
 .gallery-back-top:hover{color:var(--text);border-color:var(--border3);background:var(--surface3);}
-.gallery-detail-actions{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;}
-.gdp-btn{flex:1;padding:8px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer;transition:all .12s;}
+.gallery-detail-actions{display:flex;gap:5px;padding:8px;}
+.gdp-btn{flex:1;padding:6px 0;text-align:center;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--sans);font-size:11px;font-weight:400;cursor:pointer;transition:all .12s;}
 .gdp-btn:hover{border-color:var(--border3);color:var(--text);}
 .gdp-btn.gdp-review{border-color:rgba(245,158,11,.3);color:var(--amber);}
 .gdp-btn.gdp-review:hover{background:rgba(245,158,11,.08);}
@@ -889,9 +918,9 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .gdp-btn.gdp-approve:hover{background:rgba(52,211,153,.08);}
 .gdp-btn.gdp-decline{border-color:rgba(248,113,113,.3);color:var(--red);}
 .gdp-btn.gdp-decline:hover{background:rgba(248,113,113,.08);}
-.gdp-btn.gdp-active.gdp-approve{background:rgba(52,211,153,.15);border-color:var(--green);color:var(--green);}
-.gdp-btn.gdp-active.gdp-review{background:rgba(245,158,11,.15);border-color:var(--amber);color:var(--amber);}
-.gdp-btn.gdp-active.gdp-decline{background:rgba(248,113,113,.15);border-color:var(--red);color:var(--red);}
+.gdp-btn.gdp-active.gdp-approve{background:rgba(52,211,153,.1);border-color:var(--green);color:var(--green);font-weight:600;}
+.gdp-btn.gdp-active.gdp-review{background:rgba(245,158,11,.1);border-color:var(--amber);color:var(--amber);font-weight:600;}
+.gdp-btn.gdp-active.gdp-decline{background:rgba(248,113,113,.1);border-color:var(--red);color:var(--red);font-weight:600;}
 .gdp-accordion-toggle{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 16px;border-top:1px solid var(--border);flex-shrink:0;cursor:pointer;user-select:none;transition:background .12s;position:relative;}
 .gdp-i2i-btn{position:absolute;right:68px;top:50%;transform:translateY(-50%);background:var(--surface2);border:1px solid var(--border2);color:var(--cyan);font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:5px;cursor:pointer;transition:background .12s,border-color .12s;}
 .gdp-i2i-btn:hover{background:var(--surface3);border-color:var(--cyan);}
@@ -1000,7 +1029,8 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
 .sidebar-top .logo-v{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-left:4px;}
 .sidebar-top .sidebar-toggle{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 4px;}
 .sidebar-top .slabel{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--muted2);text-transform:uppercase;padding:10px 8px 4px;}
-.main .panel{padding:0;padding-bottom:0;}
+.main .panel{padding:0;padding-bottom:0;flex:1;min-width:0;width:100%;}
+#lora-tab-grid{width:100%;padding:10px;}
 .main .panel.active{padding:0;}
 /* Panels other than Generate get padding back */
 .main .panel:not(#panel-tags){padding:22px 24px;}
@@ -1051,6 +1081,7 @@ body.light ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45);}
   padding:6px 16px;
   background:transparent;
   border-bottom:1px solid var(--border);
+  margin-bottom:5px;
 }
 body.light .queue-bar{background:transparent;border-bottom-color:rgba(0,0,0,.1);}
 .queue-bar-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);flex-shrink:0;}
@@ -1233,11 +1264,13 @@ body.light .send-footer{background:#dddbd7;border-top-color:rgba(0,0,0,.1);}
 .send-footer .send-btn:active{filter:brightness(.96);}
 .send-footer .send-btn:disabled{opacity:.6;cursor:default;}
 .send-footer .send-btn.sending{opacity:.6;}
-.send-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.send-meta-label{font-family:var(--mono);font-size:10px;color:var(--muted2);letter-spacing:.06em;}
-.send-meta-value{font-family:var(--mono);font-size:10px;color:var(--muted);}
-.send-meta-sep{color:var(--border3);font-family:var(--mono);font-size:10px;}
-.send-meta-seed{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted2);}
+.send-status-row{display:flex;align-items:center;justify-content:center;gap:5px;}
+.send-status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 4px rgba(52,211,153,.5);flex-shrink:0;}
+.send-status-text{font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:.04em;}
+.send-status-row.disconnected .send-status-dot{background:var(--amber);box-shadow:0 0 4px rgba(245,158,11,.5);}
+.send-status-row.disconnected .send-status-text{color:var(--amber);}
+.send-status-row.error .send-status-dot{background:var(--red);box-shadow:0 0 4px rgba(248,113,113,.5);}
+.send-status-row.error .send-status-text{color:var(--red);}
 
 /* New compose: subject sticky alone, neg + tags scroll below */
 #panel-tags.active{padding:0;}
@@ -1496,6 +1529,7 @@ body.light .send-config .cfg-sel{
   <!-- STICKY BOTTOM -->
   <div class="sidebar-bottom-wrap">
     <div class="sidebar-bottom">
+      <button class="gallery-new-album-btn" onclick="showAddGalleryCat()">+ New album</button>
       <div class="sstats">
         <div class="sstat"><span id="stat-tags">0</span> tags · <span id="stat-loras">0</span> LoRAs</div>
       </div>
@@ -1538,31 +1572,44 @@ body.light .send-config .cfg-sel{
 <main class="main">
   <!-- Gallery filter bar (floating strip, only visible on gallery tab) -->
   <div class="gallery-toolbar" id="gallery-toolbar">
+    <div class="gsearch-wrap">
+      <input class="lsearch" id="gsearch" placeholder="⌕ search gallery…" oninput="onGallerySearch()">
+      <button onclick="clearGallerySearch()" id="gsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
+    </div>
+    <div class="titlebar-divider" style="height:18px;"></div>
     <button class="lfbtn active" id="gtf-all" onclick="setGalleryFilter('all')">All</button>
     <button class="lfbtn" id="gtf-unreviewed" onclick="setGalleryFilter('unreviewed')">Unreviewed</button>
     <button class="lfbtn" id="gtf-review" onclick="setGalleryFilter('review')">Review</button>
     <button class="lfbtn" id="gtf-approved" onclick="setGalleryFilter('approved')">Approved</button>
     <button class="lfbtn" id="gtf-declined" onclick="setGalleryFilter('declined')">Declined</button>
+    <button class="lfbtn" id="gtf-old" onclick="setGalleryFilter('old')" style="display:none;">Old (14d+)</button>
     <button class="lfbtn" id="gallery-process-btn" onclick="galleryProcessDeclined()" style="display:none;border-color:rgba(248,113,113,.3);color:var(--red);">🗑 Process 0</button>
-    <button class="lfbtn gtf-time-btn" id="gtf-time" onclick="cycleGalleryTimeFilter()">All time</button>
-    <div class="gsearch-wrap">
-      <input class="lsearch" id="gsearch" placeholder="Search..." oninput="onGallerySearch()">
-      <button onclick="clearGallerySearch()" id="gsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
-    </div>
+    <div style="flex:1;"></div>
+    <button class="lfbtn gbulk-compare" id="gtf-compare" onclick="openCompareMode()" style="display:none;">⊞ Compare 2</button>
+    <button class="lfbtn" id="gtf-select" onclick="toggleGallerySelect()">Select</button>
+    <select class="gtf-sort" id="gtf-sort" onchange="setGallerySort(this.value)">
+      <option value="newest">newest</option>
+      <option value="oldest">oldest</option>
+    </select>
   </div>
   <!-- LoRA filter bar (floating strip, only visible on LoRAs tab) -->
   <div class="lora-toolbar" id="lora-toolbar">
-    <button class="lfbtn active" id="ltf-all" onclick="setLoraTabFilter('all')">All</button>
-    <button class="lfbtn" id="ltf-fav" onclick="setLoraTabFilter('fav')">Favs</button>
-    <button class="lfbtn" id="ltf-verified" onclick="cycleVerifiedFilter()">Verified: All</button>
-    <button class="lfbtn" id="ltf-cleaned" onclick="toggleCleanedFilter()">Cleaned: All</button>
-    <button class="lfbtn" onclick="loadLoras()">↺</button>
-    <span class="lrstatus" id="lrstatus-tab" style="font-size:10px;">Not connected</span>
-    <div style="position:relative;display:flex;align-items:center;width:160px;flex-shrink:1;min-width:80px;">
-      <input class="lsearch" id="lsearch-tab" placeholder="Search..." oninput="onLoraSearch()" style="padding-right:22px;width:100%;">
+    <div style="position:relative;display:flex;align-items:center;width:170px;flex-shrink:1;min-width:100px;">
+      <input class="lsearch" id="lsearch-tab" placeholder="⌕ search loras…" oninput="onLoraSearch()" style="padding-right:22px;width:100%;">
       <button onclick="clearLoraSearch()" id="lsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
     </div>
+    <div class="titlebar-divider" style="height:18px;"></div>
+    <button class="lfbtn active" id="ltf-all" onclick="setLoraTabFilter('all')">All</button>
+    <button class="lfbtn" id="ltf-fav" onclick="setLoraTabFilter('fav')">Favs</button>
+    <div class="titlebar-divider" style="height:18px;"></div>
+    <button class="lfbtn" id="ltf-verified" onclick="cycleVerifiedFilter()">Verified: All</button>
+    <button class="lfbtn" id="ltf-cleaned" onclick="toggleCleanedFilter()">Cleaned: All</button>
+    <div style="flex:1;"></div>
+    <span class="lrstatus" id="lrstatus-tab" style="font-family:var(--mono);font-size:9px;color:var(--muted2);">234 loaded</span>
+    <button class="lfbtn" onclick="loadLoras()" title="Reload LoRAs">↺</button>
   </div>
+  <!-- LoRA collection tabs (only visible on LoRAs tab) -->
+  <div class="lora-collection-tabs" id="lora-collection-tabs"></div>
 
   <!-- GENERATE -->
   <div class="panel" id="panel-tags">
@@ -1659,13 +1706,12 @@ body.light .send-config .cfg-sel{
   </div>
   <div class="gallery-bulk-bar" id="gallery-bulk-bar" style="display:none;">
     <span id="gbulk-count">0 selected</span>
-    <button class="lfbtn" onclick="gallerySelectAll()">Select All</button>
-    <button class="lfbtn" onclick="galleryDeselectAll()">Deselect</button>
-    <button class="lfbtn gbulk-review" onclick="galleryBulkReview()">Review</button>
-    <button class="lfbtn gbulk-approve" onclick="galleryBulkApprove()">Approve</button>
-    <button class="lfbtn gbulk-decline" onclick="galleryBulkDecline()">Decline</button>
-    <button class="lfbtn gbulk-compare" id="gbulk-compare" onclick="openCompareMode()" style="display:none;">Compare</button>
-    <button class="lfbtn gbulk-brut" onclick="galleryBulkBrut()" style="margin-left:auto;" title="Toggle Brut on selected">⍜</button>
+    <div class="titlebar-divider" style="height:16px;"></div>
+    <button class="lfbtn gbulk-approve" onclick="galleryBulkApprove()">✓ Approve</button>
+    <button class="lfbtn gbulk-review" onclick="galleryBulkReview()">◎ Review</button>
+    <button class="lfbtn gbulk-decline" onclick="galleryBulkDecline()">✕ Decline</button>
+    <div class="titlebar-divider" style="height:16px;"></div>
+    <button class="lfbtn" onclick="galleryDeselectAll()">Deselect all</button>
   </div>
 
   <!-- COMPARE MODE -->
@@ -1792,7 +1838,14 @@ body.light .send-config .cfg-sel{
 
 <!-- RIGHT PANEL (was footer) — moved inside .app so it's the third grid column -->
 <div class="footer" id="footer">
-  <!-- 1. LoRAs strip -->
+  <!-- 1. Recent strip (first, at the top) -->
+  <div class="recent-strip" id="recent-strip">
+    <span class="recent-strip-label">Recent</span>
+    <div class="recent-thumbs" id="recent-thumbs"></div>
+    <button class="recent-clear" onclick="clearRecentStrip()" title="Hide current recents — only newer images will appear">clear</button>
+  </div>
+
+  <!-- 2. LoRAs strip -->
   <div class="panel-header">
     <div class="lora-strip">
       <div class="lora-hdr">
@@ -1803,7 +1856,7 @@ body.light .send-config .cfg-sel{
     </div>
   </div>
 
-  <!-- 2. Queue bar -->
+  <!-- 3. Queue bar -->
   <div class="queue-bar">
     <span class="queue-bar-label" id="queue-bar-label">Queue</span>
     <span class="queue-pill" id="queue-pill">idle</span>
@@ -1816,13 +1869,6 @@ body.light .send-config .cfg-sel{
   <div class="queue-jobs" id="queue-jobs">
     <div class="queue-jobs-title">Queue</div>
     <div id="queue-jobs-list"></div>
-  </div>
-
-  <!-- 3. Recent strip (toggleable) -->
-  <div class="recent-strip" id="recent-strip">
-    <span class="recent-strip-label">Recent</span>
-    <div class="recent-thumbs" id="recent-thumbs"></div>
-    <button class="recent-clear" onclick="clearRecentStrip()" title="Hide current recents — only newer images will appear">clear</button>
   </div>
 
   <!-- 3. Panel body: triggers fill the space -->
@@ -1890,8 +1936,8 @@ body.light .send-config .cfg-sel{
       <div class="cfg-field fixed" style="min-width:44px;"><div class="field-label-sm">CFG</div><input id="cfg-cfg" class="cfg-in" value="5" style="width:44px;"></div>
     </div>
     <div class="sampler-row">
-      <div class="cfg-field"><div class="field-label-sm">Sampler</div><select id="cfg-sampler" class="cfg-sel"></select></div>
-      <div class="cfg-field"><div class="field-label-sm">Sched</div><select id="cfg-scheduler" class="cfg-sel"></select></div>
+      <div class="cfg-field"><div class="field-label-sm">Sampler</div><select id="cfg-sampler" class="cfg-sel" spellcheck="false"></select></div>
+      <div class="cfg-field"><div class="field-label-sm">Sched</div><select id="cfg-scheduler" class="cfg-sel" spellcheck="false"></select></div>
     </div>
     <div class="seed-row">
       <div class="cfg-field"><div class="field-label-sm">Seed</div><input id="cfg-seed" placeholder="random"></div>
@@ -1940,7 +1986,7 @@ body.light .send-config .cfg-sel{
     </div>
   </div>
 
-  <!-- 5. Send footer: full-width Send + meta row -->
+  <!-- 5. Send footer: full-width Send + status row -->
   <div class="send-footer">
     <div class="send-footer-row">
       <div class="batch-field" title="Send this many copies per checkpoint">
@@ -1949,14 +1995,9 @@ body.light .send-config .cfg-sel{
       </div>
       <button class="send-btn" id="send-btn" onclick="sendToComfy()">→ Process</button>
     </div>
-    <div class="send-meta-row">
-      <span class="send-meta-label">Model</span>
-      <span class="send-meta-value" id="send-meta-model">—</span>
-      <span class="send-meta-sep">·</span>
-      <span class="send-meta-value" id="send-meta-dims">—</span>
-      <span class="send-meta-sep">·</span>
-      <span class="send-meta-value" id="send-meta-steps">—</span>
-      <span class="send-meta-seed" id="send-meta-seed">seed —</span>
+    <div class="send-status-row" id="send-status-row">
+      <span class="send-status-dot" id="send-status-dot"></span>
+      <span class="send-status-text" id="send-status-text">ComfyUI connected · ready</span>
     </div>
   </div>
 
@@ -2100,9 +2141,8 @@ body.light .send-config .cfg-sel{
             <button class="pa-badge-btn badge-verified" id="lpst-verified" onclick="lpSetStatus('verified')">✓ V</button>
             <button class="pa-badge-btn badge-testing" id="lpst-testing" onclick="lpSetStatus('testing')">T</button>
             <button class="pa-badge-btn badge-bad" id="lpst-bad" onclick="lpSetStatus('bad')">D</button>
-            <button class="pa-badge-btn badge-cleaned" id="lpst-cleaned" onclick="lpToggleCleaned()">C</button>
             <div class="lp-action-spacer"></div>
-            <button class="lp-action-icon-btn" id="lp-fav-btn" onclick="toggleLpFav()" title="Favorite">☆</button>
+            <button class="lp-action-icon-btn" id="lp-fav-btn" onclick="toggleLpFav()" title="Favorite">★</button>
             <button class="lp-action-icon-btn" id="lp-adult-btn" onclick="toggleLpAdult()" title="Brut"><span style="font-size:10px;vertical-align:middle;margin-right:2px;">⍜</span>Brut</button>
           </div>
           <div class="pa-strength-block">
@@ -2115,7 +2155,7 @@ body.light .send-config .cfg-sel{
             <div class="lp-hint">Auto-sets slider on activation</div>
           </div>
           <div>
-            <div class="lp-section-title">Trigger words <span class="lp-copy-hint">· click to copy</span><span class="lp-tw-bulk" id="lp-tw-bulk"><button class="lp-tw-btn" onclick="lpMarkTriggers('req')" title="Prefix every trigger with *">★ all</button><button class="lp-tw-btn" onclick="lpMarkTriggers('opt')" title="Strip * from every trigger">all opt</button></span></div>
+            <div class="lp-section-title">Trigger words <span class="lp-tw-bulk" id="lp-tw-bulk"><button class="lp-tw-btn" onclick="lpMarkTriggers('req')" title="Prefix every trigger with *">★ all</button><button class="lp-tw-btn" onclick="lpMarkTriggers('opt')" title="Strip * from every trigger">all opt</button></span></div>
             <textarea class="lp-prompt-area" id="lp-triggers" rows="3" placeholder="e.g. *chr1ss13-style, ahsoka  (* = required/auto-inject)" readonly onclick="copyLpField('lp-triggers',this)"></textarea>
           </div>
         </div>
@@ -2126,15 +2166,15 @@ body.light .send-config .cfg-sel{
     <div class="lp-pane" data-pane="notes">
       <div class="pa-notes-grid">
         <div class="lp-field">
-          <div class="lp-section-title">Prompt prefix <span class="lp-copy-hint">· click to copy</span></div>
+          <div class="lp-section-title">Prompt prefix </div>
           <textarea class="lp-prompt-area" id="lp-prefix" rows="4" placeholder="Tags prepended when LoRA is active..." readonly onclick="copyLpField('lp-prefix',this)"></textarea>
         </div>
         <div class="lp-field">
-          <div class="lp-section-title">Prompt suffix <span class="lp-copy-hint">· click to copy</span></div>
+          <div class="lp-section-title">Prompt suffix </div>
           <textarea class="lp-prompt-area" id="lp-suffix" rows="4" placeholder="Tags appended after content..." readonly onclick="copyLpField('lp-suffix',this)"></textarea>
         </div>
         <div class="lp-field pa-notes-full">
-          <div class="lp-section-title">Notes <span class="lp-copy-hint">· click to copy</span></div>
+          <div class="lp-section-title">Notes </div>
           <textarea class="lp-prompt-area" id="lp-tw" rows="5" placeholder="Observations, what works, what to avoid..." readonly onclick="copyLpField('lp-tw',this)"></textarea>
         </div>
       </div>
@@ -2174,48 +2214,49 @@ body.light .send-config .cfg-sel{
       <button class="gdp-rename-confirm" onclick="confirmGalleryRename()" title="Save">Save</button>
       <button class="gdp-rename-cancel" onclick="cancelGalleryRename()" title="Cancel">Cancel</button>
     </div>
-    <span class="gallery-detail-name" id="gdp-name"></span>
+    <div style="flex:1;min-width:0;">
+      <span class="gallery-detail-name" id="gdp-name" style="display:block;"></span>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted2);margin-top:2px;"><span id="gdp-date"></span> · <span id="gdp-size"></span><span id="gdp-timing"></span></div>
+    </div>
     <button class="gdp-rename-btn" onclick="startGalleryRename()" title="Rename">✎</button>
     <button class="gallery-detail-close" onclick="closeGalleryDetail()">✕</button>
   </div>
-  <div class="gallery-detail-img-wrap">
-    <img class="gallery-detail-img" id="gdp-img" src="" alt="" onclick="openGalleryLightbox()" oncontextmenu="openGalleryDetailCtx(event)">
-  </div>
-  <div class="gallery-detail-meta">
-    <span id="gdp-date"></span>
-    <span id="gdp-size"></span>
-    <span id="gdp-timing"></span>
-    <span class="gdp-state-badge" id="gdp-state"></span>
-  </div>
-  <div class="gdp-accordion-toggle" id="gdp-accordion-toggle" onclick="toggleMetadataAccordion()">
-    <span>Metadata</span>
-    <span class="gdp-accordion-arrow">▼</span>
-    <button class="gdp-i2i-btn" onclick="event.stopPropagation();img2imgFromGallery()">img2img</button>
-    <button class="gdp-remix-btn" onclick="event.stopPropagation();remixFromGallery()">Remix</button>
-  </div>
-  <div class="gdp-metadata" id="gdp-metadata"><div class="gdp-metadata-inner" id="gdp-metadata-inner"></div></div>
-  <div class="gallery-detail-cat" style="padding:8px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:8px;">
-    <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">Category</span>
-    <select id="gdp-cat" onchange="gallerySetCategory(this.value)" style="flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;font-family:var(--sans);outline:none;cursor:pointer;">
-      <option value="">Uncategorized</option>
-    </select>
-  </div>
-  <div class="gdp-tags" id="gdp-tags">
-    <div class="gdp-tags-row">
-      <span class="gdp-tags-label">Tags</span>
-      <div class="gdp-tags-chips" id="gdp-tags-chips"></div>
-      <button class="gdp-tags-add-btn" id="gdp-tags-add-btn" onclick="startAddGalleryTag()" title="Add tag">+</button>
+  <div class="gallery-detail-body">
+    <div class="gallery-detail-img-wrap" onclick="openGalleryLightbox()" oncontextmenu="openGalleryDetailCtx(event)">
+      <img class="gallery-detail-img" id="gdp-img" src="" alt="">
     </div>
-    <div class="gdp-tags-input-row" id="gdp-tags-input-row" style="display:none;">
-      <input class="gdp-tags-input" id="gdp-tags-input" placeholder="tag name" spellcheck="false">
-      <button class="gdp-tags-input-confirm" onclick="confirmAddGalleryTag()">Add</button>
-      <button class="gdp-tags-input-cancel" onclick="cancelAddGalleryTag()">Cancel</button>
+    <div class="gallery-detail-actions" style="padding:8px;display:flex;gap:5px;">
+      <button class="gdp-btn gdp-review" id="gdp-review-btn" onclick="gallerySetReview()">Review</button>
+      <button class="gdp-btn gdp-approve" id="gdp-approve-btn" onclick="galleryApprove()">Approve</button>
+      <button class="gdp-btn gdp-decline" id="gdp-decline-btn" onclick="galleryDecline()">Decline</button>
     </div>
+    <div class="gallery-detail-cat" style="padding:0 8px 8px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:4px;">
+      <span style="font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);">Category</span>
+      <select id="gdp-cat" onchange="gallerySetCategory(this.value)" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;font-family:var(--sans);outline:none;cursor:pointer;">
+        <option value="">Uncategorized</option>
+      </select>
+    </div>
+    <div class="gdp-tags" id="gdp-tags" style="border-bottom:1px solid var(--border);">
+      <div class="gdp-tags-row">
+        <span class="gdp-tags-label">Tags</span>
+        <div class="gdp-tags-chips" id="gdp-tags-chips"></div>
+        <button class="gdp-tags-add-btn" id="gdp-tags-add-btn" onclick="startAddGalleryTag()" title="Add tag">+</button>
+      </div>
+      <div class="gdp-tags-input-row" id="gdp-tags-input-row" style="display:none;">
+        <input class="gdp-tags-input" id="gdp-tags-input" placeholder="tag name" spellcheck="false">
+        <button class="gdp-tags-input-confirm" onclick="confirmAddGalleryTag()">Add</button>
+        <button class="gdp-tags-input-cancel" onclick="cancelAddGalleryTag()">Cancel</button>
+      </div>
+    </div>
+    <div class="gdp-accordion-toggle" id="gdp-accordion-toggle" onclick="toggleMetadataAccordion()">
+      <span>PNG Metadata</span>
+      <span class="gdp-accordion-arrow" style="color:var(--orange);">▾</span>
+    </div>
+    <div class="gdp-metadata" id="gdp-metadata"><div class="gdp-metadata-inner" id="gdp-metadata-inner"></div></div>
   </div>
-  <div class="gallery-detail-actions">
-    <button class="gdp-btn gdp-review" id="gdp-review-btn" onclick="gallerySetReview()">Mark Review</button>
-    <button class="gdp-btn gdp-approve" id="gdp-approve-btn" onclick="galleryApprove()">Approve</button>
-    <button class="gdp-btn gdp-decline" id="gdp-decline-btn" onclick="galleryDecline()">Decline</button>
+  <div class="gallery-detail-footer">
+    <button class="gdp-remix" onclick="remixFromGallery()">→ Remix</button>
+    <button class="gdp-i2i" onclick="img2imgFromGallery()">⊞ IMG2IMG</button>
   </div>
 </div>
 <div class="gallery-detail-backdrop" id="gallery-detail-backdrop" onclick="closeGalleryDetail()"></div>
