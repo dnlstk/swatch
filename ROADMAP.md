@@ -1,5 +1,5 @@
 # Prompt Gen Roadmap
-*Updated: May 22, 2026*
+*Updated: May 25, 2026*
 
 Everything through Phase 3.5 is shipped and tested. This is what's next.
 
@@ -67,6 +67,17 @@ Step back and rethink the whole thing.
 - [x] **LoRA tab design review (CD round 2)** ✓ — implemented all 19 edits from CD's second review pass. Card visual polish (status badges, brut borders, frosted glass buttons, cleaned indicator). Detail panel button row redesigned to overlay on portrait image. Status dropdown replaced 3 buttons with compact single-button + dropdown. Collection tabs with drag reorder. Vibe-based collections (151/193 sorted). Section headers restyled.
 - [x] **Gallery tab design review** ✓ — full redesign shipped (sessions 37-39). Sidebar removed, horizontal album tabs, 170px cards, 400px detail panel with right-click status, fav star + brut overlay on detail image, tag autocomplete, PNG metadata accordion. 5 rounds of polish with Daniel: back-to-top restyled, queue bar height matched, brut border tuned, drag lock, user-select disabled.
 - [ ] **Full app redesign via Claude Design** (large) — take the whole app through Claude Design for a fresh visual pass. The current layouts are functional but grew organically. Input package: screenshots of all tabs, workflow descriptions, design constraints, reference aesthetic. Output: interactive HTML mockup, then Claude Code implements it.
+
+---
+
+## Wave 6 — CivitAI Direct Integration
+
+Remove the LoRA Manager dependency entirely and manage models from within the app.
+
+- [x] **Phase 1: Data source swap** ✓ — server.js now scans the filesystem directly for .safetensors files + .metadata.json sidecars instead of hitting LoRA Manager's API. New `/local/` endpoints for listing and preview serving. In-memory caching with `/local/refresh`. LoRA Manager Port removed from Settings. All 234 LoRAs and 16 checkpoints loading correctly.
+- [ ] **Phase 2: Install/uninstall LoRAs** (medium) — download .safetensors from CivitAI directly, delete from filesystem. Needs: CivitAI download API, progress tracking, writing .metadata.json sidecar on install, cleanup on uninstall.
+- [ ] **Phase 3: Browse CivitAI** (large) — search CivitAI from within the app. Browse models, see previews, one-click install. Needs: CivitAI search API integration, results UI, install flow from browse.
+- [ ] **Handle LoRAs without metadata** (small) — for manually-added .safetensors files without .metadata.json, hash the file and call CivitAI's `/api/v1/model-versions/by-hash/{hash}` to fetch metadata.
 
 ---
 

@@ -32,7 +32,7 @@ The app started as a simple tag clicker for building prompts. It has evolved int
 **Core files:**
 - `comfy-prompt-gen.html` — all CSS and HTML structure
 - `app.js` — all JavaScript (was split from HTML due to Safari 65KB inline script limit)
-- `electron-app/server.js` — Node.js HTTP server (replaced Python proxy.py in session 7), serves files, proxies LoRA Manager + ComfyUI APIs, gallery operations, WebSocket proxy
+- `electron-app/server.js` — Node.js HTTP server (replaced Python proxy.py in session 7), serves files, scans filesystem for LoRAs/checkpoints, proxies ComfyUI API, gallery operations, WebSocket proxy
 - `electron-app/main.js` — Electron main process: window, tray, ComfyUI auto-launch, IPC
 - `electron-app/preload.js` — IPC bridge for renderer → main communication (tray progress)
 
@@ -69,7 +69,7 @@ appData = {
 ## Architecture decisions and why
 
 **Why server.js exists (replaced proxy.py in session 7):**
-The app is served as a local web page. Browsers block cross-origin requests, so app.js can't directly call LoRA Manager's API (port 8000) or ComfyUI from `http://127.0.0.1:3000`. server.js runs inside Electron's main process on port 3000, serves the HTML/JS/CSS, and forwards API calls. It also handles the WebSocket proxy (ComfyUI Desktop rejects browser WS connections due to origin checking — server.js proxies `ws://localhost:3000/ws` → `ws://localhost:8000/ws` from a Node.js context where there are no CORS restrictions).
+The app is served as a local web page. Browsers block cross-origin requests, so app.js can't directly call ComfyUI from `http://127.0.0.1:3000`. server.js runs inside Electron's main process on port 3000, serves the HTML/JS/CSS, scans the local filesystem for LoRA/checkpoint .safetensors files (with .metadata.json sidecars for CivitAI data), and forwards ComfyUI API calls. It also handles the WebSocket proxy (ComfyUI Desktop rejects browser WS connections due to origin checking — server.js proxies `ws://localhost:3000/ws` → `ws://localhost:8000/ws` from a Node.js context where there are no CORS restrictions).
 
 **Why app.js is a separate file:**
 Safari has a ~65KB limit on inline JavaScript. When the script exceeded this, Safari silently failed with no console errors and the app just didn't work. Splitting into a separate `app.js` file served by the server solved it. This was a painful debugging session.
@@ -553,6 +553,11 @@ Build prompt in app → click Send to ComfyUI → workflow JSON built from scrat
 - Approved (keepers): `~/Tools/ComfyUI/approved`
 
 **server.js endpoints (Node.js, inside Electron main process):**
+- `GET /local/loras/list` — scan `models/loras/` for .safetensors files, return list with metadata from .metadata.json sidecars (in-memory cache, cleared by `/local/refresh`)
+- `GET /local/checkpoints/list` — scan `models/checkpoints/` for .safetensors files, same pattern
+- `GET /local/preview/loras/*` — serve LoRA preview images (.jpeg/.webp/.png) directly from filesystem
+- `GET /local/preview/checkpoints/*` — serve checkpoint preview images
+- `GET /local/refresh` — clear the in-memory LoRA/checkpoint caches (forces rescan on next list request)
 - `GET /gallery/list?folder=raw|approved` — list images (name, mtime, size), sorted newest first
 - `GET /gallery/image?folder=raw|approved&file=xxx.png` — serve image
 - `GET /gallery/metadata?folder=raw|approved&file=xxx.png` — extract generation params from PNG metadata (positive/negative prompts, checkpoint, LoRAs, seed, steps, CFG, sampler, scheduler, size)
@@ -561,8 +566,8 @@ Build prompt in app → click Send to ComfyUI → workflow JSON built from scrat
 - `POST /gallery/decline` — move file to Trash (called by Process button, not on every decline click)
 - `POST /comfy/prompt` — forwards a ComfyUI API-format workflow to `http://127.0.0.1:8000/prompt`
 - `GET /comfy/queue` — returns `{running, pending}` counts from ComfyUI
-- `GET /comfy/checkpoints` — authoritative checkpoint list from ComfyUI `/object_info/CheckpointLoaderSimple` (used to filter LoRA Manager's list of what ComfyUI can actually load)
-- `GET /comfy/loras` — authoritative LoRA list from `/object_info/LoraLoader` (same purpose)
+- `GET /comfy/checkpoints` — authoritative checkpoint list from ComfyUI `/object_info/CheckpointLoaderSimple`
+- `GET /comfy/loras` — authoritative LoRA list from `/object_info/LoraLoader`
 - `POST /comfy/interrupt` — aborts the currently running generation (proxies to ComfyUI `/interrupt`)
 - `POST /comfy/queue/clear` — flushes all pending queue items (proxies to ComfyUI `POST /queue {"clear":true}`)
 
@@ -912,4 +917,18 @@ The gallery tab was fully redesigned through Claude Design and implemented. It's
 - **JS changes**: `renderGalleryTags()` renders "+ tag" inline with chips. `updateGalleryFilterCounts()` uses new span IDs + adds old count. `applyGalleryStateFilter()` has new 'old' case. `setGalleryFilter()` includes 'old' in active class toggle.
 - **Status**: Sent to CD for round 1 review. Awaiting comparison review doc.
 - **All changes in app.js + comfy-prompt-gen.html only** — no server.js changes, no rebuild needed.
+
+**Session: May 25 2026 (Claude Code session 41 — LoRA Manager dependency removed)**
+- **LoRA Manager removed** — the app no longer depends on the LoRA Manager ComfyUI custom node for LoRA/checkpoint data. Previously, app.js fetched paginated LoRA data from LoRA Manager's API on port 8000 (`/api/loras` and `/api/models`). Now server.js scans the filesystem directly: walks `models/loras/` and `models/checkpoints/` for .safetensors files, reads companion .metadata.json sidecar files (written by LoRA Manager during install, contain full CivitAI data including sha256, trainedWords, modelId, tags, preview paths), and serves the results via new `/local/` endpoints.
+- **New server.js endpoints**: `/local/loras/list`, `/local/checkpoints/list`, `/local/preview/loras/*`, `/local/preview/checkpoints/*`, `/local/refresh`. In-memory cache (`_loraCache`, `_checkpointCache`) cleared by `/local/refresh`.
+- **`scanModels(baseDir)` function**: recursive directory walker. For each .safetensors file, reads the matching .metadata.json sidecar (if present) to extract: file_name, model_name, base_model, tags, civitai data, sha256, size. Finds preview images by checking for .jpeg/.jpg/.png/.webp files with the same stem. Skips `ExampleImages/` and `recipes/` subdirectories.
+- **app.js changes**: `loadLoras()` changed from paginated LoRA Manager fetch to single `/local/loras/list` call. `loadComfyCheckpoints()` and `renderCheckpoints()` fallback changed to `/local/checkpoints/list`. Status messages updated ("LoRA Manager" → "scan LoRAs" / "models/checkpoints folder").
+- **Checkpoint file_name compatibility fix**: scanner initially returned path-prefixed names like `Illustrious/NovaComic` but existing `appData.checkpointNotes` keys are bare stems like `NovaComic`. Fixed by using metadata.json's `file_name` field (bare stem) when available.
+- **comfy-prompt-gen.html**: removed LoRA Manager Port settings row from Settings tab.
+- **All existing custom data preserved**: loraData overrides, collections, favorites, statuses, triggers, checkpoint notes — all keyed by filename and unaffected by the data source swap.
+- **Verified**: 234 LoRAs loaded, 16 checkpoints loaded, 234/234 with CivitAI metadata, preview images serving correctly.
+- **Rebuilt .app** — server.js changed. `rm -rf dist && npm run build`, deployed to `/Applications/Prompt Gen.app`.
+- **Daniel confirmed working** — all LoRAs, checkpoints, previews, and custom data intact.
+- **Future phases**: Phase 2 = install/uninstall LoRAs directly from app (download .safetensors from CivitAI). Phase 3 = browse CivitAI from within the app.
+- **Design review complete**: all three tabs (Generate, LoRAs, Gallery) have been through Claude Design and implemented. Full testing sweep completed session 40 — all 24 items verified.
 

@@ -330,7 +330,7 @@ function renderLoraBrowse(){
   const st=document.getElementById('lrstatus');
   if(st&&stb)stb.textContent=st.textContent;
   if(!loraList.length){
-    gr.innerHTML='<span style="font-size:11px;color:var(--muted);font-family:var(--mono);">Click ↺ Reload to fetch LoRAs</span>';
+    gr.innerHTML='<span style="font-size:11px;color:var(--muted);font-family:var(--mono);">Click ↺ Reload to scan LoRAs</span>';
     return;
   }
   const search=(document.getElementById('lsearch-browse')?.value||'').toLowerCase();
@@ -1036,16 +1036,11 @@ async function loadLoras(){
   st.textContent='Loading...';st.className='lrstatus';
   gr.innerHTML='<span style="font-size:11px;color:var(--muted);font-family:var(--mono);">Fetching...</span>';
   try{
-    let all=[],page=1;
-    while(true){
-      const r=await fetch(`/api/lm/loras/list?page=${page}&page_size=100&sort_by=date:desc&recursive=true`);
-      if(!r.ok)throw new Error(`HTTP ${r.status}`);
-      const d=await r.json();
-      all=all.concat(d.items||[]);
-      if(page>=(d.total_pages||1))break;
-      page++;
-    }
-    loraList=all;
+    await fetch('/local/refresh').catch(()=>{});
+    const r=await fetch('/local/loras/list');
+    if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const d=await r.json();
+    loraList=d.items||[];
     // Restore favorites + display names from unified loraData blob
     loraList.forEach(l=>{
       const d=getLora(l.file_name);
@@ -1135,7 +1130,7 @@ function getLoraType(lora){
 
 function renderLoraGrid(){
   const gr=document.getElementById('lgrid');
-  if(!loraList.length){gr.innerHTML='<span style="font-size:11px;color:var(--muted);font-family:var(--mono);">Click Reload to fetch from LoRA Manager</span>';return;}
+  if(!loraList.length){gr.innerHTML='<span style="font-size:11px;color:var(--muted);font-family:var(--mono);">Click Reload to scan LoRAs</span>';return;}
   const search=document.getElementById('lsearch').value.toLowerCase();
   const items=loraList.filter(l=>{
     const models=getLoraModels(l);
@@ -1544,7 +1539,7 @@ async function renderCheckpoints(){
   // Use cached list populated by loadComfyCheckpoints(); fall back to a fresh fetch
   if(!comfyCkpts.length){
     try{
-      const r=await fetch('/api/lm/checkpoints/list?page=1&page_size=200&recursive=true');
+      const r=await fetch('/local/checkpoints/list');
       if(r.ok){const d=await r.json();comfyCkpts=d.items||[];}
     }catch(e){}
   }
@@ -1555,7 +1550,7 @@ async function renderCheckpoints(){
     if(!modelKeys.some(k=>bm.includes(k)))return false;
     return ckptVisibleInComfy(c.file_name);
   });
-  if(!filtered.length){con.innerHTML=`<p class="ckpt-empty">No checkpoints found for ${model.toUpperCase()}. Make sure ComfyUI is running and LoRA Manager has scanned your checkpoints folder.</p>`;return;}
+  if(!filtered.length){con.innerHTML=`<p class="ckpt-empty">No checkpoints found for ${model.toUpperCase()}. Make sure ComfyUI is running and checkpoints are in the models/checkpoints folder.</p>`;return;}
   con.innerHTML=`<div class="ckpt-grid">${filtered.map(c=>mkCkptCard(c)).join('')}</div>`;
 }
 
@@ -3076,7 +3071,7 @@ function renderLoraTab(){
   const st=document.getElementById('lrstatus-tab');
   if(!gr)return;
   if(!loraList.length){
-    gr.innerHTML='<p style="color:var(--muted);font-size:12px;font-family:var(--mono);padding:20px 0;">Click ↺ Reload to fetch your LoRAs from LoRA Manager.</p>';
+    gr.innerHTML='<p style="color:var(--muted);font-size:12px;font-family:var(--mono);padding:20px 0;">Click ↺ Reload to scan your LoRAs.</p>';
     return;
   }
   const search=(document.getElementById('lsearch-tab')?.value||'').toLowerCase();
@@ -5857,15 +5852,14 @@ function ctxGalleryToggleBrut(){
 const COMFY_SAMPLERS=['euler','euler_ancestral','heun','heunpp2','dpm_2','dpm_2_ancestral','lms','dpm_fast','dpm_adaptive','dpmpp_2s_ancestral','dpmpp_sde','dpmpp_sde_gpu','dpmpp_2m','dpmpp_2m_sde','dpmpp_2m_sde_gpu','dpmpp_3m_sde','dpmpp_3m_sde_gpu','ddpm','lcm','ipndm','deis','ddim','uni_pc','uni_pc_bh2'];
 const COMFY_SCHEDULERS=['normal','karras','exponential','sgm_uniform','simple','ddim_uniform','beta'];
 const COMFY_DEFAULTS={steps:30,cfg:5,sampler:'euler_ancestral',scheduler:'karras',w:896,h:1152};
-let comfyCkpts=[];           // raw checkpoint list from LoRA Manager
+let comfyCkpts=[];           // raw checkpoint list from local scan
 let comfyCkptsAuth=null;     // authoritative list from ComfyUI /object_info (Set of names); null = unknown/unreachable
 let comfyLorasAuth=null;     // authoritative list of LoRA names ComfyUI can load
 let _comfyPanelInit=false;
 
 async function loadComfyCheckpoints(){
-  // Fetch in parallel — LoRA Manager metadata + ComfyUI authoritative lists
   const [lm,auth,lorasAuth]=await Promise.all([
-    fetch('/api/lm/checkpoints/list?page=1&page_size=200&recursive=true').then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch('/local/checkpoints/list').then(r=>r.ok?r.json():null).catch(()=>null),
     fetch('/comfy/checkpoints').then(r=>r.ok?r.json():null).catch(()=>null),
     fetch('/comfy/loras').then(r=>r.ok?r.json():null).catch(()=>null),
   ]);
