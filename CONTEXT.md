@@ -58,6 +58,7 @@ appData = {
   galleryAdult: { [filename]: true },
   galleryTiming: { [filename]: durationInSeconds },
   galleryAutoTagged: { [filename]: true },
+  galleryFavorites: { [filename]: true },
   embeddings: [ { name, target: 'pos'|'neg', active } ],
   settings: { lastSend, hiddenTabs, hideBrut, ... },
 }
@@ -91,31 +92,30 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 
 - **Card view** with preview images (object-fit: cover, top-aligned)
 - **Collections** — user-created groups, cards draggable within collections
-- **Status badges** on cards: ✓ Verified (green), 🧪 Testing (amber), 👎 Bad (red) — top left corner of image
+- **Status badges** on cards: ✓ Verified (green), ▲ Testing (amber), X Bad (red) — top left corner of image
 - **Fav star** — top right of image, gold with glow when active
-- **Adult 🍆 badge** — top right, shifts left if fav star present
+- **Adult badge** — black badge (`#000`, white text, `font-weight:900`), top right (was yellow, restyled session 37)
+- **Brut card border** — purple border `rgba(124,58,237,0.6)`, active overrides with orange
 - **P badge** — bottom left corner of card image, shows when LoRA has prompt data saved
 - **Type border colors** on cards: Character=cyan, Style=purple, Clothing=pink, Pose=green, Concept=orange, default=very subtle
-- **Enable button** on each card — only way to activate, clicking card body does NOT enable
-- **Triggers button** — copies trigger words
-- **Info button** — opens detail panel
+- **Enable button** on each card — frosted glass style (`rgba(255,255,255,.12)`, `backdrop-filter:blur(8px)`)
+- **Cleaned indicator** — gold background + glow on card info button when LoRA is cleaned
+- **Clicking card body** opens detail panel (not enable)
 - **Context menu** on right-click: Enable, Favorite, Info, Verified/Testing/Bad status, Adult
 - **Search** — searches name, folder, and saved notes
-- **Filters** — All/Favs, Verified filter cycle, Adult toggle (pink border when active)
+- **Filters** — All/Favs, Verified filter cycle, Cleaned filter, Adult toggle (pink border when active)
 - **Sticky toolbar** in tab bar with all filters + search (wider on wide monitors, wraps on portrait)
+- **Collection tabs** — horizontal tab strip below filters. All LoRAs / Enabled / user collections / Uncategorized. Right-click for rename/delete, drag to reorder. Active tab highlights orange.
+- **Back-to-top button** — appears when scrolled down in LoRA tab, scrolls back to top
+- **Vibe-based collections** — organized by mood: Dark/Gothic, Surreal/Fantastical, Gritty/Street, Soft/Storybook, Bold/Graphic, Retro/Toon, Warm/Cinematic, 3D & Novelty, pornish
+- **Section headers** — dot + label + HR line + count on right
 
 **Detail panel fields:**
 - Name (with inline rename via pencil icon)
-- Type badge, status badge, CivitAI link, filename (click to copy)
-- Image (160px, click to lightbox) with status/fav/adult badges overlaid
-- Default strength slider (auto-sets when LoRA activated)
-- CFG, Steps, Sampler, Best Checkpoint
-- Trigger words (click to copy in view mode)
-- Prompt prefix (click to copy)
-- Prompt suffix (click to copy)  
-- Notes (click to copy)
-- Status buttons: Verified / Testing / Bad
-- Show on models checkboxes
+- Type badge (colored per TYPE_COLORS), status badge, CivitAI link, filename (click to copy)
+- **Overview tab**: Portrait image (flex:1, aspect-ratio 2:3, click to lightbox) with action buttons overlaid on image (frosted glass). Left: status dropdown (single button → compact vertical dropdown of ✓/▲/X, click active to deactivate). Right: cleaned (i), fav (★), Brut. Below image: trigger words (click to copy)
+- **Notes tab**: Prompt prefix / Prompt suffix / Notes textareas (click to copy in view mode)
+- **Settings tab**: Default strength slider (auto-sets on LoRA activation), CFG, Steps, Sampler, Best Checkpoint, Show on models checkboxes
 
 **Edit mode:** Panel opens in view mode. Click "✎ Edit" to unlock all fields. Footer shows Close in view mode, Save/Discard in edit mode.
 
@@ -124,6 +124,55 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 
 **Backlog:**
 - **Per-LoRA weight override on active LoRAs** — right-click a LoRA trigger chip (in the right panel) to set a one-off weight for this generation, without changing the LoRA's saved default. Currently you have to disable → change default → re-enable, which breaks flow.
+
+**Recently shipped (Claude Code session 39 — design polish rounds 3-5 + tag autocomplete):**
+- **Tag autocomplete** — typing in the gallery tag input shows a dropdown above the field with matching existing tags (filtered by substring, sorted by usage count). Orange highlight on matched text, usage count on right. Already-applied tags excluded. Arrow keys navigate, Enter/Tab selects, Escape dismisses. "+ Create 'term'" for new tags. Comma batch entry still works. Functions: `getAllGalleryTagCounts()`, `updateTagSuggest()`, `selectTagSuggestion()`. CSS: `.gdp-tags-suggest`, `.gdp-tags-suggest-item`.
+- **Gallery back-to-top restyled** — bottom-center, matched to LoRA/Generate `.scroll-top-btn` style: `var(--panel)` bg, `var(--shadow-sm)`, orange border on hover, `↑` arrow, `display:none/flex` toggle.
+- **Queue bar height matched** — `min-height:42px;padding:6px 12px` matches LoRA/Gallery toolbar height exactly.
+- **LoRA panel image status border** — `box-shadow:inset 0 0 0 3px` for better corner alignment with `border-radius:8px`.
+- **Gallery detail image border-radius** — removed inner `border-radius:6px` from `.gallery-detail-img`, wrapper's `overflow:hidden` handles rounding (no corner mismatch).
+- **Gallery detail image gutters black** — `background:#000` so status borders don't look weird around letterboxed images.
+- **Gallery fav stars → yellow** — light mode changed from `#d97706` (orange) to `#FFD700` to match LoRA stars.
+- **Gallery detail fav star** — `★` button overlaid top-right on detail panel image. Click to toggle via `toggleGalleryDetailFav()`, syncs with card star.
+- **Gallery detail brut border** — `.gdp-detail-brut` dashed white inner border on detail image when brut. Hidden by `body.hide-brut`.
+- **Brut dashed border tuned** — `1.5px dashed rgba(255,255,255,.75)`, `inset:3px`, white in both dark and light mode. Iterated through several rounds to find the right weight/opacity/inset.
+- **LoRA filename removed from panel** — removed `<div class="lp-filename" id="lp-file">`. CivitAI link right-justified. JS null-guarded.
+- **Drag lock button** — `⊟`/`⊞` toggle in titlebar (right of layout button). Toggles `-webkit-app-region:drag` on `.tabs` to prevent accidental window dragging. Shows on all tabs. `toggleDragLock()`.
+- **User-select disabled** — `user-select:none` on body prevents accidental text selection on UI elements. Re-enabled on inputs, textareas, metadata values, and prompt boxes.
+
+**Recently shipped (Claude Code session 38 — round 2 design review):**
+- **Review status → blue** — review state color changed from amber (#D97706) to blue (#2563EB) across gallery cards, detail panel image border, and LoRA context menus. Now clearly distinct from declined (red).
+- **Gallery detail image fill-height** — `object-fit:contain` with black background fills available height, no bottom crop.
+- **Gallery toolbar matched** — padding/gap/box-shadow now identical to LoRA toolbar. All/Favs pill toggle added.
+- **Brut badge → dashed inner border** — removed `⍜` symbol and black pill from gallery and LoRA cards. Both `.gbrut-badge` and `.lora-card-adult` now use `position:absolute;inset:5px` with `1.5px dashed rgba(255,255,255,.75)` border at `inset:3px` — a subtle inner frame that signals brut without covering content. White in both dark and light modes. Coexists cleanly with status borders (solid outer = status, dashed inner = brut).
+- **LoRA card status → colored borders** — replaced `.lora-card-status` badge icons (✓/▲/X in top-left corner) with colored card borders matching gallery pattern: `.status-verified` (green 2px), `.status-testing` (blue 2px), `.status-bad` (red 2px). Light mode gets 3px borders. `mkStatusBadge()` replaced with `getStatusClass()`, `updateStatusBadge()` now toggles card classes.
+- **LoRA panel image decluttered** — removed overlay action row (status dropdown, cleaned, fav, brut buttons) from panel image. Image now shows clean with status-colored border (outline). Right-click context menu (`openLpImgCtx()`) provides Verified/Testing/Bad/Cleaned/Favorite/Brut options, matching gallery pattern.
+- **Trigger words → Settings tab** — moved trigger words textarea from Overview tab to top of Settings tab in LoRA detail panel. Overview tab now shows only the portrait image.
+- **Gallery fav star color** — confirmed already matching LoRA tab (`#FFD700` dark, `#d97706` light).
+- **Gallery back-to-top fixed** — button was wired to `.main` scroll (always 0) instead of `#panel-gallery`. Fixed `scrollGalleryToTop()`, `updateBackToTopButton()`, and added scroll listener on `#panel-gallery`. Threshold lowered to 200px.
+
+**Recently shipped (Claude Code session 37 — Gallery tab redesign):**
+- **Gallery sidebar removed** — sidebar with album list fully removed (`display:none`). Gallery tab now uses full-width `1fr` layout matching LoRA tab. All sidebar-related CSS variables (`--gallery-sidebar-w`) removed.
+- **Horizontal album tabs** — new tab strip below toolbar (matching LoRA collection tabs pattern). Shows: All Images (count) / user albums / Uncategorized (count) / + album. Right-click context menu on album tabs for Rename/Mark Brut/Delete. Drag-to-reorder album tabs. New functions: `renderGalleryAlbumTabs()`, `galleryAlbumTabCtx()`, `gAlbumTabDragStart/Over/Drop/End()`.
+- **Bigger gallery cards** — grid minimum changed from `130px` to `170px`, roughly matching LoRA card sizes.
+- **Gallery detail panel widened** — `width:400px` (was 310px). CSS variable `--gallery-panel-w:400px`.
+- **Detail panel streamlined** — removed Review/Approve/Decline buttons, removed category dropdown. Status changes now via right-click context menu on detail panel image. Panel shows only: image (with status-colored border) + tags + PNG Metadata accordion + Remix/IMG2IMG footer.
+- **Status-colored image border** — detail panel hero image gets colored border matching approval state: green (approved), amber (review), red (declined). Updated via `updateGalleryDetailState()` which adds `.state-review`/`.state-approved`/`.state-declined` classes to `.gallery-detail-img-wrap`.
+- **Gallery favorite stars** — new `★` button on each gallery card (top-right, gold with glow when active). New `appData.galleryFavorites` data store (object keyed by filename). `toggleGalleryFav()` patches card star in-place without full re-render.
+- **Brut badge restyled** — both LoRA cards (`.lora-card-adult`) and gallery cards (`.gbrut-badge`) changed to black background with white font (was yellow bg/black text on LoRA, blue bg/white text on gallery). Consistent styling across tabs. `.gbrut-badge` added to `body.hide-brut` rule.
+- **Stale reference cleanup** — removed `#gsc-select` (old sidebar select button) references in 3 JS functions, replaced with `#gtf-select` (toolbar select button). Cleaned up `gallery-sidebar-controls` CSS references.
+- **No server.js changes** — all CSS/HTML/JS only. No rebuild needed.
+
+**Recently shipped (Claude Code session 36 — LoRA tab design review round 2 + vibe collections):**
+- **LoRA card visual polish** — status badges changed to ✓/▲/X (was ✓/⧗/✗). Adult badge restyled from purple pill to yellow badge. Brut cards get purple border. Card action buttons use frosted glass (`backdrop-filter:blur(8px)`). Cleaned indicator gold glow on info button.
+- **Detail panel button row redesign** — moved status/fav/brut buttons from above portrait image to overlaid ON the image with frosted glass styling. Used `.lp-img-inner` wrapper (position:relative, aspect-ratio 2/3) inside `.lp-img-portrait` so buttons stay within image bounds. Fixed innerHTML rebuild issue where `openLpPanel` was wiping button DOM — now rebuilds button row as part of image template.
+- **Status dropdown** — replaced 3 separate status buttons with single trigger button + compact vertical dropdown. Shows current status icon when set, empty when unset. Click to open, pick one, dropdown closes. Click active to deactivate. Cleaned (i) button moved to right group next to ★ and Brut.
+- **Collection tabs** — Enabled tab added, active state tracking (`_activeColTab`), right-click context menu for rename/delete, drag-to-reorder collection tabs.
+- **Vibe-based collections created** — sorted 151/193 LoRAs into 9 mood-based collections: Dark/Gothic (16), Surreal/Fantastical (15), Gritty/Street (6), Soft/Storybook (16), Bold/Graphic (24), Retro/Toon (16), Warm/Cinematic (8), 3D & Novelty (6), pornish (44). 42 cryptic-named LoRAs left uncategorized for Daniel to sort.
+- **Section headers** — new `.lsec-hdr` layout: dot + label + HR line + count-on-right.
+- **Back-to-top button** — fixed bottom center, appears on scroll in LoRA tab.
+- **Scroll fix** — `scrollToLoraSection` now targets `#panel-loras` (the actual scroll container) instead of `.main`.
+- **Panel z-index fix** — panel bumped to z-index 600 (was 500), above toolbar/collection tabs (501).
 
 **Recently shipped (Claude Code session 32 — layout-right conflict fix + per-tab grid overrides):**
 - **Generate tab panel position fixed** — root cause: `layout-right` class (auto-applied on portrait monitors via `checkLayout()`) set `position:fixed; z-index:60` on the footer, ripping it out of the CSS grid and covering the title bar controls. Fixed with a compound CSS selector `.app.tags-tab-active.layout-right .footer` (specificity 0,3,1 beats 0,2,1) that resets `position:static; width:auto; height:auto; z-index:auto`. Also added explicit `position:static` to the base `.app.tags-tab-active .footer` rule.
@@ -171,7 +220,24 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 - **Confirmation button color fix** — `var(--cyan)` was too light as button background. Changed to `#0e7490` (darker cyan-700).
 - **Requires rebuild** — server.js changed (`/comfy/upload-gallery` endpoint + gallery dedup). Must `rm -rf dist` before rebuild to clear electron-builder's asar cache.
 
-**Recently shipped (Claude Code session 32 — 519 revision pass: 27 fixes from Claude Design review):**
+**Recently shipped (Claude Code session 34 — LoRA tab design review pass):**
+- **LoRA tab: 14 fixes from CD's design review** (LORA-TAB-EDITS.md). Full pass matching the LoRAs Tab - Final.html reference:
+  - **Sticky layout** (#1/E): Filter bar + collection tabs no longer scroll away — left column is now a flex column with the card grid as the only scrollable child. Collection tabs get `border-bottom:1px solid rgba(0,0,0,0.06)` divider.
+  - **Filter bar floating card** (#3): Same card treatment as Generate tab queue bar — `border-radius:9px`, box-shadow, 1px border, 8px horizontal margin. Light mode override added.
+  - **Type badge colors** (#4): Detail panel header type badge now uses `TYPE_COLORS` map (`style:#7C3AED`, `character:#0891B2`, `clothing:#BE185D`, `pose:#059669`, `concept:#D97706`) instead of hardcoded orange.
+  - **Brut card border** (#5): Adult-flagged LoRAs now always show orange enabled border (was incorrectly using purple). `.lora-card.brut-card.active` rule with explicit orange override.
+  - **Action button glyphs** (#6): Detail panel buttons changed to ✓ (verified) / ◐ (testing) / ✗ (bad) / ★ (fav) / ⍜ Brut. ◐ for testing chosen to match half-circle "in progress" meaning.
+  - **Green status dot removed** (#7): Stray green dot in overview content area was a leftover — removed from `openLpPanel`.
+  - **Hero image** (A): Overview tab redesigned from 2-col grid (120px thumb + controls) to full-width hero image (200px, `object-fit:cover`) with actions/triggers/notes stacked below. Gives artwork proper visual weight.
+  - **Strength slider moved** (B): Default Strength relocated from Overview to Settings tab — it's a generation parameter, not identity. Keeps Overview focused on artwork + triggers + notes.
+  - **⍜ Brut pill on cards** (C): Adult icon wrapped in styled pill (`background:rgba(109,40,217,0.15)`, `border:1px solid rgba(109,40,217,0.40)`, `border-radius:10px`, Space Mono 9px).
+  - **IMG/VID hidden** (D): IMG/VID toggle uses `visibility:hidden` on non-Generate tabs to preserve titlebar spacing without reflowing model buttons.
+  - **Notes preview** (#9/new): Overview tab now shows a clickable notes preview below trigger words — italic placeholder when empty, first 120 chars when populated. Click navigates to Notes tab.
+- **"+ Collection" dialog was already styled** (#2): uses `showInlinePrompt()` inline modal (built in session 3), not `window.prompt()`. No change needed.
+- **Detail panel already full-height** (F): Panel uses `position:fixed;top:var(--tabs-h)` — spans from below titlebar to bottom. Already matches the spec.
+- **All changes in app.js + comfy-prompt-gen.html only** — no server.js changes, no rebuild needed.
+
+**Recently shipped (Claude Code session 33 — Generate tab design review: 27 fixes from Claude Design):**
 - **Generate tab**: Left panel reordered to Recent → LoRAs → Queue → Triggers → Send (was LoRAs → Queue → Recent). Queue bar gets 5px margin-bottom breathing gap. Footer status line changed from model meta to "● ComfyUI connected · ready" (green dot, auto-switches to amber disconnected). Category headers now show `[+ tag] [✎] [—]` management buttons always visible. spellcheck=false on sampler/scheduler selects.
 - **LoRA tab**: Filter bar restructured — search input first, then All/Favs segmented, divider, Verified/Cleaned dropdowns, spacer, loaded count, reload. New collection tabs strip below toolbar (All LoRAs / collections / + collection). Backdrop blur removed from panel overlay (was blurring non-enabled cards). Card grid gets full width. Enable+i bar restyled as pill shapes (padding:5, gap:4, borderRadius:5). "click to copy" removed from trigger words. C button removed from detail panel. Green dot hidden on panel thumbnail. Tab badge shows/hides correctly with count.
 - **Gallery tab**: Detail panel restructured — scrollable body with 7:9 aspect-ratio image container, status buttons (Review/Approve/Decline) inside body, fixed footer with → Remix + ⊞ IMG2IMG buttons. Date/size info moved to header subtitle. Per-card age ribbons replaced with full-width grid divider ("14+ days · unreviewed · N images"). Blue circular icons removed from cards. Status badge removed from detail header. Bulk bar cleaned up (removed ⊕ and Select All). Sidebar: removed Prompt Gen header, collapse toggle, Clear all button, Brut button. Only shows ALBUMS + list + "+ New album". Toolbar restructured: search → filters → spacer → Compare (blue pill) → Select → sort dropdown (height:30px). Sort dropdown wired to setGallerySort(). Compare button styled as solid blue pill.
@@ -563,29 +629,18 @@ Claude Design is an Anthropic Labs tool for collaborative visual design with Cla
 3. Claude Design exports HTML / hands off to Claude Code
 4. Claude Code (this session) wires the new design into `comfy-prompt-gen.html` + `app.js`, preserving state, persistence, and existing feature hooks
 
-The current right-panel layout for the Generate tab is an "until the redesign" placeholder — Daniel intends to send Generate through Claude Design next.
+**Design review status:** All three main tabs have been through Claude Design and implemented:
+- Generate tab — 27 fixes shipped (session 33)
+- LoRA tab — 14 fixes + round 2 polish shipped (sessions 34, 36, 38)
+- Gallery tab — full redesign + 3 rounds of polish shipped (sessions 37, 38, 39)
 
 ---
 
-## Gallery tab — design direction notes (for upcoming Claude Design redesign session)
+## Gallery tab — current design (shipped sessions 37-39)
 
-The gallery tab has been reconceived **away** from the original masonry/Pinterest layout. The word "gallery" was taken too literally — this tab is primarily a **triage and culling tool**, not a display surface.
+The gallery tab was fully redesigned through Claude Design and implemented. It's a **triage and culling tool**, not a display surface.
 
-**Actual user workflow:**
-- Bulk select and delete obvious garbage first (majority of usage)
-- Individual decisions on the remaining few — approve, flag for review, or delete
-- Occasionally browse approved/review-flagged images for prompt inspiration when feeling lazy or indecisive
-
-**Design direction:**
-- **Tight, uniform grid.** Equal size cards, dense, scannable in rows. No masonry.
-- **A robust Select mode** for fast bulk selection and deletion is the most important interaction in this tab.
-- **Single image view** with simple Approve / Review / Delete controls for final individual decisions.
-- **Inspiration browsing** is handled by filtering to approved/review collections via the existing Albums sidebar — no separate mode needed.
-- **Compare mode:** when exactly 2 images are selected, a Compare button appears in the toolbar. Opens a clean 50/50 split view with decision controls under each image. Useful for same-prompt variant comparison.
-
-**What to kill:**
-- Masonry layout entirely
-- Any design direction that optimizes for display over decision-making
+**Current layout:** Full-width grid (no sidebar), horizontal album tabs, 170px min card size. Detail panel (400px) slides in from right with status-colored image border, fav star overlay, brut dashed border, tags with autocomplete, PNG metadata accordion, Remix/IMG2IMG footer. Status changes via right-click on detail image. Select mode for bulk operations, Compare mode for 2-image side-by-side.
 
 ---
 
@@ -838,4 +893,23 @@ The gallery tab has been reconceived **away** from the original masonry/Pinteres
 - **Gallery state toggles** (carried over from session 25 context overflow): approve/review/decline are now independent toggles in both context menu and detail panel. Each button only toggles its own state. Unapprove moves files from approved→raw. Detail panel buttons use filled tint when active instead of disabled style. All three buttons always visible. Server endpoint: `POST /gallery/unapprove`.
 - **Age badges + backlog nag** (carried over from session 25): corner ribbons on old unreviewed cards (amber 7-13d, red 14+d), ⏱ count on Gallery tab, 5s-delayed toast on launch.
 - **Changes span all three core files** — app.js, comfy-prompt-gen.html, server.js. Electron app rebuilt (server.js has new queue endpoints).
+
+**Session: May 21 2026 (Claude Code session 33+34 — Generate tab + LoRA tab design review)**
+- **Generate tab design review** (session 33): Implemented 27 fixes from CD's comparison against Generate Tab - Final.html reference. Highlights: queue bar floating card with inline progress bar, checkpoint multi-select popover (position:fixed, opens upward), embedding add popover (styled card with type toggle + confirm), category badges inside pills with live counts, tighter trigger section, batch count encapsulated field, queue indicator badge in titlebar.
+- **LoRA tab design review** (session 34): Implemented 14 fixes from CD's LORA-TAB-EDITS.md comparison against LoRAs Tab - Final.html reference. Highlights: sticky filter bar + collection tabs (flex column layout, only card grid scrolls), full-width hero image replacing 120px thumbnail in detail panel Overview, type badge colors per TYPE_COLORS map, brut card border always orange when enabled (was purple), action button glyphs (✓/◐/✗/★/⍜), adult icon pill on cards, strength slider moved to Settings tab, IMG/VID hidden on non-Generate tabs, notes preview in Overview tab.
+- **Key architectural decision**: Overview tab redesigned from 2-col layout (thumbnail + controls beside it) to single-column flow (hero image → actions → triggers → notes preview). This gives artwork proper visual weight in the panel — important given Daniel's visual-reactive workflow.
+- **Items already resolved**: #2 (+ Collection dialog) was already using `showInlinePrompt` inline modal. #F (panel full height) was already `position:fixed;top:var(--tabs-h)`.
+- **Workflow**: CD (Claude Design) compares screenshots against HTML reference files → writes review doc → Daniel relays → Claude Code implements. Generate tab review complete, LoRA tab review complete, Gallery tab review still pending.
+- **All changes in app.js + comfy-prompt-gen.html only** — no server.js changes, no rebuild needed.
+
+**Session: May 22 2026 (Claude Code session 35 — Gallery tab pre-review polish)**
+- **Gallery tab design alignment**: Full comparison of implemented Gallery tab against `Gallery Tab - Final.html` reference. Identified and fixed ~15 visual gaps before sending to CD for round 1 review.
+- **Filter bar restructured**: Each filter button now contains three separate elements — `.gfilt-dot` (colored status dot), `.gfilt-label` (Poppins 11px), `.gfilt-count` (Space Mono 9px). Toolbar itself: `border-radius:9px`, `height:40px`, `gap:3px`. Active filter pills use neutral surface bg instead of orange. CSS specificity fix: `body.light .gallery-toolbar .lfbtn.active` (0,4,1) to beat `body.light .lfbtn.active` (0,3,1).
+- **"Old (14d+)" filter**: Was hidden (`display:none`) and had no JS filter logic. Unhidden, wired up with amber dot color, added `applyGalleryStateFilter` case for 'old' (14-day mtime threshold), added count tracking in `updateGalleryFilterCounts`.
+- **Detail panel polish**: Header padding `10px 12px 8px`, filename `font-size:10px` with `var(--text)` color, close button `font-size:13px`. Status buttons: removed colored tints from inactive states (were tinted even when not active — now neutral grey). Tags section: padding `8px`, label `font-size:8px` uppercase with letter-spacing, chips `padding:2px 7px` Poppins, "+ tag" button rendered inline as dashed pill inside chips container (moved from separate row). Accordions: `font-size:9px`, `letter-spacing:.08em`, metadata inner padding `0 8px 8px`.
+- **Grid**: padding `6px 10px 10px 10px`, panel-open width `326px`.
+- **Age divider**: dot color hardcoded `#D97706` instead of `var(--amber)`.
+- **JS changes**: `renderGalleryTags()` renders "+ tag" inline with chips. `updateGalleryFilterCounts()` uses new span IDs + adds old count. `applyGalleryStateFilter()` has new 'old' case. `setGalleryFilter()` includes 'old' in active class toggle.
+- **Status**: Sent to CD for round 1 review. Awaiting comparison review doc.
+- **All changes in app.js + comfy-prompt-gen.html only** — no server.js changes, no rebuild needed.
 

@@ -1,5 +1,5 @@
 # Prompt Gen Roadmap
-*Updated: May 17, 2026*
+*Updated: May 22, 2026*
 
 Everything through Phase 3.5 is shipped and tested. This is what's next.
 
@@ -64,6 +64,8 @@ Step back and rethink the whole thing.
 
 - [ ] **Virtual scrolling for gallery** (medium, prep) — performance groundwork for when the image count gets into the thousands. Swap the DOM grid for a virtualized renderer. Do this before the redesign so the new design is built on solid perf foundations.
 - [ ] **Portrait monitor UX** (large) — the app is "hit or miss" on the vertical display. Audit all three tabs at narrow-but-tall viewport sizes. Likely needs responsive breakpoints, maybe auto-collapse sidebar, maybe different grid column counts. Bundle with the redesign so Claude Design only has to do it once.
+- [x] **LoRA tab design review (CD round 2)** ✓ — implemented all 19 edits from CD's second review pass. Card visual polish (status badges, brut borders, frosted glass buttons, cleaned indicator). Detail panel button row redesigned to overlay on portrait image. Status dropdown replaced 3 buttons with compact single-button + dropdown. Collection tabs with drag reorder. Vibe-based collections (151/193 sorted). Section headers restyled.
+- [x] **Gallery tab design review** ✓ — full redesign shipped (sessions 37-39). Sidebar removed, horizontal album tabs, 170px cards, 400px detail panel with right-click status, fav star + brut overlay on detail image, tag autocomplete, PNG metadata accordion. 5 rounds of polish with Daniel: back-to-top restyled, queue bar height matched, brut border tuned, drag lock, user-select disabled.
 - [ ] **Full app redesign via Claude Design** (large) — take the whole app through Claude Design for a fresh visual pass. The current layouts are functional but grew organically. Input package: screenshots of all tabs, workflow descriptions, design constraints, reference aesthetic. Output: interactive HTML mockup, then Claude Code implements it.
 
 ---

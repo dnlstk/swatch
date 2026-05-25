@@ -40,7 +40,7 @@ const BUILTIN_CATS = [
   {id:'camera',label:'Camera / Focus',color:'#34d399',tags:['sharp focus','shallow depth of field','motion blur','shot on medium format','shot on 35mm film','wide angle lens','extreme close up','low angle shot','birds eye view','dutch angle','film grain','anamorphic lens flare','long exposure','double exposure']},
   {id:'mood',label:'Mood / Atmosphere',color:'#f472b6',tags:['oppressive atmosphere','existential dread','electric tension','sublime terror','quiet devastation','euphoric chaos','brooding intensity','otherworldly calm','barely contained violence','beautiful wrongness','sensual tension','raw visceral power','transcendent horror','melancholic beauty','profound loneliness']},
   {id:'color',label:'Color Palette',color:'#fb923c',tags:['deep jewel tones','desaturated with neon accents','monochromatic red','black and white with single color pop','rich crimson and deep violet','electric teal and black','burnt orange and shadow','ice blue and white','toxic green and black','gold and obsidian','acid colors','muted earth tones','high contrast black and white']},
-  {id:'details',label:'Details / Texture',color:'#94a3b8',tags:['intricate tattoos','flowing fabric','weathered skin','cracked surface','organic tendrils','geometric patterns','smoke and embers','dripping liquid','shattered glass','glowing runes','heavy chains','torn clothing','iridescent scales','circuit board veins','bone structure visible']},
+  {id:'details',label:'Details / Texture',color:'#6366f1',tags:['intricate tattoos','flowing fabric','weathered skin','cracked surface','organic tendrils','geometric patterns','smoke and embers','dripping liquid','shattered glass','glowing runes','heavy chains','torn clothing','iridescent scales','circuit board veins','bone structure visible']},
   {id:'negative',label:'Negative (avoid)',color:'#f87171',neg:true,selectAll:true,tags:['blurry','low quality','jpeg artifacts','watermark','text','signature','deformed hands','extra limbs','bad anatomy','disfigured','cropped','out of frame','ugly','duplicate','error','worst quality','lowres','bad proportions','mutated','oversaturated']}
 ];
 const CAT_COLORS=['#a78bfa','#818cf8','#f59e0b','#34d399','#f472b6','#fb923c','#94a3b8','#38bdf8','#4ade80','#e879f9'];
@@ -62,6 +62,7 @@ let verifiedFilter='all'; // 'all' | 'verified' | 'unverified'
 let cleanedFilter='all'; // 'all' | 'cleaned' | 'uncleaned'
 let loraView='card';
 let loraCols=[];
+let _activeColTab='__all';
 let showAdult=false;
 let loraPanelOpen=false;
 let currentWPTag=null,currentWPCat=null;
@@ -178,7 +179,7 @@ async function init(){
   if(localStorage.getItem('cpg-theme')==='light'){
     document.body.classList.add('light');
     const btn=document.getElementById('theme-btn');
-    if(btn)btn.textContent='🌙';
+    if(btn)btn.classList.add('active');
   }
   renderTagSections();
   renderHistory();
@@ -395,9 +396,10 @@ function renderNav(){
     return;
   }
   if(isGalleryTab){
-    if(labelEl)labelEl.textContent='Albums';
-    if(addBtn){addBtn.style.display='';addBtn.title='New album';addBtn.onclick=showAddGalleryCat;}
-    renderGalleryNav();
+    if(labelEl)labelEl.style.display='none';
+    if(addBtn)addBtn.style.display='none';
+    nav.innerHTML='';
+    renderGalleryAlbumTabs();
     return;
   }
   if(labelEl)labelEl.textContent='Categories';
@@ -478,22 +480,82 @@ function renderLoraCollectionTabs(){
   if(!el)return;
   const hideBrut=!showAdult||document.body.classList.contains('hide-brut');
   const allCount=loraList.filter(l=>getLoraModels(l).includes(model)).length;
+  const enabledCount=Object.keys(activeLoRAs).filter(k=>loraList.find(l=>l.file_name===k)).length;
   const uncatCount=loraList.filter(l=>{
     if(!getLoraModels(l).includes(model))return false;
     return !loraCols.some(c=>c.keys.includes(l.file_name));
   }).length;
-  let html=`<button class="lora-col-tab active" onclick="scrollToLoraSection('__all')"><span class="ndot" style="background:var(--muted2)"></span>All LoRAs <span class="ncount">${allCount}</span></button>`;
+  const a=_activeColTab;
+  let html=`<button class="lora-col-tab${a==='__all'?' active':''}" onclick="colTabClick('__all')"><span class="ndot" style="background:var(--muted2)"></span>All LoRAs <span class="ncount">${allCount}</span></button>`;
+  html+=`<button class="lora-col-tab${a==='__enabled'?' active':''}" onclick="colTabClick('__enabled')"><span class="ndot" style="background:var(--green)"></span>Enabled <span class="ncount">${enabledCount}</span></button>`;
   loraCols.forEach(col=>{
     const brutActive=isColBrut(col.id);
     if(hideBrut&&brutActive)return;
     const count=col.keys.filter(k=>loraList.find(l=>l.file_name===k&&getLoraModels(l).includes(model))).length;
-    html+=`<button class="lora-col-tab" onclick="scrollToLoraSection('${col.id}')"><span class="ndot" style="background:var(--orange)"></span>${col.label} <span class="ncount">${count}</span></button>`;
+    const dot=brutActive?'#EF4444':'var(--orange)';
+    html+=`<button class="lora-col-tab${a===col.id?' active':''}" draggable="true" data-colid="${col.id}" onclick="colTabClick('${col.id}')" oncontextmenu="colTabCtx('${col.id}',event)" ondragstart="colTabDragStart(event,'${col.id}')" ondragover="colTabDragOver(event)" ondrop="colTabDrop(event,'${col.id}')" ondragend="colTabDragEnd(event)"><span class="ndot" style="background:${dot}"></span>${col.label} <span class="ncount">${count}</span></button>`;
   });
   if(uncatCount>0){
-    html+=`<button class="lora-col-tab" onclick="scrollToLoraSection('__uncat')"><span class="ndot" style="background:var(--muted2)"></span>Uncategorized <span class="ncount">${uncatCount}</span></button>`;
+    html+=`<button class="lora-col-tab${a==='__uncat'?' active':''}" onclick="colTabClick('__uncat')"><span class="ndot" style="background:var(--muted2)"></span>Uncategorized <span class="ncount">${uncatCount}</span></button>`;
   }
   html+=`<button class="lora-col-add" onclick="showAddLoraCol()">+ collection</button>`;
   el.innerHTML=html;
+}
+function colTabClick(id){
+  _activeColTab=id;
+  document.querySelectorAll('.lora-col-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.lora-col-tab[onclick*="\''+id+'\'"]')?.classList.add('active');
+  scrollToLoraSection(id);
+}
+function colTabCtx(colId,e){
+  e.preventDefault();e.stopPropagation();
+  closeColTabCtx();
+  const menu=document.createElement('div');
+  menu.id='col-tab-ctx';
+  menu.className='col-tab-ctx';
+  menu.innerHTML=`<button onclick="closeColTabCtx();renameLoraCol('${colId}')">✎ Rename</button><button onclick="closeColTabCtx();deleteLoraCol('${colId}')">✕ Delete</button>`;
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+  document.body.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click',closeColTabCtx,{once:true}),0);
+}
+function closeColTabCtx(){
+  const m=document.getElementById('col-tab-ctx');
+  if(m)m.remove();
+}
+let _colTabDragId=null;
+function colTabDragStart(e,id){
+  _colTabDragId=id;
+  e.dataTransfer.effectAllowed='move';
+  e.currentTarget.classList.add('dragging');
+}
+function colTabDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  const tgt=e.currentTarget;
+  if(!tgt||tgt.dataset.colid===_colTabDragId)return;
+  // Show drop indicator
+  document.querySelectorAll('.lora-col-tab.drag-over').forEach(el=>el.classList.remove('drag-over'));
+  tgt.classList.add('drag-over');
+}
+function colTabDrop(e,targetId){
+  e.preventDefault();
+  document.querySelectorAll('.lora-col-tab.drag-over,.lora-col-tab.dragging').forEach(el=>{el.classList.remove('drag-over');el.classList.remove('dragging');});
+  if(!_colTabDragId||_colTabDragId===targetId)return;
+  const fi=loraCols.findIndex(c=>c.id===_colTabDragId);
+  const ti=loraCols.findIndex(c=>c.id===targetId);
+  if(fi===-1||ti===-1)return;
+  const [moved]=loraCols.splice(fi,1);
+  loraCols.splice(ti,0,moved);
+  appData.loraCols=[...loraCols];
+  saveAppData();
+  renderLoraNav();
+  renderLoraTab();
+  _colTabDragId=null;
+}
+function colTabDragEnd(e){
+  _colTabDragId=null;
+  document.querySelectorAll('.lora-col-tab.drag-over,.lora-col-tab.dragging').forEach(el=>{el.classList.remove('drag-over');el.classList.remove('dragging');});
 }
 
 function scrollToCategory(id){
@@ -509,11 +571,11 @@ function scrollToCategory(id){
 function scrollToLoraSection(id){
   const el=document.getElementById('lsec-'+id);
   if(!el)return;
-  const main=document.querySelector('.main');
-  if(!main)return;
-  const mainTop=main.getBoundingClientRect().top;
+  const container=document.getElementById('panel-loras')||document.querySelector('.main');
+  if(!container)return;
+  const containerTop=container.getBoundingClientRect().top;
   const elTop=el.getBoundingClientRect().top;
-  main.scrollTo({top:main.scrollTop+(elTop-mainTop)-12,behavior:'smooth'});
+  container.scrollTo({top:container.scrollTop+(elTop-containerTop)-12,behavior:'smooth'});
 }// LoRA collection nav drag
 let _loraNavDragSrc=null;
 function loraNavDragStart(e,id){_loraNavDragSrc=id;e.dataTransfer.effectAllowed='move';}
@@ -607,15 +669,13 @@ function renderTagSections(){
     const div=document.createElement('div');
     div.className='tgroup'+(isCollapsed?' collapsed':'');div.id='sec-'+cat.id;
     div.innerHTML=`
-      <div class="theader" onclick="toggleCatCollapse('${cat.id}')">
-        <span class="cat-group-chev">▾</span>
-        <div class="ttitle"><span class="ttitle-dot" style="background:${cat.color}"></span>${cat.label}</div>
-        ${activeCount>0?`<span class="cat-active-badge" style="background:${cat.color}22;color:${cat.color}">${activeCount}</span>`:''}
+      <div class="theader">
+        <span class="cat-group-chev" onclick="toggleCatCollapse('${cat.id}')">▾</span>
+        <div class="ttitle" onclick="toggleCatCollapse('${cat.id}')"><span class="ttitle-dot" style="background:${cat.color}"></span>${cat.label}<span class="cat-active-badge" id="cat-badge-${cat.id}" style="background:${cat.color}22;color:${cat.color};${activeCount>0?'':'display:none;'}">${activeCount}</span></div>
         <div class="tactions" onclick="event.stopPropagation()">
           <div class="tbtn" onclick="if(!editModes['${cat.id}'])toggleEdit('${cat.id}');setTimeout(()=>{const i=document.getElementById('ai-${cat.id}');if(i)i.focus();},50)">+ tag</div>
           <div class="tbtn ${isEdit?'eactive':''}" onclick="toggleEdit('${cat.id}')">✎</div>
-          ${cat.custom?`<div class="tbtn" onclick="deleteCat('${cat.id}')" title="Delete category">—</div>`:''}
-          <div class="tbtn" onclick="clearSec('${cat.id}')" style="margin-left:2px;">clear</div>
+          <div class="tbtn" onclick="deleteCat('${cat.id}')" title="Delete category">—</div>
         </div>
       </div>
       <div class="tags tags-wrap" id="tags-${cat.id}">${all.map(t=>mkTag(cat.id,t)).join('')}</div>
@@ -734,6 +794,14 @@ function refreshTag(cid,tag){
     const w=tagWeights[`${cid}::${tag}`];
     wb.textContent=act&&!isParen&&w&&w!==1.0?`:${parseFloat(w).toFixed(2)}`:'';
   }
+  updateCatBadge(cid);
+}
+function updateCatBadge(cid){
+  const badge=document.getElementById('cat-badge-'+cid);
+  if(!badge)return;
+  const count=activeTags[cid]?activeTags[cid].size:0;
+  badge.textContent=count;
+  badge.style.display=count>0?'':'none';
 }
 function toggleParen(cid,tag){
   const key=`${cid}::${tag}`;
@@ -1015,24 +1083,16 @@ function getLoraModels(lora){
 function getLoraStatus(key){
   return getLora(key).status||null;
 }
-function mkStatusBadge(key){
+function getStatusClass(key){
   const status=getLoraStatus(key);
-  if(!status)return'';
-  const letters={verified:'✓ V',testing:'T',bad:'D'};
-  const titles={verified:'Verified',testing:'Testing',bad:'Bad / Remove'};
-  return'<span class="lora-card-status '+status+'" title="'+titles[status]+'">'+letters[status]+'</span>';
+  return status?'status-'+status:'';
 }
 function updateStatusBadge(key){
   const card=document.getElementById('lcard-'+sl(key));
   if(!card)return;
-  const existing=card.querySelector('.lora-card-status');
-  const newBadge=mkStatusBadge(key);
-  if(existing){
-    if(newBadge){existing.outerHTML=newBadge;}
-    else{existing.remove();}
-  }else if(newBadge){
-    card.insertAdjacentHTML('afterbegin',newBadge);
-  }
+  card.classList.remove('status-verified','status-testing','status-bad');
+  const cls=getStatusClass(key);
+  if(cls)card.classList.add(cls);
 }
 function hasPromptData(key){
   const d=getLora(key);
@@ -1141,16 +1201,21 @@ function openLpPanel(key){
   // Name
   document.getElementById('lp-name').textContent=lora.model_name;
 
-  // Fav + adult buttons
-  const favBtn=document.getElementById('lp-fav-btn');
-  favBtn.textContent=lora.favorite?'★':'☆';
-  favBtn.classList.toggle('fav-active',!!lora.favorite);
-  const adultBtn=document.getElementById('lp-adult-btn');
+  // isAdult flag (buttons set after image innerHTML rebuild below)
   const isAdult=!!data.adult;
-  adultBtn.classList.toggle('adult-active',isAdult);
 
   // Type badge
   document.getElementById('lp-type').textContent=getLoraType(lora)||'LoRA';
+  const typeColors={style:'#7C3AED',character:'#0891B2',clothing:'#BE185D',pose:'#059669',concept:'#D97706'};
+  const tc=typeColors[(getLoraType(lora)||'').toLowerCase()];
+  const typeEl=document.getElementById('lp-type');
+  if(typeEl&&tc){
+    typeEl.style.background=tc+'18';
+    typeEl.style.color=tc;
+    typeEl.style.borderColor=tc+'30';
+  }else if(typeEl){
+    typeEl.style.background='';typeEl.style.color='';typeEl.style.borderColor='';
+  }
 
   // Status badge
   const status=getLoraStatus(key);
@@ -1159,11 +1224,7 @@ function openLpPanel(key){
   if(status){statusBadgeEl.textContent=statusLabels[status];statusBadgeEl.className='lp-status-badge '+status;}
   else{statusBadgeEl.textContent='';statusBadgeEl.className='lp-status-badge';}
 
-  // Status buttons
-  ['verified','testing','bad'].forEach(s=>{
-    document.getElementById('lpst-'+s)?.classList.toggle('active',status===s);
-  });
-  document.getElementById('lpst-cleaned')?.classList.toggle('active',!!data.cleaned);
+  // (Status/fav/brut buttons set after image innerHTML rebuild below)
 
   // CivitAI link — use stored custom URL if present, else auto-generate from API data
   const civEl=document.getElementById('lp-civitai');
@@ -1177,10 +1238,9 @@ function openLpPanel(key){
   else civEl.style.display='none';
   if(civEdit)civEdit.value=civUrl;
 
-  // Filename
+  // Filename (element removed, kept for backwards compat)
   const fileEl=document.getElementById('lp-file');
-  fileEl.textContent=lora.file_name+'.safetensors';
-  fileEl.title='Click to copy filename';
+  if(fileEl){fileEl.textContent=lora.file_name+'.safetensors';fileEl.title='Click to copy filename';}
 
   // Rename row
   document.getElementById('lp-rename-row').style.display='none';
@@ -1192,26 +1252,14 @@ function openLpPanel(key){
   const imgSrc=customImg||rawSrc;
   const resetBtnHtml=customImg?'<button id="lp-img-reset-btn" onclick="resetLoraImg();event.stopPropagation();">Reset</button>':'';
   const overlay='<div class="lp-img-overlay"><button onclick="document.getElementById(\'lp-img-picker\').click();event.stopPropagation();">Change</button>'+resetBtnHtml+'</div>';
-  // Build badge HTML inline so they survive innerHTML reassignment
-  const imgStatus=getLoraStatus(key);
-  const imgStatusColors={verified:'rgba(52,211,153,.9)',testing:'rgba(245,158,11,.9)',bad:'rgba(248,113,113,.9)'};
-  const imgStatusTextColors={verified:'#000',testing:'#000',bad:'#fff'};
-  const imgStatusIcons={verified:'',testing:'',bad:''};
-  const statusBadgeHtml=imgStatus
-    ?'<span id="lp-img-status" style="position:absolute;top:6px;left:6px;background:'+imgStatusColors[imgStatus]+';color:'+imgStatusTextColors[imgStatus]+';border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">'+imgStatusIcons[imgStatus]+'</span>'
-    :'<span id="lp-img-status"></span>';
-  const favBadgeHtml=lora.favorite
-    ?'<span id="lp-img-fav" style="position:absolute;top:6px;right:6px;color:#FFD700;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,.8);line-height:1;">★</span>'
-    :'<span id="lp-img-fav"></span>';
-  const adultBadgeHtml=isAdult
-    ?'<span id="lp-img-adult" style="position:absolute;top:'+(lora.favorite?'28px':'6px')+';right:6px;width:14px;height:14px;background:rgba(167,139,250,.9);border-radius:50%;"></span>'
-    :'<span id="lp-img-adult"></span>';
+  const statusBorderCls=status?'status-'+status:'';
   const picker=document.getElementById('lp-img-picker');
   picker.onchange=handleLoraImgPick;
-  if(imgSrc){imgWrap.innerHTML='<img src="'+imgSrc+'" onerror="this.src=\'\'">'+statusBadgeHtml+favBadgeHtml+adultBadgeHtml+overlay;}
-  else{imgWrap.innerHTML='<div class="lp-img-placeholder">No preview</div>'+statusBadgeHtml+favBadgeHtml+adultBadgeHtml+overlay;}
+  if(imgSrc){imgWrap.innerHTML='<div class="lp-img-inner '+statusBorderCls+'"><img src="'+imgSrc+'" onerror="this.parentElement.style.display=\'none\'">'+overlay+'</div>';imgWrap.style.display='';}
+  else{imgWrap.innerHTML='<div class="lp-img-inner '+statusBorderCls+'"><div class="lp-img-placeholder">No preview</div>'+overlay+'</div>';imgWrap.style.display='';}
   imgWrap.appendChild(picker);
   imgWrap.dataset.lightboxSrc=imgSrc||'';
+  imgWrap.oncontextmenu=function(e){openLpImgCtx(e);};
 
   // Strength
   const strength=data.strength||0.8;
@@ -1373,26 +1421,58 @@ function lpSetStatus(status){
   const cur=getLora(currentLPKey).status===status?null:status;
   setLora(currentLPKey,{status:cur});
   if(!cur)delete appData.loraData[currentLPKey].status;
-  // Update status buttons
-  ['verified','testing','bad'].forEach(s=>{
-    document.getElementById('lpst-'+s)?.classList.toggle('active',cur===s);
-  });
+  // Update panel image border
+  const inner=document.querySelector('#lpopup-img-wrap .lp-img-inner');
+  if(inner){inner.classList.remove('status-verified','status-testing','status-bad');if(cur)inner.classList.add('status-'+cur);}
   // Update status badge in header
   const statusBadgeEl=document.getElementById('lp-status-badge');
   const statusLabels={verified:'Verified',testing:'Testing',bad:'Bad'};
   if(cur){statusBadgeEl.textContent=statusLabels[cur];statusBadgeEl.className='lp-status-badge '+cur;}
   else{statusBadgeEl.textContent='';statusBadgeEl.className='lp-status-badge';}
   updateStatusBadge(currentLPKey);
-  // Refresh image status badge in panel
-  const statusIcons={verified:'',testing:'',bad:''};
-  const statusColors={verified:'rgba(52,211,153,.9)',testing:'rgba(245,158,11,.9)',bad:'rgba(248,113,113,.9)'};
-  const statusTextColors={verified:'#000',testing:'#000',bad:'#fff'};
-  const imgStatusEl=document.getElementById('lp-img-status');
-  if(imgStatusEl){
-    if(cur){imgStatusEl.textContent=statusIcons[cur];imgStatusEl.style.cssText='position:absolute;top:6px;left:6px;background:'+statusColors[cur]+';color:'+statusTextColors[cur]+';border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;';}
-    else{imgStatusEl.textContent='';imgStatusEl.style.cssText='';}
-  }
   saveAppData();
+}
+
+function openLpImgCtx(e){
+  e.preventDefault();e.stopPropagation();
+  if(!currentLPKey)return;
+  const menu=document.getElementById('lp-img-ctx');
+  const cur=getLoraStatus(currentLPKey);
+  const statusColors={verified:'rgba(52,211,153,.9)',testing:'rgba(96,165,250,.9)',bad:'rgba(248,113,113,.9)'};
+  const statusLabels={verified:'Verified',testing:'Testing',bad:'Bad / Remove'};
+  ['verified','testing','bad'].forEach(s=>{
+    const el=document.getElementById('lpctx-'+s);
+    if(!el)return;
+    const isActive=cur===s;
+    const dot='<span style="width:10px;height:10px;border-radius:50%;background:'+statusColors[s]+';flex-shrink:0;display:inline-block;"></span>';
+    el.innerHTML=dot+(isActive?'<strong>'+statusLabels[s]+'</strong>':statusLabels[s]);
+    el.style.fontWeight=isActive?'600':'';
+  });
+  const lora=loraList.find(l=>l.file_name===currentLPKey);
+  const isFav=lora&&lora.favorite;
+  const favEl=document.getElementById('lpctx-fav');
+  if(favEl){favEl.textContent=isFav?'★ Unfavorite':'★ Favorite';favEl.style.color=isFav?'var(--amber)':'var(--text)';}
+  const isCleaned=!!getLora(currentLPKey).cleaned;
+  const cleanedEl=document.getElementById('lpctx-cleaned');
+  if(cleanedEl){
+    const dot='<span style="width:10px;height:10px;border-radius:50%;background:rgba(234,179,8,.9);flex-shrink:0;display:inline-block;"></span>';
+    cleanedEl.innerHTML=dot+(isCleaned?'<strong>Cleaned</strong>':'Cleaned');
+    cleanedEl.style.fontWeight=isCleaned?'600':'';
+  }
+  const isAdult=!!getLora(currentLPKey).adult;
+  const adultEl=document.getElementById('lpctx-adult');
+  if(adultEl){adultEl.textContent=isAdult?'Brut ✓':'Brut';adultEl.style.fontWeight=isAdult?'600':'';}
+  let left=e.clientX;let top=e.clientY;
+  menu.style.display='block';
+  const rect=menu.getBoundingClientRect();
+  if(left+rect.width>window.innerWidth-8)left=window.innerWidth-rect.width-8;
+  if(top+rect.height>window.innerHeight-8)top=window.innerHeight-rect.height-8;
+  menu.style.left=left+'px';menu.style.top=top+'px';
+  setTimeout(()=>document.addEventListener('click',closeLpImgCtx,{once:true}),0);
+}
+function closeLpImgCtx(){
+  const menu=document.getElementById('lp-img-ctx');
+  if(menu)menu.style.display='none';
 }
 
 function lpToggleCleaned(){
@@ -1679,7 +1759,7 @@ function renderTriggerChips(){
     const activeOpts=tw.optional.filter(t=>sel.has(t));
     const activeOptCount=activeOpts.length;
     html+='<div class="trigger-lora-block">';
-    html+=`<div class="trigger-lora-name"><span class="trigger-lora-name-pill">${name}</span><span class="trigger-lora-strength">×${w}</span><button class="trigger-lora-remove" onclick="disableLoraFromPanel('${eq(key)}',event)" title="Remove LoRA">✕</button></div>`;
+    html+=`<div class="trigger-lora-name"><span class="trigger-lora-name-text">${name}</span><span class="trigger-lora-strength">×${w}</span><button class="trigger-lora-remove" onclick="disableLoraFromPanel('${eq(key)}',event)" title="Remove LoRA">✕</button></div>`;
     html+='<div class="trigger-chips-row">';
     tw.required.forEach(t=>{
       html+=`<span class="trig-chip req" title="Required by this LoRA">${t}</span>`;
@@ -1737,15 +1817,23 @@ function openOptPopup(key,btn){
     const on=sel.has(t)?' on':'';
     return `<button class="trig-chip opt${on}" onclick="toggleTriggerChip('${eq(key)}','${eq(t)}',true)">${t}</button>`;
   }).join('');
-  // Position below the button, right-aligned to the panel
+  // Position below the button, clamped to viewport
   const popup=document.getElementById('opt-popup');
   const backdrop=document.getElementById('opt-popup-backdrop');
   popup.classList.add('open');
   backdrop.classList.add('open');
   const r=btn.getBoundingClientRect();
   popup.style.top=(r.bottom+6)+'px';
-  popup.style.right=Math.max(window.innerWidth-r.right,16)+'px';
-  popup.style.left='auto';
+  // Try right-aligned first; if it would clip left edge, flip to left-aligned
+  const rightVal=window.innerWidth-r.right;
+  const popupW=popup.offsetWidth||280;
+  if(r.right-popupW<8){
+    popup.style.left=Math.max(8,r.left)+'px';
+    popup.style.right='auto';
+  }else{
+    popup.style.right=Math.max(rightVal,16)+'px';
+    popup.style.left='auto';
+  }
 }
 function closeOptPopup(){
   _optPopupKey=null;
@@ -1807,22 +1895,41 @@ function toggleEmbedding(name){
   saveAppData();
   updateOutput();
 }
+let _embedPopType='pos';
 function showEmbedAddForm(){
-  const form=document.getElementById('embed-add-form');
-  if(form.style.display==='flex'){form.style.display='none';return;}
-  form.style.display='flex';
+  const addBtn=document.querySelector('.embed-add-btn');
+  const popup=document.getElementById('embed-popover');
+  const backdrop=document.getElementById('embed-popover-backdrop');
+  if(!addBtn||!popup||!backdrop)return;
+  const r=addBtn.getBoundingClientRect();
+  popup.style.bottom=(window.innerHeight-r.top+8)+'px';
+  popup.style.left=Math.max(8,r.left-30)+'px';
+  popup.classList.add('open');
+  backdrop.classList.add('open');
   const inp=document.getElementById('embed-add-name');
-  inp.value='';inp.focus();
+  if(inp){inp.value='';setTimeout(()=>inp.focus(),60);}
+  document.querySelectorAll('.embed-pop-type').forEach(b=>{
+    b.classList.toggle('active',b.dataset.t==='pos');
+  });
+  _embedPopType='pos';
+}
+function closeEmbedPopover(){
+  document.getElementById('embed-popover')?.classList.remove('open');
+  document.getElementById('embed-popover-backdrop')?.classList.remove('open');
+}
+function setEmbedPopType(t,btn){
+  _embedPopType=t;
+  document.querySelectorAll('.embed-pop-type').forEach(b=>b.classList.toggle('active',b.dataset.t===t));
 }
 function submitEmbedding(){
   const name=document.getElementById('embed-add-name').value.trim();
   if(!name)return;
-  const target=document.getElementById('embed-add-target').value;
+  const target=_embedPopType||'pos';
   if(!appData.embeddings)appData.embeddings=[];
   if(appData.embeddings.find(e=>e.name===name))return;
   appData.embeddings.push({name,target,active:false});
   saveAppData();
-  document.getElementById('embed-add-form').style.display='none';
+  closeEmbedPopover();
   renderEmbeddingChips();
 }
 function removeEmbedding(name,e){
@@ -2228,15 +2335,17 @@ async function pollQueueOnce(){
       _genOutputFiles=[];
       if(prog)prog.classList.remove('active');
       if(inner)inner.style.width='0%';
-      pill.textContent='idle';pill.classList.remove('busy');
+      pill.textContent='idle · 0 jobs';pill.classList.remove('busy');
       _trayProgress('');
+      updateQueueBarState(0,0);
       renderRecentStrip();
     }
     if(!_comfyWS||_comfyWS.readyState!==WebSocket.OPEN){
       pill.classList.remove('disconnected');
-      if(running+pending===0){pill.textContent='idle';pill.classList.remove('busy');}
+      if(running+pending===0){pill.textContent='idle · 0 jobs';pill.classList.remove('busy');}
       else{pill.textContent=running?`generating · ${pending} queued`:`${pending} queued`;pill.classList.add('busy');}
     }
+    updateQueueBarState(running,pending);
   }catch(e){
     if(!_comfyWS||_comfyWS.readyState!==WebSocket.OPEN){
       pill.textContent='—';pill.classList.remove('busy');pill.classList.add('disconnected');
@@ -2287,19 +2396,60 @@ function scheduleQueueLabelUpdate(){
   if(_queueLabelTimer)clearTimeout(_queueLabelTimer);
   _queueLabelTimer=setTimeout(async()=>{
     _queueLabelTimer=null;
-    const label=document.getElementById('queue-bar-label');
-    if(!label)return;
     try{
       const r=await fetch('/comfy/queue');
       if(r.ok){
         const q=await r.json();
-        const total=(q.running||0)+(q.pending||0);
-        label.textContent=total>0?`Queue · ${total}`:'Queue';
+        updateQueueBarState(q.running||0,q.pending||0);
       }
     }catch{}
   },150);
 }
 
+function updateQueueBarState(running,pending){
+  const generating=_wsGenerating||running>0;
+  const total=running+pending;
+  // Label stays "Queue" always
+  const label=document.getElementById('queue-bar-label');
+  if(label)label.textContent='Queue';
+  // Show/hide generating vs idle elements
+  const stopBtn=document.getElementById('queue-stop-btn');
+  const clearBtn=document.getElementById('queue-clear-btn');
+  const jobsBtn=document.getElementById('queue-panel-toggle');
+  const readyEl=document.getElementById('queue-bar-ready');
+  const prog=document.getElementById('queue-progress');
+  if(stopBtn)stopBtn.style.display=generating?'':'none';
+  if(clearBtn)clearBtn.style.display=generating?'':'none';
+  // Jobs button stays visible always so user can toggle the panel
+  if(readyEl)readyEl.style.display=generating?'none':'';
+  if(prog&&!generating)prog.classList.remove('active');
+  // Update jobs button text based on panel state
+  if(jobsBtn)jobsBtn.textContent=_queuePanelOpen?'jobs ▴':'jobs ▾';
+  // Update top-bar queue indicator
+  updateQueueIndicator(total,generating);
+}
+function updateQueueIndicator(total,generating){
+  const el=document.getElementById('queue-indicator');
+  if(!el)return;
+  if(generating&&total>0){
+    el.textContent=total;
+    el.style.display='';
+  }else if(generating){
+    el.textContent='1';
+    el.style.display='';
+  }else{
+    el.style.display='none';
+  }
+}
+
+function updateQueueStopBtn(){
+  updateQueueBarState(_wsGenerating?1:0,0);
+}
+async function stopComfy(){
+  try{await fetch('/comfy/interrupt',{method:'POST'});}catch{}
+  scheduleQueueLabelUpdate();
+  refreshQueuePanel();
+}
 async function interruptQueue(){
   try{await fetch('/comfy/interrupt',{method:'POST'});}catch{}
   scheduleQueueLabelUpdate();
@@ -2318,7 +2468,7 @@ function toggleQueuePanel(){
   if(!el)return;
   el.classList.toggle('open',_queuePanelOpen);
   const btn=document.getElementById('queue-panel-toggle');
-  if(btn)btn.classList.toggle('active',_queuePanelOpen);
+  if(btn){btn.classList.toggle('active',_queuePanelOpen);btn.textContent=_queuePanelOpen?'jobs ▴':'jobs ▾';}
   if(_queuePanelOpen)refreshQueuePanel();
 }
 async function refreshQueuePanel(){
@@ -2374,6 +2524,7 @@ function handleComfyWSMessage(msg){
     if(inner)inner.style.width=pct+'%';
     pill.classList.add('busy');pill.classList.remove('disconnected');
     pill.textContent=`generating · ${pct}%`;
+    updateQueueBarState(1,_wsQueueRemaining);
     const qSuf=_wsQueueRemaining>0?` | +${_wsQueueRemaining}`:'';
     _trayProgress(`${pct}%${qSuf}`);
     scheduleQueueLabelUpdate();
@@ -2401,8 +2552,9 @@ function handleComfyWSMessage(msg){
       _wsQueueRemaining=0;
       if(prog)prog.classList.remove('active');
       if(inner)inner.style.width='0%';
-      pill.textContent='idle';pill.classList.remove('busy');
+      pill.textContent='idle · 0 jobs';pill.classList.remove('busy');
       _trayProgress('');
+      updateQueueBarState(0,0);
       scheduleQueueLabelUpdate();
       renderRecentStrip();
       pollQueueOnce();
@@ -2414,6 +2566,7 @@ function handleComfyWSMessage(msg){
       pill.classList.add('busy');pill.classList.remove('disconnected');
       if(!pill.textContent.includes('%'))pill.textContent='generating…';
       _trayProgress('…');
+      updateQueueBarState(1,_wsQueueRemaining);
       scheduleQueueLabelUpdate();
     }
 
@@ -2567,8 +2720,28 @@ function restoreRecentStripState(){
 }
 
 // ===================== SEND META ROW =====================
+function toggleDimsAccordion(){
+  const body=document.getElementById('dims-accordion-body');
+  const btn=document.getElementById('dims-accordion-btn');
+  if(!body)return;
+  const opening=body.style.display==='none';
+  body.style.display=opening?'':'none';
+  if(btn)btn.classList.toggle('expanded',opening);
+}
+function updateDimsAccordionSummary(){
+  const el=document.getElementById('dims-accordion-summary');
+  if(!el)return;
+  const v=id=>document.getElementById(id)?.value||'';
+  const w=v('cfg-w'),h=v('cfg-h'),steps=v('cfg-steps'),cfg=v('cfg-cfg');
+  const samplerEl=document.getElementById('cfg-sampler');
+  const sampler=samplerEl?samplerEl.options[samplerEl.selectedIndex]?.text:'';
+  const parts=[`${w}×${h}`,`${steps} steps`,`CFG ${cfg}`];
+  if(sampler)parts.push(sampler);
+  el.textContent=parts.join(' · ');
+}
 function updateSendMeta(){
   updateSendStatus();
+  updateDimsAccordionSummary();
 }
 function updateSendStatus(){
   const row=document.getElementById('send-status-row');
@@ -2606,12 +2779,14 @@ function mkLoraSection(id,label,items,hasCol,dotColor){
           +'<span class="lchip-wval" id="ltw-'+sl(key)+'">'+parseFloat(weight).toFixed(2)+'</span>'
           +'</div>';
       }).join('');
-  const colControls='';
   const dot=dotColor||(hasCol?'var(--orange)':'var(--muted2)');
   return '<div class="tgroup" id="lsec-'+id+'" style="margin-bottom:28px;">'
-    +'<div class="theader" style="margin-bottom:10px;">'
-    +'<div class="ttitle"><span class="ttitle-dot" style="background:'+dot+'"></span>'+label+'</div>'
-    +'<div class="tactions">'+colControls+'</div></div>'
+    +'<div class="lsec-hdr">'
+    +'<span class="lsec-dot" style="background:'+dot+'"></span>'
+    +'<span class="lsec-label">'+label+'</span>'
+    +'<span class="lsec-hr"></span>'
+    +'<span class="lsec-count">'+items.length+'</span>'
+    +'</div>'
     +'<div class="'+gridClass+'" style="'+gridStyle+'">'+itemsHtml+'</div>'
     +'</div>';
 }
@@ -2677,8 +2852,8 @@ function openLoraCtx(key,name,e){
   favItem.style.color=isFav?'var(--amber)':'var(--text)';
   // Status items - always show all 3 dots, bold the active one
   const currentStatus=getLoraStatus(key);
-  const statusColors={verified:'var(--green)',testing:'var(--amber)',bad:'var(--red)'};
-  const statusDotColors={verified:'rgba(52,211,153,.9)',testing:'rgba(245,158,11,.9)',bad:'rgba(248,113,113,.9)'};
+  const statusColors={verified:'var(--green)',testing:'#2563EB',bad:'var(--red)'};
+  const statusDotColors={verified:'rgba(52,211,153,.9)',testing:'rgba(96,165,250,.9)',bad:'rgba(248,113,113,.9)'};
   const statusLabels={verified:'Verified',testing:'Testing',bad:'Bad / Remove'};
   ['verified','testing','bad'].forEach(s=>{
     const el=document.getElementById('ctx-status-'+s);
@@ -2820,8 +2995,6 @@ function toggleLpAdult(){
   if(!currentLPKey)return;
   const next=!getLora(currentLPKey).adult;
   setLora(currentLPKey,{adult:next});
-  const btn=document.getElementById('lp-adult-btn');
-  if(btn)btn.classList.toggle('adult-active',next);
   saveAppData();
   renderLoraTab();
   // Don't auto-close panel - let user close manually
@@ -2962,6 +3135,7 @@ function renderLoraTab(){
           +'</div>';
       }).join('')+'</div>';
     }
+    renderLoraCollectionTabs();
     return;
   }
 
@@ -2980,6 +3154,7 @@ function renderLoraTab(){
     sectionsHtml+=mkLoraSection('__uncat','Uncategorized',uncatItems,false);
   }
   gr.innerHTML=sectionsHtml;
+  renderLoraCollectionTabs();
 }
 
 function copyCardTw(key,e){
@@ -3032,16 +3207,17 @@ function mkLoraCard(l){
   const imgHtml=imgSrc
     ?'<img class="lora-card-img" draggable="false" src="'+imgSrc+'" onerror="this.outerHTML=\'<div class=lora-card-img-placeholder>No preview</div>\'">'
     :'<div class="lora-card-img-placeholder">No preview</div>';
-  const statusBadge=mkStatusBadge(key);
+  const statusCls=getStatusClass(key);
   const favBtn='<button class="lora-card-fav'+(l.favorite?' active':'')+'" onclick="toggleCardFav(\''+ek+'\',event)">★</button>';
-  const adultBadge=isAdult?'<span class="lora-card-adult" title="Brut">⍜</span>':'';
+  const adultBadge=isAdult?'<span class="lora-card-adult" title="Brut"></span>':'';
   const promptBadge=hasPromptData(key)?'<span class="lora-card-prompt-badge">P</span>':'';
   const enableBtn='<button class="lora-card-enable'+(isActive?' active':'')+'" id="lcen-'+sl(key)+'" onclick="toggleLoraTab(\''+ek+'\',\''+en+'\',event)">'+enableLabel+'</button>';
   const cleanedClass=d.cleaned?' cleaned':'';
   const infoBtn='<button class="lora-card-info-btn'+cleanedClass+'" onclick="openLpPopup(\''+ek+'\',event)">i</button>';
-  return '<div class="lora-card'+(isActive?' active':'')+(typeClass?' '+typeClass:'')+(isAdult?' brut-card':'')+'" id="lcard-'+sl(key)+'"'
+  return '<div class="lora-card'+(isActive?' active':'')+(typeClass?' '+typeClass:'')+(isAdult?' brut-card':'')+(statusCls?' '+statusCls:'')+'" id="lcard-'+sl(key)+'"'
     +' data-key="'+ek+'"'
     +' draggable="true"'
+    +' onclick="cardClick(\''+ek+'\',event)"'
     +' ondragstart="cardDragStart(event,\''+ek+'\')"'
     +' ondragover="cardDragOver(event,\''+ek+'\')"'
     +' ondragleave="cardDragLeave(event)"'
@@ -3049,7 +3225,6 @@ function mkLoraCard(l){
     +' ondragend="cardDragEnd(event)"'
     +' oncontextmenu="openLoraCtx(\''+ek+'\',\''+en+'\',event)">'
     +imgHtml
-    +statusBadge
     +favBtn
     +adultBadge
     +'<div class="lora-card-overlay"></div>'
@@ -3063,6 +3238,10 @@ function mkLoraCard(l){
     +'</div>';
 }
 
+function cardClick(key,e){
+  if(e.target.closest('button,input'))return;
+  openLpPopup(key,e);
+}
 function toggleLoraTabGuarded(key,name,e){
   closeLoraCtx();
   if(_ctxJustClosed){e&&e.stopPropagation();return;}
@@ -3367,6 +3546,14 @@ function switchTab(tab){
   // Stop auto-poll when leaving Gallery; hide back-to-top
   if(tab!=='gallery'){stopGalleryAutoPoll();updateBackToTopButton();}
 
+  // Show the right brut button for the active tab
+  const _bb=document.getElementById('tags-brut-btn');if(_bb)_bb.style.display=tab==='tags'?'':'none';
+  const _lb=document.getElementById('ladult-btn');if(_lb)_lb.style.display=tab==='loras'?'':'none';
+  const _gb=document.getElementById('gsc-brut');if(_gb)_gb.style.display=tab==='gallery'?'':'none';
+  // Hide IMG/VID subtabs on non-Generate tabs
+  const genSubtabs=document.querySelector('.gen-subtabs-titlebar');
+  if(genSubtabs)genSubtabs.style.visibility=tab==='tags'?'':'hidden';
+
   // Recent strip polls for new images while on the Generate tab
   if(tab==='tags')startRecentPoll();
   else stopRecentPoll();
@@ -3591,9 +3778,19 @@ async function resetLoraImg(){
 // ===================== THEME =====================
 function toggleTheme(){
   const light=document.body.classList.toggle('light');
-  const icon=light?'🌙':'☀';
-  document.getElementById('theme-btn').textContent=icon;
+  const btn=document.getElementById('theme-btn');
+  if(btn)btn.classList.toggle('active',light);
   localStorage.setItem('cpg-theme',light?'light':'dark');
+}
+
+// ===================== DRAG LOCK =====================
+function toggleDragLock(){
+  const tabs=document.querySelector('.tabs');
+  if(!tabs)return;
+  const locked=tabs.style.webkitAppRegion==='no-drag';
+  tabs.style.webkitAppRegion=locked?'drag':'no-drag';
+  const btn=document.getElementById('drag-lock-btn');
+  if(btn){btn.classList.toggle('active',!locked);btn.textContent=locked?'⊟':'⊞';}
 }
 
 // ===================== LORA FAVORITE + RENAME =====================
@@ -3602,9 +3799,6 @@ function toggleLpFav(){
   const lora=loraList.find(l=>l.file_name===currentLPKey);
   if(!lora)return;
   lora.favorite=!lora.favorite;
-  const btn=document.getElementById('lp-fav-btn');
-  btn.textContent=lora.favorite?'★':'☆';
-  btn.classList.toggle('fav-active',lora.favorite);
   setLora(currentLPKey,{favorite:lora.favorite});
   saveAppData();
   // Update card in place
@@ -3886,6 +4080,7 @@ function mkGalleryCard(img,state){
   const safeFile=img.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const sel=gallerySelected.has(img.name)?' gsel':'';
   const brut=(appData.galleryAdult&&appData.galleryAdult[img.name]);
+  const fav=!!(appData.galleryFavorites&&appData.galleryFavorites[img.name]);
   const src=`/gallery/image?folder=${img.folder}&file=${encodeURIComponent(img.name)}`;
   const isVid=isVideoFile(img.name);
   const media=isVid
@@ -3894,7 +4089,8 @@ function mkGalleryCard(img,state){
   return `<div class="gthumb state-${s}${sel}" data-file="${img.name.replace(/"/g,'&quot;')}" onclick="galleryCardClick('${safeFile}',event)" oncontextmenu="openGalleryCtx('${safeFile}',event)">
     ${media}
     <div class="gthumb-overlay">${date}</div>
-    <div class="gsel-check">✓</div>${brut?'<div class="gbrut-badge">⍜</div>':''}
+    <div class="gsel-check">✓</div>
+    <button class="gfav-star${fav?' active':''}" onclick="event.stopPropagation();toggleGalleryFav('${safeFile}')">★</button>${brut?'<div class="gbrut-badge"></div>':''}
   </div>`;
 }
 
@@ -3906,6 +4102,7 @@ function mkGallerySection(id,label,color,images,state){
     <div class="gallery-section-header">
       <span class="ttitle-dot" style="background:${color}"></span>
       <span class="gallery-section-label">${label}</span>
+      <span class="gallery-section-hr"></span>
       <span class="ncount">${images.length}</span>
     </div>
     <div class="gallery-grid${largeClass}${selClass}">${images.map(img=>mkGalleryCard(img,state)).join('')}</div>
@@ -3913,10 +4110,12 @@ function mkGallerySection(id,label,color,images,state){
 }
 
 function applyGalleryStateFilter(images,state){
+  if(galleryFilter==='fav')return images.filter(img=>appData.galleryFavorites&&appData.galleryFavorites[img.name]);
   if(galleryFilter==='unreviewed')return images.filter(img=>!state[img.name]);
   if(galleryFilter==='review')return images.filter(img=>state[img.name]==='review');
   if(galleryFilter==='approved')return images.filter(img=>state[img.name]==='approved');
   if(galleryFilter==='declined')return images.filter(img=>state[img.name]==='declined');
+  if(galleryFilter==='old'){const t=Date.now()/1000-14*86400;return images.filter(img=>!state[img.name]&&img.mtime<t);}
   return images;
 }
 
@@ -3967,26 +4166,49 @@ function clearGallerySearch(){
 }
 
 function scrollGalleryToTop(){
+  const gp=document.getElementById('panel-gallery');
+  if(gp)gp.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateBackToTopButton(){
+  const galleryBtn=document.getElementById('gallery-back-top');
+  const topBtn=document.getElementById('scroll-top-btn');
+  const main=document.querySelector('.main');
+  const appEl=document.querySelector('.app');
+  const isGallery=appEl?.classList.contains('gallery-tab-active');
+  const isLora=appEl?.classList.contains('lora-tab-active');
+  // Gallery back-to-top
+  if(galleryBtn){
+    const gp=document.getElementById('panel-gallery');
+    if(!isGallery||!gp||gp.scrollTop<200)galleryBtn.classList.remove('visible');
+    else galleryBtn.classList.add('visible');
+  }
+  // LoRA tab back-to-top
+  if(topBtn){
+    const loraPanel=document.getElementById('panel-loras');
+    if(isLora&&loraPanel&&loraPanel.scrollTop>300)topBtn.classList.add('visible');
+    else if(!isGallery&&main&&main.scrollTop>300)topBtn.classList.add('visible');
+    else topBtn.classList.remove('visible');
+  }
+}
+function scrollBackToTop(){
+  const appEl=document.querySelector('.app');
+  if(appEl?.classList.contains('lora-tab-active')){
+    const lp=document.getElementById('panel-loras');
+    if(lp)lp.scrollTo({top:0,behavior:'smooth'});
+  }
   const main=document.querySelector('.main');
   if(main)main.scrollTo({top:0,behavior:'smooth'});
 }
 
-function updateBackToTopButton(){
-  const btn=document.getElementById('gallery-back-top');
-  if(!btn)return;
-  const main=document.querySelector('.main');
-  const isGallery=document.querySelector('.app')?.classList.contains('gallery-tab-active');
-  if(!isGallery||!main||main.scrollTop<400){
-    btn.classList.remove('visible');
-  }else{
-    btn.classList.add('visible');
-  }
-}
-
-// Attach scroll listener once DOM is ready
+// Attach scroll listeners once DOM is ready
 document.addEventListener('DOMContentLoaded',()=>{
   const main=document.querySelector('.main');
   if(main)main.addEventListener('scroll',updateBackToTopButton,{passive:true});
+  const loraPanel=document.getElementById('panel-loras');
+  if(loraPanel)loraPanel.addEventListener('scroll',updateBackToTopButton,{passive:true});
+  const galleryPanel=document.getElementById('panel-gallery');
+  if(galleryPanel)galleryPanel.addEventListener('scroll',updateBackToTopButton,{passive:true});
 });
 
 const GALLERY_TIME_CYCLE=['all','24h','7d','30d'];
@@ -4069,22 +4291,19 @@ function updateGalleryFilterCounts(){
   const review=galleryImages.filter(img=>state[img.name]==='review').length;
   const approved=galleryImages.filter(img=>state[img.name]==='approved').length;
   const declined=galleryImages.filter(img=>state[img.name]==='declined').length;
-  const allBtn=document.getElementById('gtf-all');
-  const unBtn=document.getElementById('gtf-unreviewed');
-  const revBtn=document.getElementById('gtf-review');
-  const appBtn=document.getElementById('gtf-approved');
-  const decBtn=document.getElementById('gtf-declined');
-  const processBtn=document.getElementById('gallery-process-btn');
-  if(allBtn)allBtn.textContent=`All ${all}`;
-  if(unBtn)unBtn.textContent=`Unreviewed ${unreviewed}`;
-  if(revBtn)revBtn.textContent=`Review ${review}`;
-  if(appBtn)appBtn.textContent=`Approved ${approved}`;
-  if(decBtn)decBtn.textContent=`Declined ${declined}`;
-  if(processBtn){processBtn.style.display=declined>0?'':'none';processBtn.textContent=`🗑 Process ${declined}`;}
-  const oldThreshold=Date.now()/1000-7*86400;
+  const oldThreshold=Date.now()/1000-14*86400;
   const oldCount=galleryImages.filter(img=>!state[img.name]&&img.mtime<oldThreshold).length;
+  const counts={all,unreviewed,review,approved,declined,old:oldCount};
+  Object.keys(counts).forEach(k=>{
+    const el=document.getElementById('gtfc-'+k);
+    if(el)el.textContent=counts[k];
+  });
+  const processBtn=document.getElementById('gallery-process-btn');
+  if(processBtn){processBtn.style.display=declined>0?'':'none';processBtn.textContent=`🗑 Process ${declined}`;}
+  const nagThreshold=Date.now()/1000-7*86400;
+  const nagCount=galleryImages.filter(img=>!state[img.name]&&img.mtime<nagThreshold).length;
   const nagBadge=document.getElementById('gallery-tab-nag');
-  if(nagBadge)nagBadge.textContent=oldCount>0?'⏱'+oldCount:'';
+  if(nagBadge)nagBadge.textContent=nagCount>0?'⏱'+nagCount:'';
 }
 
 let _backlogToastShown=false;
@@ -4108,7 +4327,7 @@ async function checkGalleryBacklog(){
 
 function setGalleryFilter(f){
   galleryFilter=f;
-  ['all','unreviewed','review','approved','declined'].forEach(id=>{
+  ['all','fav','unreviewed','review','approved','declined','old'].forEach(id=>{
     document.getElementById('gtf-'+id)?.classList.toggle('active',f===id);
   });
   renderGallery();
@@ -4121,10 +4340,14 @@ function openGalleryDetail(file){
   const src=`/gallery/image?folder=${folder}&file=${encodeURIComponent(file)}`;
   const wrap=document.querySelector('.gallery-detail-img-wrap');
   const isVid=isVideoFile(file);
+  const isFav=(appData.galleryFavorites||{})[file];
+  const isBrut=(appData.galleryAdult||{})[file];
+  const favBtn=`<button class="gdp-detail-fav${isFav?' active':''}" id="gdp-detail-fav" onclick="event.stopPropagation();toggleGalleryDetailFav()" title="Favorite">★</button>`;
+  const brutEl=isBrut?'<div class="gdp-detail-brut"></div>':'';
   if(isVid){
-    wrap.innerHTML=`<video class="gallery-detail-img" id="gdp-img" src="${src}" controls muted preload="metadata" oncontextmenu="openGalleryDetailCtx(event)"></video>`;
+    wrap.innerHTML=`<video class="gallery-detail-img" id="gdp-img" src="${src}" controls muted preload="metadata" oncontextmenu="openGalleryDetailCtx(event)"></video>`+favBtn+brutEl;
   }else{
-    wrap.innerHTML=`<img class="gallery-detail-img" id="gdp-img" src="${src}" alt="" onclick="openGalleryLightbox()" oncontextmenu="openGalleryDetailCtx(event)">`;
+    wrap.innerHTML=`<img class="gallery-detail-img" id="gdp-img" src="${src}" alt="" onclick="openGalleryLightbox()" oncontextmenu="openGalleryDetailCtx(event)">`+favBtn+brutEl;
   }
   document.getElementById('gdp-name').textContent=file;
   if(img){
@@ -4330,14 +4553,12 @@ function renderGalleryTags(){
   const container=document.getElementById('gdp-tags-chips');
   if(!container||!galleryDetailFile)return;
   const tags=getGalleryTags(galleryDetailFile);
-  if(!tags.length){
-    container.innerHTML='<span class="gdp-tags-none">no tags</span>';
-    return;
-  }
-  container.innerHTML=tags.map(t=>{
+  let html=tags.map(t=>{
     const safe=t.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-    return `<span class="gdp-tag-chip">${t.replace(/</g,'&lt;')}<button class="gdp-tag-rm" onclick="event.stopPropagation();removeGalleryTag('${safe}')" title="Remove">✕</button></span>`;
+    return `<span class="gdp-tag-chip">${t.replace(/</g,'&lt;')} <button class="gdp-tag-rm" onclick="event.stopPropagation();removeGalleryTag('${safe}')" title="Remove">×</button></span>`;
   }).join('');
+  html+=`<button class="gdp-tags-add-btn" onclick="startAddGalleryTag()">+ tag</button>`;
+  container.innerHTML=html;
 }
 
 function addGalleryTag(tag){
@@ -4362,15 +4583,116 @@ function removeGalleryTag(tag){
   renderGalleryTags();
 }
 
+function getAllGalleryTagCounts(){
+  const counts={};
+  if(!appData.galleryTags)return counts;
+  Object.values(appData.galleryTags).forEach(tags=>{
+    tags.forEach(t=>{counts[t]=(counts[t]||0)+1;});
+  });
+  return counts;
+}
+
+let tagSuggestIdx=-1;
+
+function updateTagSuggest(){
+  const input=document.getElementById('gdp-tags-input');
+  const box=document.getElementById('gdp-tags-suggest');
+  if(!input||!box)return;
+  // get the last segment after the last comma (for batch entry)
+  const full=input.value;
+  const parts=full.split(',');
+  const query=parts[parts.length-1].trim().toLowerCase();
+  if(!query){box.classList.remove('open');box.innerHTML='';tagSuggestIdx=-1;return;}
+  const counts=getAllGalleryTagCounts();
+  const current=getGalleryTags(galleryDetailFile);
+  // already-typed tags in this batch
+  const batchSoFar=parts.slice(0,-1).map(s=>s.trim().toLowerCase()).filter(Boolean);
+  const matches=Object.entries(counts)
+    .filter(([tag])=>tag.includes(query)&&!current.includes(tag)&&!batchSoFar.includes(tag))
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,8);
+  if(!matches.length){
+    if(query&&!counts[query]){
+      box.innerHTML='<div class="gdp-tags-suggest-item new-tag" data-tag="'+query.replace(/"/g,'&quot;')+'"><span style="color:var(--orange)">+</span> Create "<b>'+query.replace(/</g,'&lt;')+'</b>"</div>';
+      box.classList.add('open');
+    }else{box.classList.remove('open');box.innerHTML='';}
+    tagSuggestIdx=-1;
+    return;
+  }
+  const exactMatch=matches.some(([tag])=>tag===query);
+  let html=matches.map(([tag,count],i)=>{
+    const hl=tag.replace(new RegExp('('+query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');
+    return '<div class="gdp-tags-suggest-item'+(i===tagSuggestIdx?' active':'')+'" data-tag="'+tag.replace(/"/g,'&quot;')+'">'+hl+'<span class="tag-count">×'+count+'</span></div>';
+  }).join('');
+  if(!exactMatch){
+    html+='<div class="gdp-tags-suggest-item new-tag'+(tagSuggestIdx===matches.length?' active':'')+'" data-tag="'+query.replace(/"/g,'&quot;')+'"><span style="color:var(--orange)">+</span> Create "<b>'+query.replace(/</g,'&lt;')+'</b>"</div>';
+  }
+  box.innerHTML=html;
+  box.classList.add('open');
+  // click handler
+  box.querySelectorAll('.gdp-tags-suggest-item').forEach(el=>{
+    el.onmousedown=e=>{
+      e.preventDefault();
+      selectTagSuggestion(el.dataset.tag);
+    };
+  });
+}
+
+function selectTagSuggestion(tag){
+  const input=document.getElementById('gdp-tags-input');
+  const box=document.getElementById('gdp-tags-suggest');
+  if(!input)return;
+  const parts=input.value.split(',');
+  parts[parts.length-1]=tag;
+  input.value=parts.join(', ')+', ';
+  tagSuggestIdx=-1;
+  if(box){box.classList.remove('open');box.innerHTML='';}
+  input.focus();
+}
+
 function startAddGalleryTag(){
   const row=document.getElementById('gdp-tags-input-row');
   const input=document.getElementById('gdp-tags-input');
   row.style.display='flex';
   input.value='';
+  tagSuggestIdx=-1;
   input.focus();
+  input.oninput=()=>{tagSuggestIdx=-1;updateTagSuggest();};
   input.onkeydown=e=>{
-    if(e.key==='Enter'){e.preventDefault();confirmAddGalleryTag();}
-    if(e.key==='Escape'){e.preventDefault();cancelAddGalleryTag();}
+    const box=document.getElementById('gdp-tags-suggest');
+    const items=box?box.querySelectorAll('.gdp-tags-suggest-item'):[];
+    const isOpen=box&&box.classList.contains('open')&&items.length;
+    if(e.key==='ArrowDown'&&isOpen){
+      e.preventDefault();
+      tagSuggestIdx=Math.min(tagSuggestIdx+1,items.length-1);
+      items.forEach((el,i)=>el.classList.toggle('active',i===tagSuggestIdx));
+      return;
+    }
+    if(e.key==='ArrowUp'&&isOpen){
+      e.preventDefault();
+      tagSuggestIdx=Math.max(tagSuggestIdx-1,0);
+      items.forEach((el,i)=>el.classList.toggle('active',i===tagSuggestIdx));
+      return;
+    }
+    if(e.key==='Enter'){
+      e.preventDefault();
+      if(isOpen&&tagSuggestIdx>=0&&tagSuggestIdx<items.length){
+        selectTagSuggestion(items[tagSuggestIdx].dataset.tag);
+      }else{
+        confirmAddGalleryTag();
+      }
+      return;
+    }
+    if(e.key==='Escape'){
+      e.preventDefault();
+      if(isOpen){box.classList.remove('open');box.innerHTML='';tagSuggestIdx=-1;}
+      else cancelAddGalleryTag();
+    }
+    if(e.key==='Tab'&&isOpen&&items.length){
+      e.preventDefault();
+      const idx=tagSuggestIdx>=0?tagSuggestIdx:0;
+      if(idx<items.length)selectTagSuggestion(items[idx].dataset.tag);
+    }
   };
 }
 
@@ -4390,6 +4712,9 @@ function confirmAddGalleryTag(){
 function cancelAddGalleryTag(){
   document.getElementById('gdp-tags-input-row').style.display='none';
   document.getElementById('gdp-tags-input').value='';
+  const box=document.getElementById('gdp-tags-suggest');
+  if(box){box.classList.remove('open');box.innerHTML='';}
+  tagSuggestIdx=-1;
 }
 
 // ===================== REMIX FROM GALLERY =====================
@@ -4773,21 +5098,10 @@ function updateGalleryDetailState(){
   const state=(appData.galleryState||{})[galleryDetailFile]||'unreviewed';
   const badge=document.getElementById('gdp-state');
   if(badge){badge.className='gdp-state-badge '+state;badge.textContent=state;}
-  const reviewBtn=document.getElementById('gdp-review-btn');
-  const approveBtn=document.getElementById('gdp-approve-btn');
-  const declineBtn=document.getElementById('gdp-decline-btn');
-  if(approveBtn){
-    approveBtn.classList.toggle('gdp-active',state==='approved');
-    approveBtn.textContent=state==='approved'?'Approved ✓':'Approve';
-  }
-  if(reviewBtn){
-    reviewBtn.style.display='';
-    reviewBtn.classList.toggle('gdp-active',state==='review');
-    reviewBtn.textContent=state==='review'?'Review ✓':'Review';
-  }
-  if(declineBtn){
-    declineBtn.classList.toggle('gdp-active',state==='declined');
-    declineBtn.textContent=state==='declined'?'Declined ✓':'Decline';
+  const imgWrap=document.querySelector('.gallery-detail-img-wrap');
+  if(imgWrap){
+    imgWrap.classList.remove('state-review','state-approved','state-declined');
+    if(state!=='unreviewed')imgWrap.classList.add('state-'+state);
   }
 }
 
@@ -4918,7 +5232,8 @@ function exitGallerySelectMode(){
   gallerySelectMode=false;
   gallerySelected.clear();
   _galleryLastClicked=null;
-  document.querySelectorAll('#gsc-select').forEach(b=>b.classList.remove('active'));
+  const selBtn=document.getElementById('gtf-select');
+  if(selBtn)selBtn.classList.remove('active');
   document.querySelectorAll('.gthumb.gsel').forEach(c=>c.classList.remove('gsel'));
   document.querySelectorAll('.gallery-grid').forEach(g=>g.classList.remove('select-mode'));
   updateBulkBar();
@@ -4935,7 +5250,7 @@ function galleryCardClick(file,e){
     e.stopPropagation();
     if(!gallerySelectMode){
       gallerySelectMode=true;
-      document.querySelectorAll('#gsc-select').forEach(b=>b.classList.add('active'));
+      const _selBtn=document.getElementById('gtf-select');if(_selBtn)_selBtn.classList.add('active');
       document.querySelectorAll('.gallery-grid').forEach(g=>g.classList.add('select-mode'));
     }
     if(e.shiftKey&&_galleryLastClicked){
@@ -4966,7 +5281,6 @@ function galleryCardClick(file,e){
 
 function toggleGallerySelect(){
   gallerySelectMode=!gallerySelectMode;
-  document.querySelectorAll('#gsc-select').forEach(b=>b.classList.toggle('active',gallerySelectMode));
   const gtfSel=document.getElementById('gtf-select');
   if(gtfSel)gtfSel.classList.toggle('active',gallerySelectMode);
   if(!gallerySelectMode){
@@ -5170,61 +5484,102 @@ function getImageCategory(filename){
   return null;
 }
 
-function renderGalleryNav(){
-  const nav=document.getElementById('nav');
-  const brutKeys=showGalleryAdult?new Set():getBrutCatKeys();
+function renderGalleryNav(){renderGalleryAlbumTabs();}
+
+function renderGalleryAlbumTabs(){
+  const el=document.getElementById('gallery-album-tabs');
+  if(!el)return;
+  const hideBrut=!showGalleryAdult||document.body.classList.contains('hide-brut');
+  const brutKeys=hideBrut?getBrutCatKeys():new Set();
   const visibleImages=galleryImages.filter(img=>!brutKeys.has(img.name));
   const allCount=visibleImages.length;
   const catted=new Set();
   galleryCats.forEach(c=>c.keys.forEach(k=>catted.add(k)));
   const uncatCount=visibleImages.filter(img=>!catted.has(img.name)).length;
-  let html=`<div class="nitem${galleryCatFilter===null?' active':''}" onclick="setGalleryCatFilter(null)">
-    <span class="ndot" style="background:var(--muted2)"></span>
-    <span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">All Images</span>
-    <span class="ncount">${allCount}</span>
-  </div>`;
+  const a=galleryCatFilter;
+  let html=`<button class="gallery-album-tab${a===null?' active':''}" onclick="setGalleryCatFilter(null)"><span class="ndot" style="background:var(--muted2)"></span>All Images <span class="ncount">${allCount}</span></button>`;
   galleryCats.forEach(cat=>{
-    if(!showGalleryAdult&&isCatBrut(cat.id))return;
+    if(hideBrut&&isCatBrut(cat.id))return;
     const count=cat.keys.filter(k=>galleryImages.some(img=>img.name===k)).length;
-    const brutActive=isCatBrut(cat.id);
-    html+=`<div class="nitem${galleryCatFilter===cat.id?' active':''}" id="gcnav-${cat.id}" onclick="setGalleryCatFilter('${cat.id}')"
-      draggable="true"
-      ondragstart="gcatNavDragStart(event,'${cat.id}')"
-      ondragover="gcatNavDragOver(event,'${cat.id}')"
-      ondragleave="navDragLeave(event)"
-      ondrop="gcatNavDrop(event,'${cat.id}')"
-      ondragend="navDragEnd(event)">
-      <span class="ndot" style="background:${cat.color||'var(--orange)'}"></span>
-      <span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cat.label}</span>${brutActive?`<button onclick="event.stopPropagation();toggleGalleryCatBrut('${cat.id}')" title="Unmark Brut" class="ncol-btn ncol-brut-active" style="font-size:10px;">⍜</button>`:''}
-      <span class="ncount">${count}</span>
-      <span class="ncol-actions">
-        ${brutActive?'':`<button onclick="event.stopPropagation();toggleGalleryCatBrut('${cat.id}')" title="Mark Brut" class="ncol-btn" style="font-size:10px;">⍜</button>`}
-        <button onclick="event.stopPropagation();renameGalleryCat('${cat.id}')" title="Rename" class="ncol-btn">✎</button>
-        <button onclick="event.stopPropagation();deleteGalleryCat('${cat.id}')" title="Delete" class="ncol-btn ncol-del">✕</button>
-      </span>
-    </div>`;
+    const dot=isCatBrut(cat.id)?'#EF4444':(cat.color||'var(--orange)');
+    html+=`<button class="gallery-album-tab${a===cat.id?' active':''}" draggable="true" data-catid="${cat.id}" onclick="setGalleryCatFilter('${cat.id}')" oncontextmenu="galleryAlbumTabCtx('${cat.id}',event)" ondragstart="gAlbumTabDragStart(event,'${cat.id}')" ondragover="gAlbumTabDragOver(event)" ondrop="gAlbumTabDrop(event,'${cat.id}')" ondragend="gAlbumTabDragEnd(event)"><span class="ndot" style="background:${dot}"></span>${cat.label} <span class="ncount">${count}</span></button>`;
   });
   if(uncatCount>0){
-    html+=`<div class="nitem${galleryCatFilter==='__uncat'?' active':''}" onclick="setGalleryCatFilter('__uncat')">
-      <span class="ndot" style="background:var(--muted2)"></span>
-      <span style="font-size:13px">Uncategorized</span>
-      <span class="ncount">${uncatCount}</span>
-    </div>`;
+    html+=`<button class="gallery-album-tab${a==='__uncat'?' active':''}" onclick="setGalleryCatFilter('__uncat')"><span class="ndot" style="background:var(--muted2)"></span>Uncategorized <span class="ncount">${uncatCount}</span></button>`;
   }
-  nav.innerHTML=html;
+  html+=`<button class="gallery-album-add" onclick="showAddGalleryCat()">+ album</button>`;
+  el.innerHTML=html;
 }
+
+function galleryAlbumTabCtx(catId,e){
+  e.preventDefault();e.stopPropagation();
+  closeGalleryAlbumCtx();
+  const brutActive=isCatBrut(catId);
+  const menu=document.createElement('div');
+  menu.id='gallery-album-ctx';
+  menu.className='gallery-album-ctx';
+  menu.innerHTML=`<button onclick="closeGalleryAlbumCtx();renameGalleryCat('${catId}')">✎ Rename</button><button onclick="closeGalleryAlbumCtx();toggleGalleryCatBrut('${catId}')">${brutActive?'Unmark':'Mark'} Brut</button><button onclick="closeGalleryAlbumCtx();deleteGalleryCat('${catId}')">✕ Delete</button>`;
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+  document.body.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click',closeGalleryAlbumCtx,{once:true}),0);
+}
+function closeGalleryAlbumCtx(){
+  const m=document.getElementById('gallery-album-ctx');
+  if(m)m.remove();
+}
+
+let _gAlbumTabDragId=null;
+function gAlbumTabDragStart(e,id){_gAlbumTabDragId=id;e.dataTransfer.effectAllowed='move';e.currentTarget.classList.add('dragging');}
+function gAlbumTabDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';const tgt=e.currentTarget;if(!tgt||tgt.dataset.catid===_gAlbumTabDragId)return;document.querySelectorAll('.gallery-album-tab.drag-over').forEach(el=>el.classList.remove('drag-over'));tgt.classList.add('drag-over');}
+function gAlbumTabDrop(e,targetId){
+  e.preventDefault();
+  document.querySelectorAll('.gallery-album-tab.drag-over,.gallery-album-tab.dragging').forEach(el=>{el.classList.remove('drag-over');el.classList.remove('dragging');});
+  if(!_gAlbumTabDragId||_gAlbumTabDragId===targetId)return;
+  const fi=galleryCats.findIndex(c=>c.id===_gAlbumTabDragId);
+  const ti=galleryCats.findIndex(c=>c.id===targetId);
+  if(fi===-1||ti===-1)return;
+  const [moved]=galleryCats.splice(fi,1);
+  galleryCats.splice(ti,0,moved);
+  appData.galleryCats=[...galleryCats];
+  saveAppData();
+  renderGalleryAlbumTabs();
+  renderGallery();
+  _gAlbumTabDragId=null;
+}
+function gAlbumTabDragEnd(e){_gAlbumTabDragId=null;document.querySelectorAll('.gallery-album-tab.drag-over,.gallery-album-tab.dragging').forEach(el=>{el.classList.remove('drag-over');el.classList.remove('dragging');});}
 
 function setGalleryCatFilter(id){
   galleryCatFilter=id;
-  renderGalleryNav();
+  renderGalleryAlbumTabs();
   renderGallery();
+}
+
+// Gallery favorite toggle
+function toggleGalleryDetailFav(){
+  if(!galleryDetailFile)return;
+  toggleGalleryFav(galleryDetailFile);
+  const btn=document.getElementById('gdp-detail-fav');
+  if(btn)btn.classList.toggle('active',!!(appData.galleryFavorites||{})[galleryDetailFile]);
+}
+
+function toggleGalleryFav(filename){
+  if(!appData.galleryFavorites)appData.galleryFavorites={};
+  appData.galleryFavorites[filename]=!appData.galleryFavorites[filename];
+  if(!appData.galleryFavorites[filename])delete appData.galleryFavorites[filename];
+  saveAppData();
+  const card=document.querySelector(`.gthumb[data-file="${filename.replace(/"/g,'&quot;')}"]`);
+  if(card){
+    const star=card.querySelector('.gfav-star');
+    if(star)star.classList.toggle('active',!!appData.galleryFavorites[filename]);
+  }
 }
 
 // Gallery adult (Brut) toggle
 function toggleGalleryAdult(){
   showGalleryAdult=!showGalleryAdult;
   document.querySelectorAll('#gsc-brut').forEach(b=>b.classList.toggle('active',showGalleryAdult));
-  renderGalleryNav();
+  renderGalleryAlbumTabs();
   renderGallery();
 }
 
@@ -5410,7 +5765,7 @@ async function ctxGalleryApprove(){
   }
   saveAppData();
   if(bulk){exitGallerySelectMode();renderGallery();}
-  else patchGalleryCard(file);
+  else{patchGalleryCard(file);updateGalleryDetailState();}
 }
 function ctxGalleryReview(){
   if(!_galleryCtxFile)return;
@@ -5425,7 +5780,7 @@ function ctxGalleryReview(){
   }
   saveAppData();
   if(bulk){exitGallerySelectMode();renderGallery();}
-  else patchGalleryCard(file);
+  else{patchGalleryCard(file);updateGalleryDetailState();}
 }
 function ctxGalleryDecline(){
   if(!_galleryCtxFile)return;
@@ -5440,7 +5795,7 @@ function ctxGalleryDecline(){
   }
   saveAppData();
   if(bulk){exitGallerySelectMode();renderGallery();}
-  else patchGalleryCard(file);
+  else{patchGalleryCard(file);updateGalleryDetailState();}
 }
 async function copyGalleryImage(file){
   const img=galleryImages.find(i=>i.name===file);
@@ -5621,11 +5976,18 @@ function renderCkptMultiList(){
     listEl.innerHTML='<div style="padding:10px;color:var(--muted);font-size:12px;font-family:var(--mono);">(no checkpoints)</div>';
     return;
   }
-  listEl.innerHTML=_ckptItems.map(it=>{
-    const checked=_selectedCkpts.has(it.value)?'checked':'';
+  const allSelected=_selectedCkpts.size===_ckptItems.length;
+  let html='<div class="ckpt-list-header">';
+  html+=`<span>${_selectedCkpts.size} of ${_ckptItems.length} selected</span>`;
+  html+=`<button onclick="event.stopPropagation();toggleAllCkpts()">${allSelected?'clear all':'select all'}</button>`;
+  html+='</div><div class="ckpt-list-scroll">';
+  html+=_ckptItems.map(it=>{
+    const on=_selectedCkpts.has(it.value);
     const ev=it.value.replace(/'/g,"\\'");
-    return `<label class="ckpt-opt" onclick="event.stopPropagation()"><input type="checkbox" ${checked} onchange="toggleCkptOption('${ev}',this.checked)">${it.label}</label>`;
+    return `<label class="ckpt-opt" onclick="event.stopPropagation()"><div class="ckpt-checkbox${on?' checked':''}">${on?'✓':''}</div><input type="checkbox" ${on?'checked':''} onchange="toggleCkptOption('${ev}',this.checked)" style="display:none">${it.label}</label>`;
   }).join('');
+  html+='</div>';
+  listEl.innerHTML=html;
 }
 
 function toggleCkptOption(value,checked){
@@ -5641,6 +6003,18 @@ function toggleCkptOption(value,checked){
   updateOutput();
   const sel=document.getElementById('cfg-ckpt');
   if(sel){const first=[..._selectedCkpts][0];if(first)sel.value=first;}
+}
+function toggleAllCkpts(){
+  if(_selectedCkpts.size===_ckptItems.length){
+    _selectedCkpts.clear();
+    if(_ckptItems.length)_selectedCkpts.add(_ckptItems[0].value);
+  }else{
+    _ckptItems.forEach(it=>_selectedCkpts.add(it.value));
+  }
+  renderCkptMultiList();
+  updateCkptMultiLabel();
+  updateSendBtnLabel();
+  updateOutput();
 }
 
 function updateCkptMultiLabel(){
@@ -5663,11 +6037,23 @@ function toggleCkptDropdown(e){
   const wrap=document.getElementById('ckpt-multi');
   if(!wrap)return;
   const opening=!wrap.classList.contains('open');
-  wrap.classList.toggle('open');
   if(opening){
-    const close=ev=>{if(!wrap.contains(ev.target)){wrap.classList.remove('open');document.removeEventListener('mousedown',close);}};
-    document.addEventListener('mousedown',close);
+    wrap.classList.add('open');
+    const btn=document.getElementById('ckpt-multi-btn');
+    const list=document.getElementById('ckpt-multi-list');
+    if(btn&&list){
+      const r=btn.getBoundingClientRect();
+      list.style.bottom=(window.innerHeight-r.top+6)+'px';
+      list.style.left=r.left+'px';
+      list.style.width=r.width+'px';
+    }
+  }else{
+    wrap.classList.remove('open');
   }
+}
+function closeCkptDropdown(){
+  const wrap=document.getElementById('ckpt-multi');
+  if(wrap)wrap.classList.remove('open');
 }
 
 function getSelectedCkpts(){return[..._selectedCkpts];}
