@@ -1,19 +1,16 @@
 /**
  * Node.js replacement for proxy.py — runs inside Electron's main process.
- * Serves static files, app-data, gallery operations, and proxies LoRA Manager API.
+ * Serves static files, app-data, gallery operations, and scans local models.
  */
 
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 const crypto = require('crypto');
 const zlib = require('zlib');
 
-const LORA_MANAGER = 'http://127.0.0.1:8000';
-// ComfyUI Desktop serves the REST API on the same port as LoRA Manager
-// (LoRA Manager is a ComfyUI custom node — one process, one port).
-// Standalone ComfyUI defaults to 8188; change here if you run it separately.
 const COMFY_HOST = '127.0.0.1';
 const COMFY_PORT = 8000;
 const MIME_TYPES = {
@@ -36,7 +33,7 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
 };
 
-let TOOLS_DIR, DATA_FILE, LORA_IMG_DIR, TAG_IMG_DIR, FONT_DIR, RAW_DIR, APPROVED_DIR;
+let TOOLS_DIR, DATA_FILE, LORA_IMG_DIR, TAG_IMG_DIR, FONT_DIR, RAW_DIR, APPROVED_DIR, LORAS_DIR, CHECKPOINTS_DIR;
 
 function initPaths(toolsDir) {
   TOOLS_DIR = toolsDir;
@@ -46,6 +43,8 @@ function initPaths(toolsDir) {
   FONT_DIR = path.join(TOOLS_DIR, 'fonts');
   RAW_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'output'));
   APPROVED_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'approved'));
+  LORAS_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'models', 'loras'));
+  CHECKPOINTS_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'models', 'checkpoints'));
 }
 
 // ===================== HELPERS =====================
@@ -87,6 +86,7 @@ function serveFile(res, filepath) {
     res.writeHead(200, {
       'Content-Type': getMime(filepath),
       'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-store',
       'Content-Length': body.length,
     });
     res.end(body);
@@ -310,56 +310,228 @@ function parseMultipart(contentType, body) {
   return { fileData, fileName, key: keyValue };
 }
 
-// ===================== LORA MANAGER PROXY =====================
+// ===================== LOCAL MODEL SCANNING =====================
 
-function proxyToLoraManager(req, res, urlPath) {
-  const isPreview = urlPath.startsWith('/loras_static/') || urlPath.startsWith('/api/previews');
+let _loraCache = null;
+let _checkpointCache = null;
 
-  // Check cache for preview images
-  if (isPreview) {
-    const cacheKey = crypto.createHash('md5').update(urlPath).digest('hex');
-    const cachePath = path.join(LORA_IMG_DIR, '_cache_' + cacheKey);
-    if (fs.existsSync(cachePath)) {
-      serveFile(res, cachePath);
-      return;
+function scanModels(baseDir) {
+  const results = [];
+  if (!fs.existsSync(baseDir)) return results;
+
+  function walk(dir, rel) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        if (entry.name === 'ExampleImages' || entry.name === 'recipes') continue;
+        walk(path.join(dir, entry.name), rel ? rel + '/' + entry.name : entry.name);
+      } else if (entry.name.endsWith('.safetensors')) {
+        const stem = entry.name.replace(/\.safetensors$/, '');
+        const fullPath = path.join(dir, entry.name);
+        const metaPath = path.join(dir, stem + '.metadata.json');
+        let meta = null;
+        if (fs.existsSync(metaPath)) {
+          try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
+        }
+
+        const previewExts = ['.jpeg', '.jpg', '.png', '.webp'];
+        let previewFile = null;
+        for (const ext of previewExts) {
+          const p = path.join(dir, stem + ext);
+          if (fs.existsSync(p)) { previewFile = p; break; }
+        }
+
+        const folder = rel || '';
+        const fileName = (meta && meta.file_name) || stem;
+
+        results.push({
+          file_name: fileName,
+          model_name: (meta && meta.model_name) || stem,
+          base_model: (meta && meta.base_model) || '',
+          preview_path: previewFile,
+          tags: (meta && meta.civitai && meta.civitai.model && meta.civitai.model.tags) || [],
+          civitai: (meta && meta.civitai) || null,
+          sha256: (meta && meta.sha256) || null,
+          folder: folder,
+          size: meta ? meta.size : 0,
+        });
+      }
     }
   }
 
-  const target = new URL(urlPath, LORA_MANAGER);
-  const proxyReq = http.request(target, { method: 'GET', timeout: 15000 }, (proxyRes) => {
-    const chunks = [];
-    proxyRes.on('data', (c) => chunks.push(c));
-    proxyRes.on('end', () => {
-      const body = Buffer.concat(chunks);
-      const ct = proxyRes.headers['content-type'] || 'application/json';
+  walk(baseDir, '');
+  return results;
+}
 
-      if (isPreview) {
-        if (ct.startsWith('image/')) {
-          // Cache image previews
-          ensureDir(LORA_IMG_DIR);
-          try {
-            const cacheKey = crypto.createHash('md5').update(urlPath).digest('hex');
-            fs.writeFileSync(path.join(LORA_IMG_DIR, '_cache_' + cacheKey), body);
-          } catch {}
-        } else {
-          // Video or non-image — 404
-          res.writeHead(404);
-          res.end();
-          return;
-        }
+function getLoraList() {
+  if (!_loraCache) _loraCache = scanModels(LORAS_DIR);
+  return _loraCache;
+}
+
+function getCheckpointList() {
+  if (!_checkpointCache) _checkpointCache = scanModels(CHECKPOINTS_DIR);
+  return _checkpointCache;
+}
+
+// ===================== CIVITAI INSTALL =====================
+
+let _installProgress = null; // { status, pct, message, error }
+
+function civitaiFetch(urlStr, apiKey) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(urlStr);
+    const opts = {
+      hostname: u.hostname, port: 443, path: u.pathname + u.search,
+      method: 'GET', headers: {},
+    };
+    if (apiKey) opts.headers['Authorization'] = 'Bearer ' + apiKey;
+    const req = https.request(opts, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        civitaiFetch(res.headers.location, null).then(resolve).catch(reject);
+        return;
       }
-
-      res.writeHead(200, {
-        'Content-Type': ct,
-        'Access-Control-Allow-Origin': '*',
-        'Content-Length': body.length,
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        const buf = Buffer.concat(chunks);
+        resolve({ status: res.statusCode, headers: res.headers, body: buf });
       });
-      res.end(body);
     });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    req.setTimeout(15000);
+    req.end();
   });
+}
 
-  proxyReq.on('error', (e) => sendJson(res, { error: e.message }, 502));
-  proxyReq.end();
+function civitaiDownload(urlStr, destPath, apiKey, expectedSize) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(urlStr);
+    const opts = {
+      hostname: u.hostname, port: 443, path: u.pathname + u.search,
+      method: 'GET', headers: {},
+    };
+    if (apiKey) opts.headers['Authorization'] = 'Bearer ' + apiKey;
+    const req = https.request(opts, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        civitaiDownload(res.headers.location, destPath, null, expectedSize).then(resolve).catch(reject);
+        return;
+      }
+      if (res.statusCode !== 200) {
+        const chunks = [];
+        res.on('data', c => chunks.push(c));
+        res.on('end', () => reject(new Error('HTTP ' + res.statusCode)));
+        return;
+      }
+      const total = expectedSize || parseInt(res.headers['content-length'] || '0', 10);
+      let received = 0;
+      const tmpPath = destPath + '.tmp';
+      const ws = fs.createWriteStream(tmpPath);
+      res.on('data', (chunk) => {
+        received += chunk.length;
+        ws.write(chunk);
+        if (total > 0) {
+          _installProgress = { status: 'downloading', pct: Math.round((received / total) * 100), message: `${(received / 1048576).toFixed(1)} / ${(total / 1048576).toFixed(1)} MB` };
+        }
+      });
+      res.on('end', () => {
+        ws.end(() => {
+          fs.renameSync(tmpPath, destPath);
+          resolve();
+        });
+      });
+      res.on('error', (e) => { ws.destroy(); reject(e); });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function parseCivitaiUrl(url) {
+  const m = url.match(/models\/(\d+)/);
+  if (!m) return null;
+  const modelId = parseInt(m[1], 10);
+  const vm = url.match(/modelVersionId=(\d+)/);
+  const versionId = vm ? parseInt(vm[1], 10) : null;
+  const host = url.includes('civitai.red') ? 'civitai.red' : 'civitai.com';
+  return { modelId, versionId, host };
+}
+
+async function installLora(civitaiUrl, apiKey) {
+  _installProgress = { status: 'fetching', pct: 0, message: 'Fetching model info...' };
+
+  const parsed = parseCivitaiUrl(civitaiUrl);
+  if (!parsed) throw new Error('Could not parse CivitAI URL');
+  const apiBase = 'https://' + parsed.host + '/api/v1';
+
+  let versionData;
+  if (parsed.versionId) {
+    const r = await civitaiFetch(apiBase + '/model-versions/' + parsed.versionId, apiKey);
+    if (r.status !== 200) throw new Error('CivitAI API error: ' + r.status);
+    versionData = JSON.parse(r.body.toString('utf8'));
+  } else {
+    const r = await civitaiFetch(apiBase + '/models/' + parsed.modelId, apiKey);
+    if (r.status !== 200) throw new Error('CivitAI API error: ' + r.status);
+    const modelData = JSON.parse(r.body.toString('utf8'));
+    if (!modelData.modelVersions || !modelData.modelVersions.length) throw new Error('No versions found');
+    versionData = modelData.modelVersions[0];
+    if (!versionData.model) {
+      versionData.model = { name: modelData.name, type: modelData.type, nsfw: modelData.nsfw, poi: modelData.poi, tags: modelData.tags || [] };
+    }
+  }
+
+  const primaryFile = (versionData.files || []).find(f => f.primary && f.name.endsWith('.safetensors'))
+    || (versionData.files || []).find(f => f.name.endsWith('.safetensors'));
+  if (!primaryFile) throw new Error('No .safetensors file found');
+
+  const stem = primaryFile.name.replace(/\.safetensors$/, '');
+  const destFile = path.join(LORAS_DIR, primaryFile.name);
+
+  if (fs.existsSync(destFile)) throw new Error('Already installed: ' + primaryFile.name);
+
+  const fileSizeBytes = (primaryFile.sizeKB || 0) * 1024;
+  _installProgress = { status: 'downloading', pct: 0, message: 'Starting download...' };
+  const downloadUrl = primaryFile.downloadUrl || ('https://' + parsed.host + '/api/download/models/' + versionData.id);
+  await civitaiDownload(downloadUrl, destFile, apiKey, fileSizeBytes);
+
+  _installProgress = { status: 'saving', pct: 100, message: 'Saving metadata...' };
+
+  // Download preview image
+  let previewLocalPath = null;
+  if (versionData.images && versionData.images.length) {
+    const imgUrl = versionData.images[0].url;
+    const ext = imgUrl.match(/\.(jpe?g|png|webp)/i);
+    const previewExt = ext ? '.' + ext[1].toLowerCase().replace('jpg', 'jpeg') : '.jpeg';
+    const previewDest = path.join(LORAS_DIR, stem + previewExt);
+    try {
+      const imgResp = await civitaiFetch(imgUrl, null);
+      if (imgResp.status === 200) {
+        fs.writeFileSync(previewDest, imgResp.body);
+        previewLocalPath = previewDest;
+      }
+    } catch {}
+  }
+
+  // Write .metadata.json sidecar (matching LoRA Manager format)
+  const stats = fs.statSync(destFile);
+  const sidecar = {
+    file_name: stem,
+    model_name: (versionData.model && versionData.model.name) || stem,
+    file_path: destFile,
+    size: stats.size,
+    modified: stats.mtimeMs / 1000,
+    sha256: (primaryFile.hashes && primaryFile.hashes.SHA256) ? primaryFile.hashes.SHA256.toLowerCase() : null,
+    base_model: versionData.baseModel || '',
+    preview_url: previewLocalPath || '',
+    preview_nsfw_level: (versionData.images && versionData.images[0]) ? versionData.images[0].nsfwLevel : 1,
+    notes: '',
+    from_civitai: true,
+    civitai: versionData,
+  };
+  fs.writeFileSync(path.join(LORAS_DIR, stem + '.metadata.json'), JSON.stringify(sidecar, null, 2));
+
+  _loraCache = null;
+  _installProgress = { status: 'done', pct: 100, message: 'Installed: ' + (sidecar.model_name || stem) };
+  return { ok: true, file_name: stem, model_name: sidecar.model_name, source_url: civitaiUrl };
 }
 
 // ===================== REQUEST HANDLER =====================
@@ -488,9 +660,113 @@ async function handleRequest(req, res) {
       return;
     }
 
-    // Proxy to LoRA Manager
-    if (urlPath.startsWith('/api/') || urlPath.startsWith('/loras_static/')) {
-      proxyToLoraManager(req, res, req.url);
+    // Local LoRA list (replaces LoRA Manager API)
+    if (urlPath === '/local/loras/list') {
+      try {
+        const items = getLoraList().map(l => ({
+          ...l,
+          preview_url: l.preview_path ? '/local/preview/loras/' + encodeURIComponent(path.basename(l.preview_path)) : null,
+        }));
+        sendJson(res, { items, total_pages: 1 });
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
+    // Local checkpoint list (replaces LoRA Manager API)
+    if (urlPath === '/local/checkpoints/list') {
+      try {
+        const items = getCheckpointList().map(c => ({
+          ...c,
+          preview_url: c.preview_path ? '/local/preview/checkpoints/' + c.folder + '/' + encodeURIComponent(path.basename(c.preview_path)) : null,
+        }));
+        sendJson(res, { items, total_pages: 1 });
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
+    // Serve LoRA preview images from filesystem
+    if (urlPath.startsWith('/local/preview/loras/')) {
+      const file = decodeURIComponent(urlPath.slice('/local/preview/loras/'.length));
+      if (file.includes('..')) { sendJson(res, { error: 'Invalid path' }, 400); return; }
+      const filepath = path.join(LORAS_DIR, file);
+      if (fs.existsSync(filepath)) serveFile(res, filepath);
+      else sendJson(res, { error: 'Not found' }, 404);
+      return;
+    }
+
+    // Serve checkpoint preview images from filesystem
+    if (urlPath.startsWith('/local/preview/checkpoints/')) {
+      const file = decodeURIComponent(urlPath.slice('/local/preview/checkpoints/'.length));
+      if (file.includes('..')) { sendJson(res, { error: 'Invalid path' }, 400); return; }
+      const filepath = path.join(CHECKPOINTS_DIR, file);
+      if (fs.existsSync(filepath)) serveFile(res, filepath);
+      else sendJson(res, { error: 'Not found' }, 404);
+      return;
+    }
+
+    // CivitAI install progress polling
+    if (urlPath === '/local/loras/install-progress') {
+      sendJson(res, _installProgress || { status: 'idle', pct: 0, message: '' });
+      return;
+    }
+
+    // CivitAI model info preview (before installing)
+    if (urlPath === '/local/loras/preview-info') {
+      const civitUrl = params.get('url');
+      if (!civitUrl) { sendJson(res, { error: 'Missing url param' }, 400); return; }
+      try {
+        const appDataRaw = fs.readFileSync(path.join(TOOLS_DIR, 'app-data.json'), 'utf8');
+        const appDataObj = JSON.parse(appDataRaw);
+        const apiKey = (appDataObj.settings && appDataObj.settings.civitaiApiKey) || '';
+        const parsed = parseCivitaiUrl(civitUrl);
+        if (!parsed) { sendJson(res, { error: 'Could not parse CivitAI URL' }, 400); return; }
+        const apiBase = 'https://' + parsed.host + '/api/v1';
+        let versionData;
+        if (parsed.versionId) {
+          const r = await civitaiFetch(apiBase + '/model-versions/' + parsed.versionId, apiKey);
+          if (r.status !== 200) { sendJson(res, { error: 'CivitAI API error: ' + r.status }, r.status === 404 ? 404 : 502); return; }
+          versionData = JSON.parse(r.body.toString('utf8'));
+        } else {
+          const r = await civitaiFetch(apiBase + '/models/' + parsed.modelId, apiKey);
+          if (r.status !== 200) { sendJson(res, { error: 'CivitAI API error: ' + r.status }, r.status === 404 ? 404 : 502); return; }
+          const modelData = JSON.parse(r.body.toString('utf8'));
+          if (!modelData.modelVersions || !modelData.modelVersions.length) { sendJson(res, { error: 'No versions found' }, 404); return; }
+          versionData = modelData.modelVersions[0];
+          if (!versionData.model) {
+            versionData.model = { name: modelData.name, type: modelData.type, nsfw: modelData.nsfw, poi: modelData.poi, tags: modelData.tags || [] };
+          }
+        }
+        const primaryFile = (versionData.files || []).find(f => f.primary && f.name.endsWith('.safetensors'))
+          || (versionData.files || []).find(f => f.name.endsWith('.safetensors'));
+        const alreadyInstalled = primaryFile && fs.existsSync(path.join(LORAS_DIR, primaryFile.name));
+        sendJson(res, {
+          name: (versionData.model && versionData.model.name) || 'Unknown',
+          versionName: versionData.name || '',
+          baseModel: versionData.baseModel || '',
+          fileName: primaryFile ? primaryFile.name : null,
+          sizeMB: primaryFile ? Math.round((primaryFile.sizeKB || 0) / 1024) : 0,
+          previewUrl: (versionData.images && versionData.images[0]) ? versionData.images[0].url : null,
+          trainedWords: versionData.trainedWords || [],
+          type: (versionData.model && versionData.model.type) || 'LORA',
+          tags: (versionData.model && versionData.model.tags) || [],
+          alreadyInstalled: !!alreadyInstalled,
+          downloadUrl: (primaryFile && primaryFile.downloadUrl) || ('https://' + parsed.host + '/api/download/models/' + versionData.id),
+        });
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
+    // Refresh local model caches
+    if (urlPath === '/local/refresh') {
+      _loraCache = null;
+      _checkpointCache = null;
+      sendJson(res, { ok: true });
       return;
     }
 
@@ -637,6 +913,53 @@ async function handleRequest(req, res) {
         sendJson(res, { ok: true });
       } catch (e) {
         sendJson(res, { error: e.message }, 400);
+      }
+      return;
+    }
+
+    // CivitAI — install a LoRA by URL
+    if (urlPath === '/local/loras/install') {
+      try {
+        const data = JSON.parse(body.toString('utf8'));
+        const civitUrl = data.url;
+        if (!civitUrl) { sendJson(res, { error: 'Missing url' }, 400); return; }
+        const appDataRaw = fs.readFileSync(path.join(TOOLS_DIR, 'app-data.json'), 'utf8');
+        const appDataObj = JSON.parse(appDataRaw);
+        const apiKey = (appDataObj.settings && appDataObj.settings.civitaiApiKey) || '';
+        if (!apiKey) { sendJson(res, { error: 'CivitAI API key not set — add it in Settings' }, 400); return; }
+        const result = await installLora(civitUrl, apiKey);
+        sendJson(res, result);
+      } catch (e) {
+        _installProgress = { status: 'error', pct: 0, message: e.message };
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
+    // CivitAI — uninstall a LoRA (delete files from disk)
+    if (urlPath === '/local/loras/uninstall') {
+      try {
+        const data = JSON.parse(body.toString('utf8'));
+        const fileName = data.file_name;
+        if (!fileName || fileName.includes('..') || fileName.includes('/')) {
+          sendJson(res, { error: 'Invalid file_name' }, 400); return;
+        }
+        const safetensors = path.join(LORAS_DIR, fileName + '.safetensors');
+        const metaJson = path.join(LORAS_DIR, fileName + '.metadata.json');
+        if (!fs.existsSync(safetensors)) {
+          sendJson(res, { error: 'File not found: ' + fileName + '.safetensors' }, 404); return;
+        }
+        fs.unlinkSync(safetensors);
+        if (fs.existsSync(metaJson)) fs.unlinkSync(metaJson);
+        const previewExts = ['.jpeg', '.jpg', '.png', '.webp'];
+        for (const ext of previewExts) {
+          const p = path.join(LORAS_DIR, fileName + ext);
+          if (fs.existsSync(p)) fs.unlinkSync(p);
+        }
+        _loraCache = null;
+        sendJson(res, { ok: true, deleted: fileName });
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
       }
       return;
     }
@@ -1008,9 +1331,9 @@ function startServer(toolsDir, port = 3000) {
     server.listen(port, '127.0.0.1', () => {
       console.log(`\n  Prompt Gen server (Node.js)`);
       console.log(`  http://127.0.0.1:${port}/comfy-prompt-gen.html`);
-      console.log(`  Proxying LoRA Manager on port 8000`);
+      console.log(`  LoRAs: ${LORAS_DIR}`);
+      console.log(`  Checkpoints: ${CHECKPOINTS_DIR}`);
       console.log(`  Data file: ${DATA_FILE}`);
-      console.log(`  LoRA images: ${LORA_IMG_DIR}`);
       console.log(`  Gallery raw: ${RAW_DIR}`);
       console.log(`  Gallery ok:  ${APPROVED_DIR}\n`);
       resolve();

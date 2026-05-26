@@ -1,5 +1,5 @@
 # Prompt Gen Roadmap
-*Updated: May 25, 2026*
+*Updated: May 26, 2026*
 
 Everything through Phase 3.5 is shipped and tested. This is what's next.
 
@@ -75,7 +75,7 @@ Step back and rethink the whole thing.
 Remove the LoRA Manager dependency entirely and manage models from within the app.
 
 - [x] **Phase 1: Data source swap** ✓ — server.js now scans the filesystem directly for .safetensors files + .metadata.json sidecars instead of hitting LoRA Manager's API. New `/local/` endpoints for listing and preview serving. In-memory caching with `/local/refresh`. LoRA Manager Port removed from Settings. All 234 LoRAs and 16 checkpoints loading correctly.
-- [ ] **Phase 2: Install/uninstall LoRAs** (medium) — download .safetensors from CivitAI directly, delete from filesystem. Needs: CivitAI download API, progress tracking, writing .metadata.json sidecar on install, cleanup on uninstall.
+- [x] **Phase 2: Install/uninstall LoRAs** ✓ — CivitAI API key in Settings, install dialog with URL input + preview, streaming download with progress bar, atomic .tmp→final rename, .metadata.json sidecar written on install, preview image downloaded. Uninstall button in detail panel Settings tab with confirm dialog. Auto-scroll to newly installed LoRA + opens detail panel. Handles both civitai.com and civitai.red domains (separate model IDs). New endpoints: `/local/loras/install`, `/local/loras/uninstall`, `/local/loras/install-progress`, `/local/loras/preview-info`.
 - [ ] **Phase 3: Browse CivitAI** (large) — search CivitAI from within the app. Browse models, see previews, one-click install. Needs: CivitAI search API integration, results UI, install flow from browse.
 - [ ] **Handle LoRAs without metadata** (small) — for manually-added .safetensors files without .metadata.json, hash the file and call CivitAI's `/api/v1/model-versions/by-hash/{hash}` to fetch metadata.
 

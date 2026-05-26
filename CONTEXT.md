@@ -115,7 +115,7 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 - Type badge (colored per TYPE_COLORS), status badge, CivitAI link, filename (click to copy)
 - **Overview tab**: Portrait image (flex:1, aspect-ratio 2:3, click to lightbox) with action buttons overlaid on image (frosted glass). Left: status dropdown (single button → compact vertical dropdown of ✓/▲/X, click active to deactivate). Right: cleaned (i), fav (★), Brut. Below image: trigger words (click to copy)
 - **Notes tab**: Prompt prefix / Prompt suffix / Notes textareas (click to copy in view mode)
-- **Settings tab**: Default strength slider (auto-sets on LoRA activation), CFG, Steps, Sampler, Best Checkpoint, Show on models checkboxes
+- **Settings tab**: Default strength slider (auto-sets on LoRA activation), CFG, Steps, Sampler, Best Checkpoint, Show on models checkboxes, Uninstall LoRA button (with confirm dialog)
 
 **Edit mode:** Panel opens in view mode. Click "✎ Edit" to unlock all fields. Footer shows Close in view mode, Save/Discard in edit mode.
 
@@ -124,6 +124,13 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 
 **Backlog:**
 - **Per-LoRA weight override on active LoRAs** — right-click a LoRA trigger chip (in the right panel) to set a one-off weight for this generation, without changing the LoRA's saved default. Currently you have to disable → change default → re-enable, which breaks flow.
+
+**Recently shipped (Claude Code session 42 — CivitAI Phase 2: install/uninstall):**
+- **Install LoRAs from CivitAI** — "+ Install" button in LoRA toolbar, paste URL, preview model info, download with progress bar, auto-scroll to new card + open detail panel. Handles both civitai.com and civitai.red (different model IDs per domain). CivitAI API key stored in Settings.
+- **Uninstall LoRAs** — button in detail panel Settings tab, confirm dialog, deletes .safetensors + .metadata.json + preview.
+- **civitai.red link routing** — external links to civitai.red now route to Chrome Profile 1 (same as civitai.com).
+- **New server endpoints**: `/local/loras/install`, `/local/loras/uninstall`, `/local/loras/install-progress`, `/local/loras/preview-info`.
+- **Rebuilt .app** — server.js and main.js changed.
 
 **Recently shipped (Claude Code session 39 — design polish rounds 3-5 + tag autocomplete):**
 - **Tag autocomplete** — typing in the gallery tag input shows a dropdown above the field with matching existing tags (filtered by substring, sorted by usage count). Orange highlight on matched text, usage count on right. Already-applied tags excluded. Arrow keys navigate, Enter/Tab selects, Escape dismisses. "+ Create 'term'" for new tags. Comma batch entry still works. Functions: `getAllGalleryTagCounts()`, `updateTagSuggest()`, `selectTagSuggestion()`. CSS: `.gdp-tags-suggest`, `.gdp-tags-suggest-item`.
@@ -558,6 +565,10 @@ Build prompt in app → click Send to ComfyUI → workflow JSON built from scrat
 - `GET /local/preview/loras/*` — serve LoRA preview images (.jpeg/.webp/.png) directly from filesystem
 - `GET /local/preview/checkpoints/*` — serve checkpoint preview images
 - `GET /local/refresh` — clear the in-memory LoRA/checkpoint caches (forces rescan on next list request)
+- `POST /local/loras/install` — download LoRA from CivitAI URL: fetches metadata, downloads .safetensors with progress tracking, downloads preview image, writes .metadata.json sidecar. Handles both civitai.com and civitai.red domains (different model IDs). Requires `civitaiApiKey` in request body.
+- `POST /local/loras/uninstall` — delete a LoRA's .safetensors + .metadata.json + preview image files
+- `GET /local/loras/install-progress` — poll download progress (percentage, bytes downloaded/total)
+- `GET /local/loras/preview-info?url=` — fetch model info from CivitAI before installing (name, version, size, preview image)
 - `GET /gallery/list?folder=raw|approved` — list images (name, mtime, size), sorted newest first
 - `GET /gallery/image?folder=raw|approved&file=xxx.png` — serve image
 - `GET /gallery/metadata?folder=raw|approved&file=xxx.png` — extract generation params from PNG metadata (positive/negative prompts, checkpoint, LoRAs, seed, steps, CFG, sampler, scheduler, size)
@@ -929,6 +940,20 @@ The gallery tab was fully redesigned through Claude Design and implemented. It's
 - **Verified**: 234 LoRAs loaded, 16 checkpoints loaded, 234/234 with CivitAI metadata, preview images serving correctly.
 - **Rebuilt .app** — server.js changed. `rm -rf dist && npm run build`, deployed to `/Applications/Prompt Gen.app`.
 - **Daniel confirmed working** — all LoRAs, checkpoints, previews, and custom data intact.
-- **Future phases**: Phase 2 = install/uninstall LoRAs directly from app (download .safetensors from CivitAI). Phase 3 = browse CivitAI from within the app.
 - **Design review complete**: all three tabs (Generate, LoRAs, Gallery) have been through Claude Design and implemented. Full testing sweep completed session 40 — all 24 items verified.
+
+**Session: May 25 2026 (Claude Code session 42 — CivitAI Phase 2: install/uninstall LoRAs)**
+- **CivitAI install/uninstall fully built and tested** — Wave 6 Phase 2 complete. Users can now install LoRAs directly from a CivitAI URL and uninstall them from the detail panel.
+- **CivitAI API key in Settings**: new password input in Settings tab (before LoRAs section). Stored in `appData.settings.civitaiApiKey`. Used for authenticated API calls and downloads.
+- **Install flow**: "+ Install" button in LoRA toolbar opens an overlay dialog. Paste a CivitAI URL → "Preview" fetches model info (name, version, file size, preview image) → "Install" downloads the .safetensors file with live progress bar polling (500ms interval via `_installPollTimer`). On completion: auto-scrolls to the new LoRA card and opens its detail panel.
+- **Server-side install** (`installLora()` in server.js): `parseCivitaiUrl(url)` extracts modelId, versionId, and host domain (civitai.com vs civitai.red). `civitaiFetch()` does HTTPS GET with redirect following (CivitAI download returns 302 → S3 pre-signed URL). `civitaiDownload()` streams to a .tmp file then atomically renames. Writes .metadata.json sidecar with full CivitAI data. Downloads preview image.
+- **civitai.red handling**: civitai.red uses completely different model IDs from civitai.com for the same content. `parseCivitaiUrl()` detects the host domain and all API calls use `parsed.host` as the base URL instead of hardcoded civitai.com.
+- **Model name fix**: when fetching via `/api/v1/models/{id}`, the version objects in `modelVersions[]` don't include the nested `model` sub-object (only the `/model-versions/{id}` endpoint does). Fixed by manually attaching model-level data to the version object: `versionData.model = { name: modelData.name, type: modelData.type, nsfw: modelData.nsfw, ... }`.
+- **Uninstall**: button in detail panel Settings tab (below "Show on models"). Uses `showInlineConfirm()` dialog (not `showInlinePrompt` which has an input field). Server endpoint deletes .safetensors + .metadata.json + preview image.
+- **civitai.red external link routing**: main.js `openExternalUrl()` regex updated from `civitai\.com` to `civitai\.(com|red)` so NSFW domain links also route to Chrome Profile 1.
+- **Footer spacing fix**: after moving uninstall button from footer to Settings tab, leftover spacer div was pushing Edit and Close buttons apart. Removed.
+- **New server.js functions**: `civitaiFetch(urlStr, apiKey)`, `civitaiDownload(urlStr, destPath, apiKey, expectedSize)`, `parseCivitaiUrl(url)`, `installLora(civitaiUrl, apiKey)`. Added `const https = require('https')`.
+- **New app.js functions**: `openLoraInstallDialog()`, `closeLoraInstallDialog()`, `previewLoraInstall()`, `startLoraInstall()`, `uninstallLora(fileName)`.
+- **Rebuilt .app** — server.js and main.js changed. Multiple rebuilds during the session for iterative fixes.
+- **Daniel confirmed working** — installed LoRAs from both civitai.com and civitai.red, uninstall tested, auto-scroll working, progress bar working.
 

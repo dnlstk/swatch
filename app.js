@@ -3373,7 +3373,7 @@ function loadSettings(){
   document.getElementById('set-approved-folder').value=s.approvedFolder||'';
   document.getElementById('set-card-size').value=s.defaultCardSize||'small';
   document.getElementById('set-comfyui-name').value=s.comfyuiAppName||'';
-  document.getElementById('set-lm-port').value=s.loraManagerPort||'';
+  document.getElementById('set-civitai-key').value=s.civitaiApiKey||'';
   document.getElementById('set-hide-brut').value=s.hideBrut?'hide':'show';
   // Tab visibility checkboxes
   const hidden=s.hiddenTabs||['history','presets'];
@@ -3782,7 +3782,8 @@ function toggleTheme(){
 function toggleDragLock(){
   const tabs=document.querySelector('.tabs');
   if(!tabs)return;
-  const locked=tabs.style.webkitAppRegion==='no-drag';
+  const cur=tabs.style.webkitAppRegion||getComputedStyle(tabs).webkitAppRegion||'no-drag';
+  const locked=cur==='no-drag';
   tabs.style.webkitAppRegion=locked?'drag':'no-drag';
   const btn=document.getElementById('drag-lock-btn');
   if(btn){btn.classList.toggle('active',!locked);btn.textContent=locked?'⊟':'⊞';}
@@ -6433,5 +6434,139 @@ function applyRemixToSendPanel(m){
     setSeedLocked(true);
   }
   saveSendDefaults();
+}
+
+// ===================== LORA INSTALL / UNINSTALL =====================
+
+let _installPollTimer=null;
+
+function openLoraInstallDialog(){
+  const ov=document.getElementById('lora-install-overlay');
+  ov.style.display='flex';
+  document.getElementById('lora-install-url').value='';
+  document.getElementById('lora-install-preview').style.display='none';
+  document.getElementById('lora-install-preview').innerHTML='';
+  document.getElementById('lora-install-progress').style.display='none';
+  document.getElementById('lora-install-url').focus();
+}
+
+function closeLoraInstallDialog(){
+  document.getElementById('lora-install-overlay').style.display='none';
+  if(_installPollTimer){clearInterval(_installPollTimer);_installPollTimer=null;}
+}
+
+async function previewLoraInstall(){
+  const url=document.getElementById('lora-install-url').value.trim();
+  if(!url){showToast('Paste a CivitAI URL','','err');return;}
+  const preview=document.getElementById('lora-install-preview');
+  preview.style.display='block';
+  preview.innerHTML='<div style="color:var(--muted);font-size:11px;font-family:var(--mono);">Looking up…</div>';
+  try{
+    const r=await fetch('/local/loras/preview-info?url='+encodeURIComponent(url));
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'HTTP '+r.status);}
+    const d=await r.json();
+    const imgHtml=d.previewUrl?`<img src="${d.previewUrl}" style="width:80px;height:107px;object-fit:cover;border-radius:6px;flex-shrink:0;">`:'';
+    const wordsHtml=d.trainedWords&&d.trainedWords.length?`<div style="font-size:9px;color:var(--muted2);margin-top:4px;">Triggers: ${d.trainedWords.slice(0,5).join(', ')}</div>`:'';
+    const alreadyHtml=d.alreadyInstalled?'<div style="font-size:10px;color:var(--orange);margin-top:4px;font-weight:600;">Already installed</div>':'';
+    preview.innerHTML=`
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        ${imgHtml}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.name||'Unknown'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">${d.versionName||''} · ${d.baseModel||''} · ${d.sizeMB||'?'} MB</div>
+          <div style="font-size:9px;color:var(--muted2);margin-top:2px;">${d.fileName||''}</div>
+          ${wordsHtml}
+          ${alreadyHtml}
+          ${d.alreadyInstalled?'':`<button onclick="startLoraInstall()" style="margin-top:10px;background:var(--orange);color:#000;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--sans);">Install</button>`}
+        </div>
+      </div>`;
+  }catch(e){
+    preview.innerHTML=`<div style="color:#f87171;font-size:11px;">${e.message}</div>`;
+  }
+}
+
+async function startLoraInstall(){
+  const url=document.getElementById('lora-install-url').value.trim();
+  if(!url)return;
+  const prog=document.getElementById('lora-install-progress');
+  const bar=document.getElementById('lora-install-progress-bar');
+  const label=document.getElementById('lora-install-progress-label');
+  prog.style.display='block';
+  bar.style.width='0%';
+  label.textContent='Starting…';
+
+  // Start the install (async on server)
+  fetch('/local/loras/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})}).then(async r=>{
+    const d=await r.json().catch(()=>({}));
+    if(_installPollTimer){clearInterval(_installPollTimer);_installPollTimer=null;}
+    if(r.ok){
+      bar.style.width='100%';
+      label.textContent='Installed!';
+      showToast('LoRA installed',d.model_name||d.file_name||'','ok');
+      // Save the original CivitAI URL so the link points to the right domain
+      if(d.file_name&&d.source_url){
+        setLora(d.file_name,{civitUrl:d.source_url});
+        saveAppData();
+      }
+      await loadLoras();
+      renderLoraTab();
+      closeLoraInstallDialog();
+      // Scroll to the new LoRA card and open its detail panel
+      if(d.file_name){
+        setTimeout(()=>{
+          const card=document.querySelector('.lora-card[data-key="'+d.file_name+'"]');
+          if(card){card.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>openLpPanel(d.file_name),400);}
+        },200);
+      }
+    }else{
+      label.textContent='Error: '+(d.error||'Unknown');
+      bar.style.width='0%';
+      bar.style.background='#f87171';
+    }
+  }).catch(e=>{
+    if(_installPollTimer){clearInterval(_installPollTimer);_installPollTimer=null;}
+    label.textContent='Error: '+e.message;
+  });
+
+  // Poll progress while downloading
+  _installPollTimer=setInterval(async()=>{
+    try{
+      const r=await fetch('/local/loras/install-progress');
+      const d=await r.json();
+      if(d.status==='downloading'){
+        bar.style.width=d.pct+'%';
+        bar.style.background='var(--orange)';
+        label.textContent=d.message||('Downloading… '+d.pct+'%');
+      }else if(d.status==='saving'){
+        bar.style.width='95%';
+        label.textContent='Saving metadata…';
+      }else if(d.status==='fetching'){
+        label.textContent='Fetching model info…';
+      }else if(d.status==='done'||d.status==='error'||d.status==='idle'){
+        clearInterval(_installPollTimer);_installPollTimer=null;
+      }
+    }catch{}
+  },500);
+}
+
+async function uninstallLora(fileName){
+  if(!fileName)return;
+  const loraName=(appData.loraData&&appData.loraData[fileName]&&appData.loraData[fileName].name)||fileName;
+  showInlineConfirm('Uninstall "'+loraName+'"? This deletes the .safetensors, metadata, and preview from disk. Your custom data (notes, triggers, collections) stays in app data.',async()=>{
+    try{
+      const r=await fetch('/local/loras/uninstall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_name:fileName})});
+      const d=await r.json();
+      if(r.ok){
+        showToast('Uninstalled',loraName,'ok');
+        closeLpPanel();
+        await loadLoras();
+        renderLoraTab();
+      }else{
+        showToast('Error',d.error||'Unknown','err');
+      }
+    }catch(e){
+      showToast('Error',e.message,'err');
+    }
+  },{okLabel:'Uninstall',okColor:'var(--red)'});
 }
 

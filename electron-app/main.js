@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, globalShortcut, Tray, Menu, nativeImage, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, globalShortcut, Tray, Menu, nativeImage, ipcMain, session } = require('electron');
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 const os = require('os');
@@ -29,7 +29,7 @@ let _comfyReady = false;       // port 8000 is responding
 // Everything else opens in the default browser.
 function openExternalUrl(url) {
   try {
-    if (/civitai\.com/i.test(url)) {
+    if (/civitai\.(com|red)/i.test(url)) {
       spawn('open', ['-na', 'Google Chrome', '--args', '--profile-directory=Profile 1', url]);
     } else {
       shell.openExternal(url);
@@ -384,6 +384,7 @@ function createWindow() {
 
 // ===================== APP LIFECYCLE =====================
 app.whenReady().then(async () => {
+  await session.defaultSession.clearCache();
   createTray();
   await startServer(TOOLS_DIR, PORT);
   createWindow();

@@ -164,7 +164,7 @@ body.hide-brut .tags-brut-btn,body.hide-brut .lora-brut-btn,body.hide-brut .gall
 .main::-webkit-scrollbar{display:none;}
 
 /* TITLE BAR */
-.tabs{grid-column:1/-1;grid-row:1;display:flex;align-items:center;background:var(--chrome);padding:0 16px;height:var(--tabs-h);z-index:10;-webkit-app-region:drag;border-bottom:1px solid var(--border);gap:0;}
+.tabs{grid-column:1/-1;grid-row:1;display:flex;align-items:center;background:var(--chrome);padding:0 16px;height:var(--tabs-h);z-index:10;-webkit-app-region:no-drag;border-bottom:1px solid var(--border);gap:0;}
 .tabs-left{display:flex;align-items:center;gap:6px;padding-left:78px;-webkit-app-region:no-drag;}
 .tabs-right{display:flex;align-items:center;gap:4px;margin-left:auto;-webkit-app-region:no-drag;}
 .tab{padding:4px 13px;font-size:13px;color:var(--muted);cursor:pointer;border:1px solid transparent;border-radius:6px;background:transparent;transition:all .12s;font-family:var(--sans);font-weight:400;white-space:nowrap;}
@@ -1641,7 +1641,7 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
     <button class="titlebar-btn" id="gsc-brut" onclick="toggleGalleryAdult()" title="Brut mode" style="display:none;">⍜</button>
     <div class="titlebar-divider"></div>
     <button class="titlebar-btn disabled" id="layout-btn" title="Portrait/landscape (coming soon)" disabled>⊡</button>
-    <button class="titlebar-btn" id="drag-lock-btn" onclick="toggleDragLock()" title="Lock window position">⊟</button>
+    <button class="titlebar-btn active" id="drag-lock-btn" onclick="toggleDragLock()" title="Lock window position">⊞</button>
   </div>
 </div>
 
@@ -1706,6 +1706,7 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
     <button class="lfbtn" id="ltf-cleaned" onclick="toggleCleanedFilter()">Cleaned: All</button>
     <div style="flex:1;"></div>
     <span class="lrstatus" id="lrstatus-tab" style="font-family:var(--mono);font-size:9px;color:var(--muted2);">234 loaded</span>
+    <button class="lfbtn" id="lora-install-btn" onclick="openLoraInstallDialog()" style="font-size:10px;padding:3px 8px;" title="Install LoRA from CivitAI">+ Install</button>
   </div>
   <!-- LoRA collection tabs (only visible on LoRAs tab) -->
   <div class="lora-collection-tabs" id="lora-collection-tabs"></div>
@@ -1878,6 +1879,13 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
         <div class="settings-row">
           <div><div class="settings-label">ComfyUI App Name</div><div class="settings-desc">Name used to launch and control ComfyUI</div></div>
           <input class="settings-input" id="set-comfyui-name" placeholder="ComfyUI" onchange="saveSetting('comfyuiAppName',this.value)">
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>CivitAI</h3>
+        <div class="settings-row">
+          <div><div class="settings-label">API Key</div><div class="settings-desc">Required for installing LoRAs from CivitAI</div></div>
+          <input class="settings-input" id="set-civitai-key" type="password" placeholder="API key from civitai.com/user/account" onchange="saveSetting('civitaiApiKey',this.value)" style="width:260px;font-family:var(--mono);font-size:11px;">
         </div>
       </div>
       <div class="settings-section">
@@ -2283,6 +2291,9 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
         <div class="lp-section-title" style="margin-bottom:8px;">Show on models</div>
         <div class="lp-models-row" id="lp-models"></div>
       </div>
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
+        <button onclick="uninstallLora(currentLPKey)" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:5px 12px;color:var(--red);cursor:pointer;font-size:10px;font-family:var(--sans);transition:all .12s;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border2)'">Uninstall LoRA</button>
+      </div>
     </div>
   </div>
 
@@ -2367,6 +2378,31 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
 <div id="recent-hover-preview"><img src="" alt=""></div>
 
 <div class="i2i-tooltip" id="i2i-tooltip">Controls how much the output deviates from the source image.<br><br><b>Refine (0.1–0.4)</b> — small tweaks, same composition<br><b>Remix (0.5–0.7)</b> — new interpretation, loose reference<br><b>Reimagine (0.8–1.0)</b> — nearly full generation, source is a suggestion</div>
+
+<!-- LoRA Install Dialog -->
+<div id="lora-install-overlay" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;">
+  <div id="lora-install-dialog" style="background:var(--panel);border:1px solid var(--border);border-radius:12px;width:420px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.4);">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-family:var(--sans);font-size:14px;font-weight:600;color:var(--text);">Install LoRA from CivitAI</span>
+      <button onclick="closeLoraInstallDialog()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;">✕</button>
+    </div>
+    <div style="padding:14px 18px;">
+      <div id="lora-install-input-row" style="display:flex;gap:8px;">
+        <input id="lora-install-url" type="text" placeholder="Paste CivitAI URL…" style="flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;" onkeydown="if(event.key==='Enter')previewLoraInstall()">
+        <button onclick="previewLoraInstall()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;color:var(--text);cursor:pointer;font-size:11px;font-family:var(--sans);white-space:nowrap;">Look up</button>
+      </div>
+      <div id="lora-install-preview" style="display:none;margin-top:14px;"></div>
+      <div id="lora-install-progress" style="display:none;margin-top:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span id="lora-install-progress-label" style="font-size:11px;color:var(--muted);font-family:var(--mono);"></span>
+        </div>
+        <div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;">
+          <div id="lora-install-progress-bar" style="height:100%;background:var(--orange);width:0%;transition:width .3s;border-radius:2px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="/app.js"></script>
 </body>
