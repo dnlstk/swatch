@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoRAs Tab — Final Reference</title>
+<style>
+/* ========================================
+   LORAS TAB — FINAL REFERENCE
+   This file is a visual reference for the LoRAs tab
+   of Prompt Gen v3. It uses the same CSS variables,
+   fonts, and design tokens as the real app.
+   ======================================== */
+
+@font-face{font-family:'Poppins';font-weight:400;font-style:normal;font-display:swap;src:local('Poppins');}
+@font-face{font-family:'Poppins';font-weight:500;font-style:normal;font-display:swap;src:local('Poppins Medium');}
+@font-face{font-family:'Poppins';font-weight:600;font-style:normal;font-display:swap;src:local('Poppins SemiBold');}
+@font-face{font-family:'Space Mono';font-weight:400;font-style:normal;font-display:swap;src:local('Space Mono');}
+@font-face{font-family:'Space Mono';font-weight:700;font-style:normal;font-display:swap;src:local('Space Mono Bold');}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --bg:#090909;--chrome:#0f0f11;--panel:#131315;--surface:#161618;--surface2:#1d1d20;--surface3:#252528;--surface4:#2c2c30;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--border3:rgba(255,255,255,0.22);
+  --text:#E8E8E6;--muted:#6B6B72;--muted2:#3d3d44;
+  --purple:#a78bfa;--blue:#818cf8;--amber:#f59e0b;--green:#34d399;--pink:#f472b6;--orange:#fb923c;--slate:#94a3b8;--red:#f87171;--cyan:#67e8f9;
+  --mono:'Space Mono',monospace;--sans:'Poppins',system-ui,sans-serif;
+  --tabs-h:46px;
+  --shadow:0 0 0 1px rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.8);
+  --shadow-sm:0 0 0 1px rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.4);
+}
+
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;}
+*{scrollbar-width:none;}
+::-webkit-scrollbar{display:none;}
+
+/* ===== APP GRID ===== */
+/* LoRAs tab: single column, full width. No sidebar. */
+.app{
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-rows:var(--tabs-h) 1fr;
+  height:100vh;overflow:hidden;background:var(--bg);
+}
+
+/* ===== TITLE BAR ===== */
+.tabs{
+  grid-column:1/-1;grid-row:1;
+  display:flex;align-items:center;
+  background:var(--chrome);padding:0 16px;
+  height:var(--tabs-h);z-index:10;
+  -webkit-app-region:drag;
+  border-bottom:1px solid var(--border);gap:0;
+}
+.tabs-left{display:flex;align-items:center;gap:6px;padding-left:78px;-webkit-app-region:no-drag;}
+.tabs-right{display:flex;align-items:center;gap:4px;margin-left:auto;-webkit-app-region:no-drag;}
+.tab{padding:4px 13px;font-size:13px;color:var(--muted);cursor:pointer;border:1px solid transparent;border-radius:6px;background:transparent;transition:all .12s;font-family:var(--sans);font-weight:400;white-space:nowrap;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--text);border-color:var(--border2);background:var(--surface);font-weight:500;}
+.tab-badge{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;color:#fff;margin-left:4px;vertical-align:middle;}
+.tab-badge-orange{background:var(--orange);}
+.tab-badge-blue{background:var(--blue);}
+.titlebar-divider{width:1px;height:20px;background:var(--border2);margin:0 6px;flex-shrink:0;}
+.titlebar-btn{min-width:28px;height:28px;padding:0 8px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:10px;font-weight:600;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--muted);-webkit-app-region:no-drag;font-family:var(--mono);}
+.titlebar-btn:hover:not(:disabled){border-color:var(--border2);color:var(--text);}
+.titlebar-btn:disabled{opacity:.3;cursor:default;}
+.titlebar-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(129,140,248,.1);}
+.titlebar-group{display:flex;align-items:center;gap:3px;}
+.titlebar-group .titlebar-btn.active[data-m=illustrious]{border-color:var(--green);color:var(--green);background:rgba(52,211,153,.15);}
+.gen-subtab{padding:4px 10px;border-radius:5px;border:1px solid transparent;background:transparent;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .12s;visibility:hidden;}
+
+/* ===== MAIN (flex column: toolbar + collection tabs + scrollable grid) ===== */
+.main{
+  grid-column:1;grid-row:2;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* ===== FILTER TOOLBAR (floating card) ===== */
+.lora-toolbar{
+  display:flex;align-items:center;gap:5px;
+  padding:6px 12px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:9px;
+  margin:8px 10px 0;
+  box-shadow:0 0 0 1px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.07);
+  flex-shrink:0;z-index:501;
+}
+.lsearch{flex:1;min-width:100px;max-width:170px;padding:5px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:11px;outline:none;}
+.lsearch::placeholder{color:var(--muted2);}
+.lf-pill-group{display:flex;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:2px;gap:0;}
+.lf-pill-group .lfbtn{border:none;border-radius:4px;padding:3px 10px;}
+.lf-pill-group .lfbtn.active{background:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.15);color:var(--text);border:none;}
+.lfbtn{padding:4px 10px;border:1px solid var(--border);background:transparent;border-radius:5px;color:var(--muted);font-size:10px;cursor:pointer;transition:all .12s;font-family:var(--sans);white-space:nowrap;}
+.lfbtn:hover{border-color:var(--border2);color:var(--text);}
+.lfbtn.active{border-color:var(--orange);color:var(--orange);background:rgba(251,146,60,.08);}
+.lrstatus{font-family:var(--mono);font-size:9px;color:var(--muted2);}
+
+/* ===== COLLECTION TABS ===== */
+.lora-collection-tabs{
+  display:flex;align-items:center;gap:2px;
+  padding:6px 10px 6px;flex-shrink:0;z-index:501;
+  border-bottom:1px solid rgba(0,0,0,0.06);
+}
+.lora-col-tab{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;cursor:pointer;transition:all .1s;background:transparent;border:1px solid transparent;font-family:var(--sans);font-size:12px;color:var(--muted);font-weight:400;}
+.lora-col-tab:hover{background:var(--surface);}
+.lora-col-tab.active{background:var(--surface);border-color:var(--border2);font-weight:500;color:var(--text);}
+.lora-col-tab .ndot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.lora-col-tab .ncount{font-family:var(--mono);font-size:9px;color:var(--muted2);}
+.lora-col-add{margin-left:auto;padding:5px 9px;border-radius:6px;cursor:pointer;border:1px dashed var(--border2);background:none;font-family:var(--sans);font-size:11px;color:var(--muted2);flex-shrink:0;}
+
+/* ===== CARD GRID (scrollable) ===== */
+.lora-panel-scroll{flex:1;overflow-y:auto;min-height:0;padding:12px 16px 32px;}
+.lsec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.lsec-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.lsec-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--text);flex-shrink:0;}
+.lsec-hr{flex:1;height:1px;background:var(--border2);}
+.lsec-count{font-family:var(--mono);font-size:9px;color:var(--muted2);flex-shrink:0;}
+.lora-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(174px,1fr));gap:12px;margin-bottom:28px;}
+
+/* ===== LORA CARD (overlay style) ===== */
+.lora-card{position:relative;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);cursor:pointer;transition:border-color .15s,box-shadow .15s;aspect-ratio:2/3;background:var(--surface2);}
+.lora-card:hover{border-color:var(--border2);}
+.lora-card.active{border-color:rgba(251,146,60,.53);box-shadow:0 0 0 1px rgba(251,146,60,.3),0 0 16px rgba(251,146,60,.12);}
+/* Type border colors */
+.lora-card.type-character{border-color:rgba(103,232,249,.2);}
+.lora-card.type-character:hover{border-color:rgba(103,232,249,.4);}
+.lora-card.type-style{border-color:rgba(167,139,250,.2);}
+.lora-card.type-style:hover{border-color:rgba(167,139,250,.4);}
+.lora-card.type-clothing{border-color:rgba(244,114,182,.2);}
+.lora-card.type-clothing:hover{border-color:rgba(244,114,182,.4);}
+.lora-card.type-pose{border-color:rgba(134,239,172,.2);}
+.lora-card.type-pose:hover{border-color:rgba(134,239,172,.4);}
+.lora-card.type-concept{border-color:rgba(251,146,60,.2);}
+.lora-card.type-concept:hover{border-color:rgba(251,146,60,.4);}
+/* Active always overrides type color */
+.lora-card.type-character.active,.lora-card.type-style.active,.lora-card.type-clothing.active,.lora-card.type-pose.active,.lora-card.type-concept.active{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),0 0 20px rgba(251,146,60,.15);}
+/* Brut / adult card */
+.lora-card.brut-card{border-color:rgba(124,58,237,0.6);box-shadow:0 0 0 1px rgba(124,58,237,.12),0 4px 12px rgba(124,58,237,.08);}
+.lora-card.brut-card.active{border-color:rgba(217,106,20,.65);box-shadow:0 0 0 1px rgba(217,106,20,.18),0 4px 16px rgba(217,106,20,.1);}
+/* Card image */
+.lora-card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:block;transition:transform .3s;}
+.lora-card:hover .lora-card-img{transform:scale(1.03);}
+.lora-card-img-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted2);font-size:9px;font-family:var(--mono);background:var(--surface2);}
+/* Gradient overlay */
+.lora-card-overlay{position:absolute;bottom:0;left:0;right:0;height:68%;background:linear-gradient(to top,rgba(0,0,0,.94) 0%,rgba(0,0,0,.55) 40%,transparent 100%);pointer-events:none;}
+/* Card footer (name + buttons inside overlay) */
+.lora-card-footer{position:absolute;bottom:0;left:0;right:0;padding:8px;pointer-events:all;}
+.lora-card-name-row{display:flex;align-items:center;gap:4px;margin-bottom:6px;}
+.lora-card-name{font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.8);flex:1;min-width:0;}
+.lora-card-type{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 5px;border-radius:5px;white-space:nowrap;flex-shrink:0;}
+/* Type badge colors on cards */
+.type-character .lora-card-type{background:rgba(103,232,249,.66);border:1px solid rgba(103,232,249,.88);color:#000;}
+.type-style .lora-card-type{background:rgba(167,139,250,.66);border:1px solid rgba(167,139,250,.88);color:#000;}
+.type-clothing .lora-card-type{background:rgba(244,114,182,.66);border:1px solid rgba(244,114,182,.88);color:#000;}
+.type-pose .lora-card-type{background:rgba(52,211,153,.66);border:1px solid rgba(52,211,153,.88);color:#000;}
+.type-concept .lora-card-type{background:rgba(251,146,60,.66);border:1px solid rgba(251,146,60,.88);color:#000;}
+/* Enable + info buttons */
+.lora-card-actions{display:flex;gap:4px;padding:5px;background:none;pointer-events:all;}
+.lora-card-enable{flex:1;padding:5px 0;border:1px solid rgba(255,255,255,.18);border-radius:5px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.88);font-size:9px;font-family:var(--mono);cursor:pointer;text-align:center;letter-spacing:.04em;backdrop-filter:blur(8px);}
+.lora-card-enable:hover{background:rgba(255,255,255,.2);color:#fff;}
+.lora-card-enable.active{background:rgba(217,106,20,.82);color:#fff;font-weight:600;border-color:transparent;}
+.lora-card-info-btn{width:26px;height:26px;flex-shrink:0;border:1px solid rgba(255,255,255,.18);border-radius:5px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);font-size:11px;font-family:var(--mono);cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;backdrop-filter:blur(8px);}
+.lora-card-info-btn.cleaned{background:rgba(200,150,12,.88);color:#000;box-shadow:0 0 10px rgba(200,150,12,.6);}
+/* Card badges */
+.lora-card-status{position:absolute;top:7px;left:7px;border-radius:5px;padding:2px 6px;font-size:9px;font-weight:800;font-family:var(--mono);line-height:1.4;color:#000;}
+.lora-card-status.verified{background:#22C55E;}
+.lora-card-status.testing{background:#F59E0B;}
+.lora-card-status.bad{background:#EF4444;}
+.lora-card-fav{position:absolute;top:7px;right:7px;background:none;border:none;cursor:pointer;font-size:14px;color:rgba(255,255,255,.25);padding:0;line-height:1;}
+.lora-card-fav.active{color:#FFD700;text-shadow:0 0 8px rgba(255,215,0,.8);}
+.lora-card-adult{position:absolute;top:6px;right:30px;font-family:var(--mono);font-size:8px;padding:2px 6px;border-radius:4px;background:#FCD34D;border:1px solid rgba(0,0,0,0.12);color:#000;font-weight:900;letter-spacing:.04em;z-index:2;}
+.lora-card-prompt-badge{background:rgba(255,255,255,.2);color:#fff;border-radius:5px;padding:2px 5px;font-size:7px;font-weight:700;font-family:var(--mono);flex-shrink:0;}
+/* Brut pill on cards */
+.lora-card-adult-pill{position:absolute;top:6px;right:30px;display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:10px;background:rgba(109,40,217,0.15);border:1px solid rgba(109,40,217,0.40);font-family:var(--mono);font-size:9px;color:var(--purple);z-index:2;}
+
+/* ===== DETAIL PANEL (slide-in from right) ===== */
+.lora-panel{
+  position:fixed;top:0;right:10px;width:440px;height:calc(100vh - 10px);
+  background:var(--panel);border:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:600;
+  box-shadow:var(--shadow);border-radius:12px;margin-top:5px;
+}
+/* Header */
+.lp-header{padding:16px 18px 0;border-bottom:1px solid var(--border);flex-shrink:0;}
+.lp-header-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+.lp-name{font-size:16px;font-weight:600;color:var(--text);flex:1;line-height:1.3;}
+.lp-close-btn{background:none;border:1px solid transparent;border-radius:5px;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 8px;font-family:var(--mono);}
+.lp-header-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.lp-type-badge{font-family:var(--mono);font-size:8px;letter-spacing:.06em;padding:2px 8px;border-radius:10px;text-transform:uppercase;border:1px solid transparent;}
+.lp-type-badge.character{background:rgba(103,232,249,.14);color:var(--cyan);border-color:rgba(103,232,249,.3);}
+.lp-type-badge.style{background:rgba(167,139,250,.14);color:var(--purple);border-color:rgba(167,139,250,.3);}
+.lp-type-badge.clothing{background:rgba(244,114,182,.14);color:var(--pink);border-color:rgba(244,114,182,.3);}
+.lp-type-badge.pose{background:rgba(52,211,153,.14);color:var(--green);border-color:rgba(52,211,153,.3);}
+.lp-type-badge.concept{background:rgba(251,146,60,.14);color:var(--orange);border-color:rgba(251,146,60,.3);}
+.lp-status-badge{font-family:var(--mono);font-size:8px;letter-spacing:.06em;padding:2px 8px;border-radius:10px;text-transform:uppercase;}
+.lp-status-badge.verified{background:rgba(52,211,153,.14);color:var(--green);}
+.lp-civitai-link{font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;margin-left:auto;}
+.lp-filename{font-family:var(--mono);font-size:9px;color:var(--muted2);cursor:pointer;word-break:break-all;}
+/* Panel tabs */
+.lp-tabs{display:flex;gap:0;margin-top:12px;}
+.lp-tab{padding:8px 14px;font-size:10px;letter-spacing:.04em;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-family:var(--mono);}
+.lp-tab.active{color:var(--text);border-bottom-color:var(--orange);}
+/* Panel body */
+.lp-body{flex:1;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;min-height:0;}
+.lp-pane{display:none;padding:16px 18px;}
+.lp-pane.active{display:flex;flex-direction:column;flex:1;min-height:0;}
+/* Overview pane */
+.pa-overview-flex{display:flex;flex-direction:column;gap:10px;height:100%;min-height:0;}
+.lp-img-portrait{flex:1;min-height:0;display:flex;justify-content:center;background:var(--panel);border-radius:8px;}
+.lp-img-inner{position:relative;height:100%;aspect-ratio:2/3;overflow:hidden;border-radius:8px;cursor:zoom-in;}
+.lp-img-inner img,.lp-img-inner .lp-hero-placeholder{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
+.lp-hero-placeholder{background:linear-gradient(135deg,var(--surface2),var(--surface3));display:flex;align-items:center;justify-content:center;color:var(--muted2);font-family:var(--mono);font-size:11px;}
+/* Action buttons on image */
+.lp-action-row{position:absolute;top:8px;left:8px;right:8px;z-index:5;display:flex;align-items:center;gap:5px;}
+.pa-badge-btn{font-family:var(--mono);font-size:12px;font-weight:800;padding:5px 9px;border-radius:6px;cursor:pointer;min-width:28px;min-height:28px;}
+.pa-badge-btn:not(.active){background:rgba(0,0,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);}
+.pa-badge-btn.badge-verified.active{background:rgba(52,211,153,.85);border:1px solid transparent;color:#000;}
+.pa-badge-btn.badge-cleaned.active{background:rgba(200,150,12,.9);border:1px solid transparent;color:#000;}
+.lp-action-spacer{flex:1;}
+.lp-action-icon-btn{background:rgba(0,0,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:rgba(255,255,255,.6);cursor:pointer;font-size:12px;padding:4px 8px;font-family:var(--sans);}
+.lp-action-icon-btn.fav-active{color:#FFD700;border-color:#FFD700;background:rgba(0,0,0,.55);}
+/* Trigger words in overview */
+.lp-overview-triggers{flex-shrink:0;}
+.lp-section-title{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+.trig-chip-ov{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-family:var(--mono);font-size:10px;line-height:1.4;border:1px solid var(--border);white-space:nowrap;}
+.trig-chip-ov.req{background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.35);color:var(--orange);}
+.trig-chip-ov.req::before{content:'★ ';font-size:9px;opacity:.8;}
+.trig-chip-ov.opt{background:var(--surface2);border-color:var(--border2);color:var(--muted);}
+/* Notes preview */
+.lp-notes-preview{font-family:var(--sans);font-size:12px;font-style:italic;color:var(--muted2);padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;}
+.lp-notes-preview.has-notes{font-style:normal;color:var(--muted);}
+/* Footer */
+.lp-footer{padding:10px 18px;border-top:1px solid var(--border);display:flex;gap:7px;flex-shrink:0;}
+.lp-foot-btn{flex:1;padding:8px;border:1px solid var(--border);background:transparent;border-radius:7px;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--sans);text-align:center;}
+.lp-foot-btn:hover{border-color:var(--border2);color:var(--text);}
+.lp-edit-btn{padding:6px 14px;border:1px solid var(--border2);background:transparent;border-radius:6px;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--sans);}
+
+/* Back to top */
+.scroll-top-btn{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:590;width:36px;height:36px;border-radius:50%;border:1px solid var(--border2);background:var(--panel);color:var(--muted);font-size:16px;font-family:var(--mono);cursor:pointer;box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center;}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- ===== TITLE BAR ===== -->
+<div class="tabs">
+  <div class="tabs-left">
+    <div class="tab" data-tab="tags">Generate</div>
+    <div class="tab active" data-tab="loras">LoRAs <span class="tab-badge tab-badge-orange">3</span></div>
+    <div class="tab" data-tab="checkpoints">Checkpoints</div>
+    <div class="tab" data-tab="gallery">Gallery</div>
+  </div>
+  <div class="tabs-right">
+    <!-- IMG/VID hidden on non-Generate tabs (visibility:hidden preserves spacing) -->
+    <div class="titlebar-group">
+      <button class="gen-subtab">IMG</button>
+      <button class="gen-subtab">VID</button>
+    </div>
+    <div class="titlebar-divider"></div>
+    <div class="titlebar-group">
+      <button class="titlebar-btn" data-m="sdxl">SDXL</button>
+      <button class="titlebar-btn" data-m="pony">PONY</button>
+      <button class="titlebar-btn active" data-m="illustrious">ILLUS</button>
+    </div>
+    <div class="titlebar-divider"></div>
+    <button class="titlebar-btn" style="font-size:14px;">☀</button>
+    <button class="titlebar-btn">⍜</button>
+    <div class="titlebar-divider"></div>
+    <button class="titlebar-btn disabled" disabled>⊡</button>
+  </div>
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="main">
+
+  <!-- Filter toolbar (floating card) -->
+  <div class="lora-toolbar">
+    <div style="position:relative;display:flex;align-items:center;width:170px;flex-shrink:1;min-width:100px;">
+      <input class="lsearch" placeholder="⌕ search loras…" style="padding-right:22px;width:100%;">
+    </div>
+    <div class="titlebar-divider" style="height:18px;"></div>
+    <div class="lf-pill-group">
+      <button class="lfbtn active">All</button>
+      <button class="lfbtn">Favs</button>
+    </div>
+    <div class="titlebar-divider" style="height:18px;"></div>
+    <button class="lfbtn">Verified: All</button>
+    <button class="lfbtn">Cleaned: All</button>
+    <div style="flex:1;"></div>
+    <span class="lrstatus">193 loaded</span>
+  </div>
+
+  <!-- Collection tabs -->
+  <div class="lora-collection-tabs">
+    <div class="lora-col-tab active">All LoRAs <span class="ncount">193</span></div>
+    <div class="lora-col-tab">Enabled <span class="ncount">3</span></div>
+    <div class="lora-col-tab"><span class="ndot" style="background:#7C3AED;"></span>Dark / Gothic <span class="ncount">16</span></div>
+    <div class="lora-col-tab"><span class="ndot" style="background:#818CF8;"></span>Surreal / Fantastical <span class="ncount">15</span></div>
+    <div class="lora-col-tab"><span class="ndot" style="background:#64748B;"></span>Gritty / Street <span class="ncount">6</span></div>
+    <div class="lora-col-tab"><span class="ndot" style="background:#F472B6;"></span>Soft / Storybook <span class="ncount">16</span></div>
+    <div class="lora-col-tab"><span class="ndot" style="background:#FB923C;"></span>Bold / Graphic <span class="ncount">24</span></div>
+    <button class="lora-col-add">+ collection</button>
+  </div>
+
+  <!-- Scrollable card grid -->
+  <div class="lora-panel-scroll">
+
+    <!-- Section: Dark / Gothic -->
+    <div class="lsec-hdr">
+      <span class="lsec-dot" style="background:#7C3AED;"></span>
+      <span class="lsec-label">Dark / Gothic</span>
+      <span class="lsec-hr"></span>
+      <span class="lsec-count">16</span>
+    </div>
+    <div class="lora-card-grid">
+
+      <!-- Card 1: Active, verified, character type -->
+      <div class="lora-card type-character active">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#1a2744,#0d1520);"></div>
+        <span class="lora-card-status verified">✓</span>
+        <span class="lora-card-fav active">★</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Dark Knight Style</span>
+            <span class="lora-card-type">CHAR</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable active">✓ Enabled</button>
+            <button class="lora-card-info-btn cleaned">i</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Style type, testing status -->
+      <div class="lora-card type-style">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#2d1f3d,#15101e);"></div>
+        <span class="lora-card-status testing">▲</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Gothic Ink</span>
+            <span class="lora-card-type">STYLE</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Concept type, has P badge -->
+      <div class="lora-card type-concept">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#3b2a1a,#1a120a);"></div>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Eldritch Horror</span>
+            <span class="lora-card-type">CONCEPT</span>
+            <span class="lora-card-prompt-badge">P</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: Clothing type, active -->
+      <div class="lora-card type-clothing active">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#3b1f2d,#1a0d15);"></div>
+        <span class="lora-card-fav">★</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Dark Armor Set</span>
+            <span class="lora-card-type">CLOTH</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable active">✓ Enabled</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 5: Pose type, verified -->
+      <div class="lora-card type-pose">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#1a3b2d,#0a1a12);"></div>
+        <span class="lora-card-status verified">✓</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Dramatic Pose</span>
+            <span class="lora-card-type">POSE</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 6: Brut/adult card (purple border) -->
+      <div class="lora-card brut-card">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#2a1840,#100a1e);"></div>
+        <span class="lora-card-adult-pill">⍜</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Visceral Horror</span>
+            <span class="lora-card-type">STYLE</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Section: Surreal / Fantastical -->
+    <div class="lsec-hdr">
+      <span class="lsec-dot" style="background:#818CF8;"></span>
+      <span class="lsec-label">Surreal / Fantastical</span>
+      <span class="lsec-hr"></span>
+      <span class="lsec-count">15</span>
+    </div>
+    <div class="lora-card-grid">
+
+      <div class="lora-card type-style">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#1e293b,#0f172a);"></div>
+        <span class="lora-card-status verified">✓</span>
+        <span class="lora-card-fav active">★</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Dreamscape</span>
+            <span class="lora-card-type">STYLE</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn cleaned">i</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lora-card type-character active">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#2a1f3b,#12101a);"></div>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Nova Comic XL</span>
+            <span class="lora-card-type">CHAR</span>
+            <span class="lora-card-prompt-badge">P</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable active">✓ Enabled</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lora-card type-concept">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#1f2e3b,#0d161e);"></div>
+        <span class="lora-card-status bad">X</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Cosmic Void</span>
+            <span class="lora-card-type">CONCEPT</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lora-card type-style">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#3b2d1f,#1a1509);"></div>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Ethereal Glow</span>
+            <span class="lora-card-type">STYLE</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Section: Bold / Graphic -->
+    <div class="lsec-hdr">
+      <span class="lsec-dot" style="background:#FB923C;"></span>
+      <span class="lsec-label">Bold / Graphic</span>
+      <span class="lsec-hr"></span>
+      <span class="lsec-count">24</span>
+    </div>
+    <div class="lora-card-grid">
+
+      <div class="lora-card type-style">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#3b1f0a,#1a0d05);"></div>
+        <span class="lora-card-status verified">✓</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Halftone Pop</span>
+            <span class="lora-card-type">STYLE</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lora-card type-style">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#0a1a3b,#050d1a);"></div>
+        <span class="lora-card-fav active">★</span>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Designers Republic</span>
+            <span class="lora-card-type">STYLE</span>
+            <span class="lora-card-prompt-badge">P</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn cleaned">i</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lora-card type-character">
+        <div class="lora-card-img-placeholder" style="background:linear-gradient(135deg,#1a3b3b,#0a1a1a);"></div>
+        <div class="lora-card-overlay"></div>
+        <div class="lora-card-footer">
+          <div class="lora-card-name-row">
+            <span class="lora-card-name">Kuroimori ArtStyle</span>
+            <span class="lora-card-type">CHAR</span>
+          </div>
+          <div class="lora-card-actions">
+            <button class="lora-card-enable">Enable</button>
+            <button class="lora-card-info-btn">i</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+</div><!-- /.app -->
+
+<!-- ===== DETAIL PANEL (shown when a card is clicked) ===== -->
+<div class="lora-panel" style="transform:translateX(0);">
+  <!-- Header -->
+  <div class="lp-header">
+    <div class="lp-header-top">
+      <div class="lp-name">Dark Knight Style</div>
+      <button class="lp-edit-btn">✎ Edit</button>
+      <button class="lp-close-btn">✕</button>
+    </div>
+    <div class="lp-header-meta">
+      <span class="lp-type-badge character">character</span>
+      <span class="lp-status-badge verified">✓ verified</span>
+      <a class="lp-civitai-link" href="#">↗ CivitAI</a>
+    </div>
+    <div class="lp-filename">DarkKnightStyle_v2.safetensors</div>
+    <!-- Panel tabs -->
+    <div class="lp-tabs">
+      <div class="lp-tab active">Overview</div>
+      <div class="lp-tab">Notes</div>
+      <div class="lp-tab">Settings</div>
+    </div>
+  </div>
+
+  <!-- Panel body: Overview pane -->
+  <div class="lp-body">
+    <div class="lp-pane active">
+      <div class="pa-overview-flex">
+        <!-- Hero image -->
+        <div class="lp-img-portrait">
+          <div class="lp-img-inner">
+            <div class="lp-hero-placeholder" style="width:100%;height:100%;">Preview image</div>
+            <!-- Action buttons overlaid on image -->
+            <div class="lp-action-row">
+              <div style="position:relative;">
+                <button class="pa-badge-btn badge-verified active">✓</button>
+              </div>
+              <button class="pa-badge-btn">◐</button>
+              <button class="pa-badge-btn">✗</button>
+              <span class="lp-action-spacer"></span>
+              <button class="pa-badge-btn badge-cleaned active">i</button>
+              <button class="lp-action-icon-btn fav-active">★</button>
+              <button class="lp-action-icon-btn">⍜</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trigger words -->
+        <div class="lp-overview-triggers">
+          <div class="lp-section-title">Trigger words</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            <span class="trig-chip-ov req">dark_knight</span>
+            <span class="trig-chip-ov opt">armored figure</span>
+            <span class="trig-chip-ov opt">cape flowing</span>
+          </div>
+        </div>
+
+        <!-- Notes preview -->
+        <div class="lp-notes-preview has-notes">Dark, brooding character LoRA. Works best with dramatic lighting and low angles. Strong at 0.7-0.9 range...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="lp-footer">
+    <button class="lp-foot-btn">Close</button>
+  </div>
+</div>
+
+<!-- Back to top -->
+<button class="scroll-top-btn" title="Back to top">↑</button>
+
+</body>
+</html>

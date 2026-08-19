@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generate Tab — Final Reference</title>
+<style>
+/* ========================================
+   GENERATE TAB — FINAL REFERENCE
+   This file is a visual reference for the Generate tab
+   of Prompt Gen v3. It uses the same CSS variables,
+   fonts, and design tokens as the real app.
+   ======================================== */
+
+@font-face{font-family:'Poppins';font-weight:400;font-style:normal;font-display:swap;src:local('Poppins');}
+@font-face{font-family:'Poppins';font-weight:500;font-style:normal;font-display:swap;src:local('Poppins Medium');}
+@font-face{font-family:'Poppins';font-weight:600;font-style:normal;font-display:swap;src:local('Poppins SemiBold');}
+@font-face{font-family:'Space Mono';font-weight:400;font-style:normal;font-display:swap;src:local('Space Mono');}
+@font-face{font-family:'Space Mono';font-weight:700;font-style:normal;font-display:swap;src:local('Space Mono Bold');}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --bg:#090909;--chrome:#0f0f11;--panel:#131315;--surface:#161618;--surface2:#1d1d20;--surface3:#252528;--surface4:#2c2c30;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--border3:rgba(255,255,255,0.22);
+  --text:#E8E8E6;--muted:#6B6B72;--muted2:#3d3d44;
+  --purple:#a78bfa;--blue:#818cf8;--amber:#f59e0b;--green:#34d399;--pink:#f472b6;--orange:#fb923c;--slate:#94a3b8;--red:#f87171;--cyan:#67e8f9;
+  --mono:'Space Mono',monospace;--sans:'Poppins',system-ui,sans-serif;
+  --tabs-h:46px;
+  --shadow:0 0 0 1px rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.8);
+  --shadow-sm:0 0 0 1px rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.4);
+}
+
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;}
+*{scrollbar-width:none;}
+::-webkit-scrollbar{display:none;}
+
+/* ===== APP GRID ===== */
+/* Generate tab: 2-column grid. Left column = footer (prompt panel). Right column = main (tag categories). */
+.app{
+  display:grid;
+  grid-template-columns:380px 1fr;
+  grid-template-rows:var(--tabs-h) auto 1fr;
+  height:100vh;overflow:hidden;background:var(--bg);
+}
+
+/* ===== TITLE BAR ===== */
+.tabs{
+  grid-column:1/-1;grid-row:1;
+  display:flex;align-items:center;
+  background:var(--chrome);padding:0 16px;
+  height:var(--tabs-h);z-index:10;
+  -webkit-app-region:drag;
+  border-bottom:1px solid var(--border);gap:0;
+}
+.tabs-left{display:flex;align-items:center;gap:6px;padding-left:78px;-webkit-app-region:no-drag;}
+.tabs-right{display:flex;align-items:center;gap:4px;margin-left:auto;-webkit-app-region:no-drag;}
+.tab{padding:4px 13px;font-size:13px;color:var(--muted);cursor:pointer;border:1px solid transparent;border-radius:6px;background:transparent;transition:all .12s;font-family:var(--sans);font-weight:400;white-space:nowrap;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--text);border-color:var(--border2);background:var(--surface);font-weight:500;}
+.tab-badge{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;color:#fff;margin-left:4px;vertical-align:middle;}
+.tab-badge-orange{background:var(--orange);}
+.tab-badge-blue{background:var(--blue);}
+.titlebar-divider{width:1px;height:20px;background:var(--border2);margin:0 6px;flex-shrink:0;}
+.queue-indicator{font-family:var(--mono);font-size:9px;font-weight:700;color:#fff;background:var(--orange);padding:1px 6px;border-radius:8px;margin-left:4px;-webkit-app-region:no-drag;line-height:1.5;}
+.titlebar-btn{min-width:28px;height:28px;padding:0 8px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:10px;font-weight:600;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--muted);-webkit-app-region:no-drag;font-family:var(--mono);}
+.titlebar-btn:hover:not(:disabled){border-color:var(--border2);color:var(--text);}
+.titlebar-btn:disabled{opacity:.3;cursor:default;}
+.titlebar-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(129,140,248,.1);}
+.titlebar-group{display:flex;align-items:center;gap:3px;}
+.titlebar-group .titlebar-btn.active[data-m=sdxl]{border-color:var(--purple);color:var(--purple);background:rgba(167,139,250,.15);}
+.titlebar-group .titlebar-btn.active[data-m=pony]{border-color:var(--pink);color:var(--pink);background:rgba(244,114,182,.15);}
+.titlebar-group .titlebar-btn.active[data-m=illustrious]{border-color:var(--green);color:var(--green);background:rgba(52,211,153,.15);}
+.gen-subtab{padding:4px 10px;border-radius:5px;border:1px solid transparent;background:transparent;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .12s;}
+.gen-subtab.active{border-color:var(--border2);background:var(--surface);color:var(--text);font-weight:500;}
+
+/* ===== QUEUE BAR (full-width, row 2) ===== */
+.queue-bar{
+  grid-column:1/-1;grid-row:2;
+  display:flex;position:relative;
+  align-items:center;gap:8px;
+  padding:0 12px;height:38px;
+  margin:8px 10px 5px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:9px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.07);
+}
+.queue-bar-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex-shrink:0;}
+.queue-bar .queue-pill{font-family:var(--mono);font-size:10px;color:var(--muted);background:none;border:none;padding:0;flex:0 0 auto;}
+.queue-bar .queue-pill.busy{color:var(--orange);}
+.queue-progress{flex:1;height:3px;background:transparent;border-radius:2px;min-width:40px;}
+.queue-progress.active{background:var(--surface2);}
+.queue-progress-inner{height:100%;background:var(--orange);border-radius:2px;width:0%;}
+.qbar-btn{background:#fff;border:1px solid var(--border2);border-radius:4px;color:var(--muted2);cursor:pointer;font-size:9px;font-family:var(--mono);padding:2px 7px;line-height:1.4;transition:all .12s;flex-shrink:0;}
+.qbar-btn:hover{background:var(--surface3);border-color:var(--border3);color:var(--muted);}
+
+/* ===== LEFT PANEL (footer / prompt panel, grid-column:1, row 3) ===== */
+.footer{
+  grid-column:1;grid-row:3;
+  position:static;
+  margin:6px 0 10px 10px;
+  width:auto;height:auto;
+  max-height:calc(100vh - var(--tabs-h) - 42px);
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* Recent strip */
+.recent-strip{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 16px;
+  border-bottom:1px solid var(--border);
+  background:transparent;flex-shrink:0;
+}
+.recent-strip-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);width:52px;flex-shrink:0;}
+.recent-thumbs{display:flex;gap:5px;flex:1;}
+.recent-thumb{width:36px;height:46px;border-radius:4px;background:var(--surface3);border:1px solid var(--border2);overflow:hidden;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.recent-thumb.empty{border-style:dashed;border-color:var(--border);color:var(--muted2);font-family:var(--mono);font-size:8px;}
+.recent-thumb-img{width:100%;height:100%;object-fit:cover;object-position:top;background:var(--surface3);}
+.recent-clear{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted2);background:none;border:none;cursor:pointer;flex-shrink:0;}
+
+/* LoRA strip */
+.lora-strip{border-bottom:1px solid var(--border);}
+.lora-hdr{display:flex;align-items:center;gap:10px;padding:6px 16px;cursor:default;user-select:none;background:transparent;}
+.lora-title{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);font-weight:700;flex-shrink:0;}
+.lora-ac{font-family:var(--mono);font-size:9px;background:rgba(251,146,60,.15);color:var(--orange);padding:2px 7px;border-radius:8px;}
+
+/* Panel body (triggers scrollable area) */
+.panel-body{flex:1 1 0;overflow-y:auto;display:flex;flex-direction:column;min-height:0;}
+
+/* Triggers section */
+.triggers-section{padding:8px 16px 6px;flex-shrink:0;}
+.section-label{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.odot{width:5px;height:5px;border-radius:50%;}
+.trigger-lora-block{margin-bottom:6px;}
+.trigger-lora-name{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:6px;}
+.trigger-lora-name-text{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);}
+.trigger-lora-strength{color:var(--muted2);font-family:var(--mono);font-size:10px;}
+.trigger-lora-remove{margin-left:auto;background:none;border:none;color:var(--muted2);cursor:pointer;font-size:11px;line-height:1;padding:0 2px;opacity:.5;}
+.trigger-chips-row{display:flex;flex-wrap:wrap;gap:5px;}
+.trig-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px;line-height:1.4;border:1px solid var(--border2);white-space:nowrap;user-select:none;}
+.trig-chip.req{background:rgba(251,146,60,.1);border-color:rgba(251,146,60,.3);color:var(--orange);cursor:default;}
+.trig-chip.req::before{content:'★ ';font-size:9px;opacity:.8;}
+.trig-chip.opt{background:var(--surface2);border-color:var(--border2);color:var(--muted);cursor:pointer;transition:all .1s;}
+.trig-chip.opt.on{background:rgba(129,140,248,.14);border-color:var(--blue);color:var(--blue);}
+.opt-trigger-btn{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);cursor:pointer;}
+.opt-trigger-btn.has-active{border-color:rgba(129,140,248,.4);color:var(--blue);background:rgba(129,140,248,.08);}
+.opt-trigger-btn-count{font-size:9px;background:rgba(129,140,248,.2);border-radius:6px;padding:0 4px;line-height:1.6;}
+.no-loras-msg{font-family:var(--mono);font-size:11px;color:var(--muted2);padding:4px 2px;font-style:italic;}
+
+/* Embeddings row (pinned to bottom) */
+.embed-row{margin-top:auto;padding:8px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:flex-start;gap:8px;}
+.embed-chips{display:flex;flex-wrap:wrap;gap:5px;align-items:center;flex:1;}
+.embed-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px;line-height:1.4;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .12s;}
+.embed-chip.active{background:rgba(129,140,248,.14);border-color:var(--blue);color:var(--blue);}
+.embed-target{font-size:10px;font-weight:700;opacity:.5;}
+.embed-chip.active .embed-target{opacity:1;}
+.embed-chip.active .embed-target-pos{color:var(--green);}
+.embed-chip.active .embed-target-neg{color:var(--red);}
+.embed-add-btn{background:none;border:1px solid var(--border2);color:var(--muted);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;}
+.male-bias-btn{margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px;line-height:1.4;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);cursor:pointer;flex-shrink:0;}
+.male-bias-btn.active{background:rgba(248,113,113,.14);border-color:var(--red);color:var(--red);}
+
+/* img2img strip */
+.i2i-strip{display:none;padding:10px 16px;border-top:1px solid var(--border);flex-shrink:0;gap:10px;align-items:center;background:rgba(34,211,238,.04);}
+.i2i-strip.active{display:flex;flex-wrap:wrap;}
+
+/* Send config */
+.send-config{padding:14px 16px;display:flex;flex-direction:column;gap:10px;flex-shrink:0;border-top:1px solid var(--border);}
+.ckpt-row{display:flex;flex-direction:column;gap:4px;}
+.field-label-sm{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);}
+.cfg-sel{-webkit-appearance:none;appearance:none;width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:7px;font-family:var(--mono);font-size:12px;outline:none;cursor:pointer;height:auto;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 11 11'%3E%3Cpath d='M1.5 3.5L5.5 7.5L9.5 3.5' stroke='%236b6b72' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+.seed-row{display:flex;gap:6px;align-items:flex-end;}
+.cfg-field{display:flex;flex-direction:column;gap:3px;}
+.cfg-field.flex1{flex:1;}
+.cfg-in{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 7px;border-radius:5px;font-family:var(--mono);font-size:11px;height:26px;box-sizing:border-box;text-align:center;width:55px;}
+.icon-btn{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;height:26px;width:26px;padding:0;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.icon-btn:hover{border-color:var(--border2);color:var(--text);}
+.dims-accordion-btn{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--muted);width:100%;text-align:left;}
+.dims-accordion-chev{color:var(--orange);font-size:10px;flex-shrink:0;margin-left:auto;}
+
+/* Send footer */
+.send-footer{flex-shrink:0;padding:12px 16px 14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;background:var(--panel);}
+.send-footer-row{display:flex;gap:8px;align-items:center;}
+.send-footer .send-btn{flex:1;width:100%;padding:0 20px;background:var(--orange);color:#0a0a0b;border:none;border-radius:8px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.01em;height:34px;}
+.send-footer .send-btn:hover{filter:brightness(1.08);}
+.batch-field{display:flex;align-items:center;gap:0;flex-shrink:0;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;overflow:hidden;height:34px;}
+.batch-x{font-family:var(--mono);font-size:13px;color:var(--muted);font-weight:600;padding:0 2px 0 8px;}
+.batch-input{width:32px;background:transparent;border:none;color:var(--text);padding:0 6px 0 2px;font-family:var(--mono);font-size:13px;outline:none;text-align:center;height:32px;-moz-appearance:textfield;}
+.send-status-row{display:flex;align-items:center;gap:6px;padding:0 2px;}
+.send-status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.send-status-text{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.04em;}
+
+/* ===== MAIN CONTENT (tag categories, grid-column:2, row 3) ===== */
+.main{grid-column:2;grid-row:3;display:flex;flex-direction:column;min-height:0;overflow-y:auto;scrollbar-width:none;}
+.main::-webkit-scrollbar{display:none;}
+.panel{padding:0;}
+.compose-sticky{position:sticky;top:0;z-index:8;background:var(--bg);padding:14px 24px 10px;border-bottom:1px solid var(--border);}
+.compose-cell{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.compose-lbl-row{display:flex;align-items:center;gap:6px;height:18px;}
+.slbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;white-space:nowrap;}
+.sinput{padding:8px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:15px;outline:none;line-height:1.45;resize:vertical;min-height:74px;width:100%;box-sizing:border-box;}
+.sinput::placeholder{color:var(--muted2);}
+.subj-expand{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--muted);width:22px;height:18px;border-radius:4px;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+
+/* Extra neg */
+.compose-scroll{padding:0 24px;}
+.compose-xneg{margin-top:14px;}
+.compose-xneg .slbl{color:#fca5a5;}
+.xneg-input{padding:7px 12px;background:var(--surface2);border:1px solid rgba(248,113,113,.2);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.45;outline:none;resize:vertical;min-height:74px;width:100%;box-sizing:border-box;}
+.xneg-input::placeholder{color:var(--muted2);}
+
+/* Tag sections */
+#tag-sections{padding:16px 24px 32px;}
+.tgroup{margin-bottom:24px;}
+.theader{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ttitle{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 10px 3px 6px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.28);color:var(--muted);}
+.ttitle-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.tactions{margin-left:auto;display:flex;gap:5px;align-items:center;}
+.tbtn{font-size:10px;color:var(--muted);cursor:pointer;padding:2px 7px;border-radius:4px;transition:all .12s;border:1px solid transparent;}
+.tbtn:hover{color:var(--text);background:var(--surface2);border-color:var(--border);}
+.tags{display:flex;flex-wrap:wrap;gap:6px;}
+.tag{padding:5px 13px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:var(--surface2);color:#a0a0aa;font-size:14px;cursor:pointer;transition:all .12s;user-select:none;}
+.tag:hover{border-color:var(--border2);color:var(--text);}
+.tag.active{border-color:rgba(255,255,255,.7);color:#ffffff;background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(255,255,255,.2);}
+
+/* Category badge */
+.cat-badge{font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:8px;margin-left:4px;letter-spacing:.04em;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ===== TITLE BAR ===== -->
+<div class="tabs">
+  <div class="tabs-left">
+    <div class="tab active" data-tab="tags">Generate</div>
+    <div class="tab" data-tab="loras">LoRAs <span class="tab-badge tab-badge-orange">3</span></div>
+    <div class="tab" data-tab="checkpoints">Checkpoints</div>
+    <div class="tab" data-tab="gallery">Gallery <span class="tab-badge tab-badge-blue">⏱5</span></div>
+  </div>
+  <div class="tabs-right">
+    <div class="titlebar-group">
+      <button class="gen-subtab active" data-mode="image">IMG</button>
+      <button class="gen-subtab" data-mode="video">VID</button>
+    </div>
+    <div class="titlebar-divider"></div>
+    <div class="titlebar-group">
+      <button class="titlebar-btn" data-m="sdxl">SDXL</button>
+      <button class="titlebar-btn" data-m="pony">PONY</button>
+      <button class="titlebar-btn active" data-m="illustrious">ILLUS</button>
+    </div>
+    <span class="queue-indicator" style="display:none;">0</span>
+    <div class="titlebar-divider"></div>
+    <button class="titlebar-btn" style="font-size:14px;">☀</button>
+    <button class="titlebar-btn">⍜</button>
+    <div class="titlebar-divider"></div>
+    <button class="titlebar-btn disabled" disabled>⊡</button>
+  </div>
+</div>
+
+<!-- ===== QUEUE BAR (full-width, row 2) ===== -->
+<div class="queue-bar">
+  <span class="queue-bar-label">Queue</span>
+  <span class="queue-pill">idle · 0 jobs</span>
+  <div class="queue-progress"><div class="queue-progress-inner"></div></div>
+  <button class="qbar-btn">jobs ▴</button>
+</div>
+
+<!-- ===== LEFT PANEL (prompt/LoRAs/triggers/send) ===== -->
+<div class="footer">
+  <!-- Recent strip -->
+  <div class="recent-strip">
+    <span class="recent-strip-label">Recent</span>
+    <div class="recent-thumbs">
+      <div class="recent-thumb"><div class="recent-thumb-img" style="background:linear-gradient(135deg,#2d1f3d,#1a1a2e);"></div></div>
+      <div class="recent-thumb"><div class="recent-thumb-img" style="background:linear-gradient(135deg,#1e293b,#0f172a);"></div></div>
+      <div class="recent-thumb"><div class="recent-thumb-img" style="background:linear-gradient(135deg,#3b1f1f,#1a0a0a);"></div></div>
+      <div class="recent-thumb"><div class="recent-thumb-img" style="background:linear-gradient(135deg,#1f3b2d,#0a1a12);"></div></div>
+      <div class="recent-thumb empty">···</div>
+    </div>
+    <button class="recent-clear">clear</button>
+  </div>
+
+  <!-- LoRA strip -->
+  <div class="panel-header">
+    <div class="lora-strip">
+      <div class="lora-hdr">
+        <span class="lora-title">LoRAs</span>
+        <span class="lora-ac">3 active</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel body: triggers -->
+  <div class="panel-body">
+    <div class="triggers-section">
+      <div class="section-label"><span class="odot" style="background:var(--orange)"></span><span>Triggers</span></div>
+
+      <!-- LoRA 1: single required trigger -->
+      <div class="trigger-lora-block">
+        <div class="trigger-lora-name">
+          <span class="trigger-lora-name-text">Nova Comic XL</span>
+          <span class="trigger-lora-strength">0.85</span>
+          <button class="trigger-lora-remove">✕</button>
+        </div>
+        <div class="trigger-chips-row">
+          <span class="trig-chip req">novaxl</span>
+        </div>
+      </div>
+
+      <!-- LoRA 2: required + optional triggers -->
+      <div class="trigger-lora-block">
+        <div class="trigger-lora-name">
+          <span class="trigger-lora-name-text">Dark Fantasy Style</span>
+          <span class="trigger-lora-strength">0.70</span>
+          <button class="trigger-lora-remove">✕</button>
+        </div>
+        <div class="trigger-chips-row">
+          <span class="trig-chip req">dark_fantasy</span>
+          <span class="trig-chip opt on">gothic atmosphere</span>
+          <span class="trig-chip opt">eldritch</span>
+          <button class="opt-trigger-btn has-active">Options <span class="opt-trigger-btn-count">1/3</span></button>
+        </div>
+      </div>
+
+      <!-- LoRA 3: no triggers -->
+      <div class="trigger-lora-block">
+        <div class="trigger-lora-name">
+          <span class="trigger-lora-name-text">PlantMilk Hemp</span>
+          <span class="trigger-lora-strength">0.90</span>
+          <button class="trigger-lora-remove">✕</button>
+        </div>
+        <div class="trigger-chips-row">
+          <span class="trig-chip req">plantmilk</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Embeddings (pinned to bottom) -->
+  <div class="embed-row">
+    <div class="embed-chips">
+      <span class="embed-chip active">lazypos <span class="embed-target embed-target-pos">+</span></span>
+      <span class="embed-chip active">lazyneg <span class="embed-target embed-target-neg">−</span></span>
+      <button class="embed-add-btn" title="Add embedding">+</button>
+    </div>
+    <button class="male-bias-btn active">♂ dude</button>
+  </div>
+
+  <!-- Send config -->
+  <div class="send-config">
+    <div class="ckpt-row">
+      <div class="field-label-sm">Checkpoint</div>
+      <button class="cfg-sel" style="text-align:left;">WAI Illustrious v7</button>
+    </div>
+    <div class="seed-row">
+      <div class="cfg-field" style="flex:1;"><div class="field-label-sm">Seed</div><input class="cfg-in" placeholder="random" style="width:100%;text-align:left;"></div>
+      <button class="icon-btn" title="Roll random seed">⚂</button>
+      <button class="icon-btn" title="Lock seed">🔓</button>
+    </div>
+    <button class="dims-accordion-btn">
+      <span>896×1152 · 30 steps · CFG 5 · euler</span>
+      <span class="dims-accordion-chev">▾</span>
+    </button>
+  </div>
+
+  <!-- Send footer -->
+  <div class="send-footer">
+    <div class="send-footer-row">
+      <div class="batch-field">
+        <span class="batch-x">×</span>
+        <input class="batch-input" value="1">
+      </div>
+      <button class="send-btn">→ Process</button>
+    </div>
+    <div class="send-status-row">
+      <span class="send-status-dot"></span>
+      <span class="send-status-text">ComfyUI connected · ready</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN CONTENT (tag categories) ===== -->
+<main class="main">
+  <div class="panel" style="display:block;padding:0;">
+    <!-- Sticky compose area -->
+    <div class="compose-sticky">
+      <div class="compose-cell">
+        <div class="compose-lbl-row">
+          <span class="slbl">Subject</span>
+          <button class="subj-expand" title="Expand">⤢</button>
+        </div>
+        <textarea class="sinput" rows="3" placeholder="e.g. solitary figure in a ruined cathedral, wearing a long coat..."></textarea>
+      </div>
+    </div>
+
+    <!-- Extra neg (scrollable area) -->
+    <div class="compose-scroll">
+      <div class="compose-cell compose-xneg">
+        <div class="compose-lbl-row">
+          <span class="slbl">Extra neg</span>
+          <button class="subj-expand" title="Expand">⤢</button>
+        </div>
+        <textarea class="xneg-input" rows="2" placeholder="appended to negative — e.g. blurry, dof, bokeh"></textarea>
+      </div>
+    </div>
+
+    <!-- Tag categories -->
+    <div id="tag-sections">
+      <!-- Category: Composition -->
+      <div class="tgroup">
+        <div class="theader">
+          <div class="ttitle"><span class="ttitle-dot" style="background:var(--blue);"></span>Composition <span class="cat-badge" style="background:rgba(129,140,248,.15);color:var(--blue);">3</span></div>
+          <div class="tactions"><span class="tbtn">+ tag</span><span class="tbtn">✎</span><span class="tbtn">—</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag active">close-up</span>
+          <span class="tag">full body</span>
+          <span class="tag active">low angle</span>
+          <span class="tag">portrait</span>
+          <span class="tag">dutch angle</span>
+          <span class="tag active">dramatic lighting</span>
+          <span class="tag">cinematic</span>
+          <span class="tag">wide shot</span>
+        </div>
+      </div>
+
+      <!-- Category: Environment -->
+      <div class="tgroup">
+        <div class="theader">
+          <div class="ttitle"><span class="ttitle-dot" style="background:var(--green);"></span>Environment <span class="cat-badge" style="background:rgba(52,211,153,.15);color:var(--green);">1</span></div>
+          <div class="tactions"><span class="tbtn">+ tag</span><span class="tbtn">✎</span><span class="tbtn">—</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag">urban decay</span>
+          <span class="tag active">fog</span>
+          <span class="tag">rain</span>
+          <span class="tag">neon lights</span>
+          <span class="tag">abandoned</span>
+          <span class="tag">dark alley</span>
+        </div>
+      </div>
+
+      <!-- Category: Style -->
+      <div class="tgroup">
+        <div class="theader">
+          <div class="ttitle"><span class="ttitle-dot" style="background:var(--purple);"></span>Style <span class="cat-badge" style="background:rgba(167,139,250,.15);color:var(--purple);">0</span></div>
+          <div class="tactions"><span class="tbtn">+ tag</span><span class="tbtn">✎</span><span class="tbtn">—</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag">graphic novel</span>
+          <span class="tag">ink wash</span>
+          <span class="tag">bold lines</span>
+          <span class="tag">high contrast</span>
+          <span class="tag">halftone</span>
+        </div>
+      </div>
+
+      <!-- Category: Mood / Atmosphere -->
+      <div class="tgroup">
+        <div class="theader">
+          <div class="ttitle"><span class="ttitle-dot" style="background:var(--amber);"></span>Mood / Atmosphere <span class="cat-badge" style="background:rgba(245,158,11,.15);color:var(--amber);">0</span></div>
+          <div class="tactions"><span class="tbtn">+ tag</span><span class="tbtn">✎</span><span class="tbtn">—</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag">ominous</span>
+          <span class="tag">melancholy</span>
+          <span class="tag">ethereal</span>
+          <span class="tag">unsettling</span>
+          <span class="tag">surreal</span>
+          <span class="tag">liminal</span>
+        </div>
+      </div>
+
+      <!-- Category: Negative -->
+      <div class="tgroup">
+        <div class="theader">
+          <div class="ttitle"><span class="ttitle-dot" style="background:var(--red);"></span>Negative <span class="cat-badge" style="background:rgba(248,113,113,.15);color:var(--red);">6</span></div>
+          <div class="tactions"><span class="tbtn">+ tag</span><span class="tbtn">✎</span><span class="tbtn">—</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag active">bad anatomy</span>
+          <span class="tag active">bad fingers</span>
+          <span class="tag active">worst quality</span>
+          <span class="tag active">lowres</span>
+          <span class="tag">text</span>
+          <span class="tag active">signature</span>
+          <span class="tag active">watermark</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+</div><!-- /.app -->
+</body>
+</html>

@@ -63,6 +63,27 @@ body.light .abtn.copied{border-color:var(--green);color:var(--green);}
 .lora-toolbar{display:none !important;}
 .lora-tab-active .lora-toolbar{display:flex !important;align-items:center;gap:5px;padding:6px 12px;background:var(--panel);border:1px solid var(--border);border-radius:9px;margin:8px 10px 0;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.07);flex-shrink:0;z-index:501;}
 body.light .lora-tab-active .lora-toolbar{background:#fff;border-color:rgba(0,0,0,.06);}
+/* Browse mode toggles */
+#panel-loras.browse-mode .library-only{display:none !important;}
+.browse-only{display:none !important;}
+#panel-loras.browse-mode .browse-only{display:block !important;}
+#panel-loras.browse-mode .lora-collection-tabs{display:none !important;}
+.lora-toolbar .browse-only{display:none !important;}
+.lora-toolbar.browse-active .browse-only{display:contents !important;}
+.lora-toolbar.browse-active .library-only{display:none !important;}
+.browse-card .lora-card-type{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;}
+.browse-card-img-retry{width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);cursor:pointer;background:var(--bg2);transition:color .15s;}
+.browse-card-img-retry:hover{color:var(--fg);}
+.browse-card-stats{display:flex;gap:8px;padding:4px 5px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.7);}
+.browse-card .lora-card-actions{display:none;}
+.browse-card-installed{position:absolute;top:7px;right:7px;z-index:2;background:rgba(52,211,153,.9);color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.browse-card-nsfw{position:absolute;top:7px;left:7px;z-index:2;font-family:var(--mono);font-size:8px;padding:2px 6px;border-radius:8px;background:rgba(248,113,113,.85);color:#fff;font-weight:700;letter-spacing:.04em;}
+#bd-images img{height:220px;border-radius:6px;cursor:pointer;object-fit:cover;flex-shrink:0;}
+#bd-images img:hover{opacity:.85;}
+.bd-stat{background:var(--surface2);border-radius:6px;padding:6px 10px;}
+.bd-stat-label{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+.bd-stat-value{font-size:12px;color:var(--text);font-weight:500;}
+.bd-trigger-chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border2);}
 .lora-collection-tabs{display:none !important;}
 .lora-tab-active .lora-collection-tabs{display:flex !important;align-items:center;gap:2px;padding:6px 10px 6px;flex-shrink:0;z-index:501;border-bottom:1px solid rgba(0,0,0,0.06);}
 .lora-col-tab{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;cursor:pointer;transition:all .1s;background:transparent;border:1px solid transparent;font-family:var(--sans);font-size:12px;color:var(--muted);font-weight:400;}
@@ -143,7 +164,7 @@ input,textarea,.gdp-metadata-inner,.gdp-meta-val,.prompt-box{-webkit-user-select
 .tags-tab-active .tags-brut-btn{display:inline-flex !important;}
 .lora-tab-active .lora-brut-btn{display:inline-flex !important;}
 .gallery-tab-active .gallery-brut-btn{display:inline-flex !important;}
-body.hide-brut .tags-brut-btn,body.hide-brut .lora-brut-btn,body.hide-brut .gallery-brut-btn,body.hide-brut #lp-adult-btn,body.hide-brut .lora-card-adult,body.hide-brut .gbrut-badge,body.hide-brut .gdp-detail-brut,body.hide-brut #lora-ctx-adult-item,body.hide-brut .gbulk-brut,body.hide-brut .wpbtn.brut-toggle{display:none !important;}
+body.hide-brut #tags-brut-btn,body.hide-brut #ladult-btn,body.hide-brut #gsc-brut,body.hide-brut .lora-card-adult,body.hide-brut .gbrut-badge,body.hide-brut .gdp-detail-brut,body.hide-brut #lora-ctx-adult-item,body.hide-brut #lpctx-adult,body.hide-brut #gallery-ctx-brut-item,body.hide-brut .gbulk-brut,body.hide-brut .wpbtn.brut-toggle{display:none !important;}
 .sidebar-toggle{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;border-radius:4px;transition:all .12s;line-height:1;}
 .sidebar-toggle:hover{color:var(--text);background:var(--surface2);}
 
@@ -227,6 +248,7 @@ body.light .titlebar-group .titlebar-btn.active[data-m=illustrious]{border-color
 
 /* TAG GROUPS */
 .tgroup{margin-bottom:24px;}
+#lora-tab-grid .tgroup{content-visibility:auto;contain-intrinsic-size:auto 700px;}
 .theader{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .ttitle{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
   padding:3px 10px 3px 6px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;
@@ -343,9 +365,9 @@ body.light .tag.active{border-color:rgba(0,0,0,.7);color:#000;background:rgba(0,
 .preset-name-input::placeholder{color:var(--muted2);}
 
 /* WEIGHT POPUP */
-.wpopup{position:fixed;background:var(--surface2);border:1px solid var(--border3);border-radius:9px;padding:12px 14px;z-index:500;width:220px;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;}
-.wp-ex-img{width:100%;height:130px;object-fit:cover;border-radius:5px;display:block;}
-.wpopup.visible{display:block;}
+.wpopup{position:fixed;background:var(--surface2);border:1px solid var(--border3);border-radius:12px;padding:14px 16px;z-index:500;width:240px;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;flex-direction:column;outline:none;}
+.wp-ex-img{width:100%;max-height:200px;object-fit:contain;border-radius:5px;display:block;}
+.wpopup.visible{display:flex;}
 .wplabel{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase;}
 .wpname{color:var(--text);}
 .wprow{display:flex;align-items:center;gap:9px;}
@@ -821,12 +843,12 @@ body.light .lora-card-adult{border-color:rgba(255,255,255,.75);}
 .age-divider-line{flex:1;height:1px;background:var(--border2);}
 .age-divider-pill{display:flex;align-items:center;gap:5px;padding:3px 8px;background:var(--surface2);border-radius:10px;border:1px solid var(--border2);font-family:var(--mono);font-size:8px;color:#92400E;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;}
 .age-divider-dot{width:5px;height:5px;border-radius:50%;background:#D97706;}
-.gallery-section{margin-bottom:28px;}
+.gallery-section{margin-bottom:28px;content-visibility:auto;contain-intrinsic-size:auto 400px;}
 .gallery-section-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:0 4px;}
 .gallery-section-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--text);flex-shrink:0;}
 .gallery-section-hr{flex:1;height:1px;background:var(--border2);}
 .gallery-section-header .ncount{font-family:var(--mono);font-size:9px;color:var(--muted2);flex-shrink:0;}
-.gthumb{position:relative;border-radius:6px;overflow:hidden;cursor:pointer;background:var(--surface2);border:1px solid rgba(0,0,0,.13);transition:border-color .12s,outline .12s;aspect-ratio:7/9;}
+.gthumb{position:relative;border-radius:6px;overflow:hidden;cursor:pointer;background:var(--surface2);border:1px solid rgba(0,0,0,.13);transition:border-color .12s,outline .12s;aspect-ratio:7/9;content-visibility:auto;contain-intrinsic-size:auto 218px;}
 .gthumb:hover{border-color:var(--border2);}
 .gthumb.state-review{border:2px solid #2563EB;}
 .gthumb.state-approved{border:2px solid #16A34A;}
@@ -849,6 +871,12 @@ body.light .gfav-star.active{color:#FFD700;text-shadow:0 0 5px rgba(255,215,0,.5
 .gbrut-badge{position:absolute;inset:3px;border-radius:4px;border:1.5px dashed rgba(255,255,255,.75);z-index:5;pointer-events:none;}
 body.light .gbrut-badge{border-color:rgba(255,255,255,.75);}
 .gvid-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:14px;line-height:36px;text-align:center;pointer-events:none;z-index:4;backdrop-filter:blur(2px);}
+.gshared-badge{position:absolute;bottom:6px;left:6px;width:20px;height:20px;border-radius:50%;background:rgba(34,197,94,.85);color:#fff;font-size:12px;line-height:20px;text-align:center;z-index:5;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.gshared-badge.gold{background:rgba(217,119,6,.9);}
+.greddit-badge{position:absolute;bottom:6px;left:6px;width:20px;height:20px;border-radius:50%;background:rgba(255,69,0,.9);color:#fff;font-size:13px;font-weight:700;line-height:20px;text-align:center;z-index:5;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.3);font-family:var(--sans);}
+.gshared-badge+.greddit-badge,.gupscale-badge+.greddit-badge{left:30px;}
+.gupscale-badge{position:absolute;bottom:6px;left:6px;min-width:22px;height:16px;border-radius:8px;background:rgba(167,139,250,.9);color:#fff;font-family:var(--mono);font-size:8px;font-weight:700;line-height:16px;text-align:center;padding:0 4px;z-index:5;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.3);letter-spacing:.04em;}
+.gshared-badge+.gupscale-badge{left:30px;}
 .gext-badge{position:absolute;bottom:6px;right:6px;width:20px;height:20px;border-radius:50%;background:rgba(160,160,160,.85);color:#fff;font-size:11px;line-height:20px;text-align:center;z-index:5;pointer-events:none;}
 .gbrut-badge+.gext-badge{right:6px;}
 .gage-ribbon{position:absolute;top:11px;right:-16px;width:68px;text-align:center;transform:rotate(35deg);font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.05em;padding:2px 0;z-index:6;pointer-events:none;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);}
@@ -861,6 +889,33 @@ body.light .gbrut-badge{border-color:rgba(255,255,255,.75);}
 .gallery-bulk-bar .gbulk-review{background:rgba(217,119,6,.08);border-color:#D97706;color:#92400E;}
 .gallery-bulk-bar .gbulk-decline{background:rgba(220,38,38,.08);border-color:#DC2626;color:#B91C1C;}
 .gallery-bulk-bar .gbulk-deselect{padding:5px 10px;border-radius:7px;background:var(--surface);border:1px solid var(--border2);font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;}
+.gallery-bulk-bar .gbulk-train{background:rgba(217,106,20,.12);border:1px solid var(--orange);color:var(--orange);}
+/* ---- Train tab ---- */
+.train-wrap{max-width:1100px;margin:0 auto;padding:2px 0 96px;}
+.train-head-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.train-select{padding:6px 10px;border-radius:7px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;min-width:170px;}
+.train-btn{padding:6px 12px;border-radius:7px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;cursor:pointer;}
+.train-btn:hover{border-color:var(--orange);}
+.train-btn:disabled{opacity:.45;cursor:not-allowed;}
+.train-btn-primary{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:600;}
+.train-btn-primary:hover{filter:brightness(1.05);border-color:var(--orange);}
+.train-btn-danger:hover{border-color:var(--red);color:var(--red);}
+.train-count{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.train-banner{background:rgba(217,106,20,.08);border:1px solid rgba(217,106,20,.35);border-radius:9px;padding:10px 14px;font-family:var(--sans);font-size:12px;line-height:1.55;color:var(--text);margin-bottom:14px;}
+.train-banner strong{color:var(--orange);}
+.train-config{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px;}
+.train-config label{display:flex;flex-direction:column;gap:4px;font-family:var(--sans);font-size:11px;color:var(--muted);}
+.train-config input,.train-config select{padding:6px 8px;border-radius:6px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;}
+.train-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.train-card{background:var(--panel);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;}
+.train-card img{width:100%;aspect-ratio:1;object-fit:cover;background:#000;}
+.train-card-body{padding:8px;display:flex;flex-direction:column;gap:6px;}
+.train-card-trig{font-family:var(--mono);font-size:10px;color:var(--orange);}
+.train-card textarea{width:100%;min-height:62px;resize:vertical;padding:6px;border-radius:6px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:11px;line-height:1.4;box-sizing:border-box;}
+.train-card-rm{align-self:flex-end;background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;}
+.train-card-rm:hover{color:var(--red);}
+.train-empty{grid-column:1/-1;text-align:center;color:var(--muted);font-family:var(--sans);font-size:13px;padding:60px 20px;line-height:1.7;}
+.train-actions{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:flex-end;gap:10px;padding:12px 24px;background:var(--panel);border-top:1px solid var(--border2);z-index:50;}
 .gallery-empty{color:var(--muted);font-size:13px;padding:60px 0;text-align:center;grid-column:1/-1;}
 
 /* GALLERY DETAIL PANEL */
@@ -907,6 +962,12 @@ body.light .gdp-detail-brut{border-color:rgba(255,255,255,.75);}
 .gallery-detail-footer .gdp-remix:hover{border-color:var(--orange);background:rgba(251,146,60,.06);}
 .gallery-detail-footer .gdp-i2i{color:var(--blue);}
 .gallery-detail-footer .gdp-i2i:hover{border-color:var(--blue);background:rgba(129,140,248,.06);}
+.gallery-detail-footer .gdp-share{color:var(--green);}
+.gallery-detail-footer .gdp-share:hover{border-color:var(--green);background:rgba(34,197,94,.06);}
+.gallery-detail-footer .gdp-share.shared{opacity:.4;}
+.gallery-detail-footer .gdp-share.shared:hover{opacity:.7;}
+.gallery-detail-footer .gdp-upscale{color:#a78bfa;}
+.gallery-detail-footer .gdp-upscale:hover{border-color:#a78bfa;background:rgba(167,139,250,.06);}
 .gallery-detail-meta{padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .gallery-detail-meta span{font-family:var(--mono);font-size:10px;color:var(--muted);}
 .gdp-state-badge{margin-left:auto;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;}
@@ -1158,7 +1219,7 @@ body.light .queue-bar{background:#fff;border-color:rgba(0,0,0,.06);}
 .qbar-btn.active{background:var(--surface3);border-color:var(--border3);color:var(--muted);}
 .qbar-btn#queue-stop-btn{color:#B91C1C;border-color:rgba(185,28,28,.2);}
 .qbar-btn#queue-stop-btn:hover{color:#991B1B;background:rgba(185,28,28,.06);border-color:rgba(185,28,28,.3);}
-.queue-jobs{display:none;position:absolute;top:100%;right:10px;width:220px;max-height:300px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;z-index:20;overflow-y:auto;padding:8px 10px;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.35);}
+.queue-jobs{display:none;position:fixed;right:10px;top:calc(var(--tabs-h) + 6px);width:240px;height:calc(100vh - var(--tabs-h) - 16px);background:var(--surface);border:1px solid var(--border);border-radius:12px;z-index:500;overflow-y:auto;padding:12px 14px;box-shadow:var(--shadow);}
 .queue-jobs.open{display:flex;flex-direction:column;gap:2px;}
 .queue-jobs-title{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 0 4px;border-bottom:1px solid var(--border);margin-bottom:2px;}
 .queue-job{display:flex;align-items:center;gap:6px;padding:4px 0;font-family:var(--mono);font-size:10px;}
@@ -1319,6 +1380,10 @@ body.light .batch-field{background:rgba(255,255,255,.8);border-color:rgba(0,0,0,
 body.light .batch-input{color:#1a1a1c;}
 .send-footer-row{display:flex;gap:8px;align-items:center;}
 .send-footer-row .send-btn{flex:1;}
+.send-clear-btn{background:transparent;border:1px solid rgba(248,113,113,.25);color:rgba(248,113,113,.7);border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:13px;font-family:var(--mono);flex-shrink:0;transition:all .12s;padding:0;}
+.send-clear-btn:hover{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.45);color:#fca5a5;}
+body.light .send-clear-btn{border-color:rgba(220,38,38,.2);color:rgba(220,38,38,.5);}
+body.light .send-clear-btn:hover{background:rgba(220,38,38,.06);border-color:rgba(220,38,38,.35);color:rgba(220,38,38,.7);}
 .send-config .dims-row{display:flex;gap:6px;align-items:flex-end;}
 .send-config .cfg-field{display:flex;flex-direction:column;gap:4px;}
 .send-config .cfg-field.flex1{flex:1;}
@@ -1621,6 +1686,7 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
     <div class="tab" data-tab="history" onclick="switchTab('history')" style="display:none;">History</div>
     <div class="tab" data-tab="presets" onclick="switchTab('presets')" style="display:none;">Presets</div>
     <div class="tab" data-tab="gallery" onclick="switchTab('gallery')">Gallery <span id="gallery-tab-nag" class="tab-badge tab-badge-blue" style="display:none;"></span></div>
+    <div class="tab" data-tab="train" onclick="switchTab('train')">Train</div>
   </div>
   <div class="tabs-right">
     <div class="titlebar-group gen-subtabs-titlebar">
@@ -1640,6 +1706,8 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
     <button class="titlebar-btn" id="ladult-btn" onclick="toggleAdult()" title="Brut mode" style="display:none;">⍜</button>
     <button class="titlebar-btn" id="gsc-brut" onclick="toggleGalleryAdult()" title="Brut mode" style="display:none;">⍜</button>
     <div class="titlebar-divider"></div>
+    <button class="titlebar-btn" id="civitai-btn" onclick="openCivitAI()" title="Open CivitAI" style="font-size:9px;letter-spacing:.02em;">CIVIT</button>
+    <div class="titlebar-divider"></div>
     <button class="titlebar-btn disabled" id="layout-btn" title="Portrait/landscape (coming soon)" disabled>⊡</button>
     <button class="titlebar-btn active" id="drag-lock-btn" onclick="toggleDragLock()" title="Lock window position">⊞</button>
   </div>
@@ -1654,10 +1722,6 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
   <button class="qbar-btn" id="queue-clear-btn" onclick="clearQueue()" title="Clear pending queue" style="display:none;">× clear</button>
   <button class="qbar-btn" id="queue-panel-toggle" onclick="toggleQueuePanel()" title="Toggle queue panel">jobs ▴</button>
   <span class="queue-bar-ready" id="queue-bar-ready" style="display:none;"></span>
-  <div class="queue-jobs" id="queue-jobs">
-    <div class="queue-jobs-title">Queue</div>
-    <div id="queue-jobs-list"></div>
-  </div>
 </div>
 
 <main class="main">
@@ -1678,6 +1742,9 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
     <button class="lfbtn" id="gtf-approved" onclick="setGalleryFilter('approved')">Approved</button>
     <button class="lfbtn" id="gtf-declined" onclick="setGalleryFilter('declined')">Declined</button>
     <button class="lfbtn" id="gtf-old" onclick="setGalleryFilter('old')">Old (14d+)</button>
+    <div class="titlebar-divider" style="height:18px;"></div>
+    <button class="lfbtn" id="gtf-shared" onclick="cycleGallerySharedFilter()">↗ All</button>
+    <button class="lfbtn" id="gtf-reddit" onclick="cycleGalleryRedditFilter()">r/ All</button>
     <button class="lfbtn" id="gallery-process-btn" onclick="galleryProcessDeclined()" style="display:none;border-color:rgba(248,113,113,.3);color:var(--red);">🗑 Process 0</button>
     <div style="flex:1;"></div>
     <button class="lfbtn gbulk-compare" id="gtf-compare" onclick="openCompareMode()" style="display:none;">⊞ Compare 2</button>
@@ -1692,21 +1759,60 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
 
   <!-- LoRA filter bar (floating strip, only visible on LoRAs tab) -->
   <div class="lora-toolbar" id="lora-toolbar">
-    <div style="position:relative;display:flex;align-items:center;width:170px;flex-shrink:1;min-width:100px;">
-      <input class="lsearch" id="lsearch-tab" placeholder="⌕ search loras…" oninput="onLoraSearch()" style="padding-right:22px;width:100%;">
-      <button onclick="clearLoraSearch()" id="lsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
-    </div>
-    <div class="titlebar-divider" style="height:18px;"></div>
     <div class="lf-pill-group">
-      <button class="lfbtn active" id="ltf-all" onclick="setLoraTabFilter('all')">All</button>
-      <button class="lfbtn" id="ltf-fav" onclick="setLoraTabFilter('fav')">Favs</button>
+      <button class="lfbtn active" id="lora-mode-library" onclick="switchLoraMode('library')">Library</button>
+      <button class="lfbtn" id="lora-mode-browse" onclick="switchLoraMode('browse')">Browse</button>
     </div>
     <div class="titlebar-divider" style="height:18px;"></div>
-    <button class="lfbtn" id="ltf-verified" onclick="cycleVerifiedFilter()">Verified: All</button>
-    <button class="lfbtn" id="ltf-cleaned" onclick="toggleCleanedFilter()">Cleaned: All</button>
-    <div style="flex:1;"></div>
-    <span class="lrstatus" id="lrstatus-tab" style="font-family:var(--mono);font-size:9px;color:var(--muted2);">234 loaded</span>
-    <button class="lfbtn" id="lora-install-btn" onclick="openLoraInstallDialog()" style="font-size:10px;padding:3px 8px;" title="Install LoRA from CivitAI">+ Install</button>
+    <!-- Library mode controls -->
+    <div class="library-only" style="display:contents;">
+      <div style="position:relative;display:flex;align-items:center;width:170px;flex-shrink:1;min-width:100px;">
+        <input class="lsearch" id="lsearch-tab" placeholder="⌕ search loras…" oninput="onLoraSearch()" style="padding-right:22px;width:100%;">
+        <button onclick="clearLoraSearch()" id="lsearch-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
+      </div>
+      <div class="titlebar-divider" style="height:18px;"></div>
+      <div class="lf-pill-group">
+        <button class="lfbtn active" id="ltf-all" onclick="setLoraTabFilter('all')">All</button>
+        <button class="lfbtn" id="ltf-fav" onclick="setLoraTabFilter('fav')">Favs</button>
+      </div>
+      <div class="titlebar-divider" style="height:18px;"></div>
+      <button class="lfbtn" id="ltf-verified" onclick="cycleVerifiedFilter()">Verified: All</button>
+      <button class="lfbtn" id="ltf-cleaned" onclick="toggleCleanedFilter()">Cleaned: All</button>
+      <div style="flex:1;"></div>
+      <span class="lrstatus" id="lrstatus-tab" style="font-family:var(--mono);font-size:9px;color:var(--muted2);">234 loaded</span>
+      <button class="lfbtn" id="lora-install-btn" onclick="openLoraInstallDialog()" style="font-size:10px;padding:3px 8px;" title="Install LoRA from CivitAI">+ Install</button>
+    </div>
+    <!-- Browse mode controls -->
+    <div class="browse-only" style="display:contents;">
+      <div style="position:relative;display:flex;align-items:center;width:200px;flex-shrink:1;min-width:120px;">
+        <input class="lsearch" id="browse-search" placeholder="⌕ search CivitAI…" oninput="onBrowseSearch()" style="padding-right:22px;width:100%;">
+        <button onclick="clearBrowseSearch()" id="browse-search-clear" style="position:absolute;right:5px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;display:none;">✕</button>
+      </div>
+      <div class="titlebar-divider" style="height:18px;"></div>
+      <select class="lfbtn" id="browse-basemodel" onchange="doBrowseSearch()" style="font-size:10px;padding:3px 8px;">
+        <option value="">All Models</option>
+        <option value="Illustrious">Illustrious</option>
+        <option value="Pony">Pony</option>
+        <option value="SDXL 1.0">SDXL</option>
+        <option value="FLUX.1 D">Flux Dev</option>
+        <option value="FLUX.1 S">Flux Schnell</option>
+        <option value="SD 1.5">SD 1.5</option>
+        <option value="SD 3.5">SD 3.5</option>
+      </select>
+      <select class="lfbtn" id="browse-sort" onchange="doBrowseSearch()" style="font-size:10px;padding:3px 8px;">
+        <option value="Most Downloaded">Most Downloaded</option>
+        <option value="Highest Rated">Highest Rated</option>
+        <option value="Newest">Newest</option>
+      </select>
+      <select class="lfbtn" id="browse-period" onchange="doBrowseSearch()" style="font-size:10px;padding:3px 8px;">
+        <option value="AllTime">All Time</option>
+        <option value="Month">This Month</option>
+        <option value="Week">This Week</option>
+        <option value="Day">Today</option>
+      </select>
+      <div style="flex:1;"></div>
+      <span class="lrstatus" id="browse-status" style="font-family:var(--mono);font-size:9px;color:var(--muted2);"></span>
+    </div>
   </div>
   <!-- LoRA collection tabs (only visible on LoRAs tab) -->
   <div class="lora-collection-tabs" id="lora-collection-tabs"></div>
@@ -1811,6 +1917,8 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
     <button class="gbulk-btn gbulk-review" onclick="galleryBulkReview()">◎ Review</button>
     <button class="gbulk-btn gbulk-decline" onclick="galleryBulkDecline()">✕ Decline</button>
     <div class="titlebar-divider" style="height:16px;"></div>
+    <button class="gbulk-btn gbulk-train" onclick="addSelectedToTraining()">◆ Add to Training</button>
+    <div class="titlebar-divider" style="height:16px;"></div>
     <button class="gbulk-deselect" onclick="galleryDeselectAll()">Deselect all</button>
   </div>
 
@@ -1846,6 +1954,36 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
           <button class="gdp-btn gdp-decline" onclick="compareSetState('right','declined')">Decline</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- TRAIN -->
+  <div class="panel" id="panel-train">
+    <div class="train-wrap">
+      <div class="train-head-row">
+        <select id="train-set-select" class="train-select" onchange="switchTrainSet(this.value)"></select>
+        <button class="train-btn" onclick="newTrainingSet()">＋ New set</button>
+        <button class="train-btn train-btn-danger" onclick="deleteTrainingSet()">Delete set</button>
+        <span class="train-count" id="train-count"></span>
+      </div>
+      <div class="train-banner">
+        <strong>Style LoRA — caption the content, not the style.</strong>
+        Describe <em>what's in each image</em> (subjects, pose, lighting, composition) and leave your aesthetic unnamed.
+        Your trigger word carries the look — so never write "dark", "surreal", or "gritty" in a caption.
+      </div>
+      <div class="train-config">
+        <label>Set name<input id="train-name" type="text" oninput="updateTrainField('name',this.value)" placeholder="my-style"></label>
+        <label>Trigger word<input id="train-trigger" type="text" oninput="updateTrainField('trigger',this.value)" placeholder="dnlstyle"></label>
+        <label>Base checkpoint<select id="train-ckpt" onchange="updateTrainField('baseCheckpoint',this.value)"></select></label>
+        <label>LoRA rank<input id="train-rank" type="number" min="1" value="16" oninput="updateTrainField('rank',this.value)"></label>
+        <label>Total steps<input id="train-steps" type="number" min="1" value="2000" oninput="updateTrainField('steps',this.value)"></label>
+        <label>Resolution<select id="train-res" onchange="updateTrainField('resolution',this.value)"><option value="1024">1024</option><option value="768">768</option><option value="512">512</option></select></label>
+      </div>
+      <div class="train-grid" id="train-grid"></div>
+    </div>
+    <div class="train-actions">
+      <button class="train-btn" id="train-autocap" onclick="autoCaptionTrain()" disabled title="Auto-captioning needs the WD14 tagger node in ComfyUI — that's the next phase">✨ Auto-caption (next phase)</button>
+      <button class="train-btn train-btn-primary" onclick="exportTrainingSet()">⇩ Export training folder</button>
     </div>
   </div>
 
@@ -1935,7 +2073,19 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
 
   <!-- LORAS TAB -->
   <div class="panel active" id="panel-loras">
-    <div id="lora-tab-grid"></div>
+    <div id="lora-tab-grid" class="library-only"></div>
+    <div id="browse-tab-grid" class="browse-only" style="width:100%;padding:10px;">
+      <div id="browse-results" class="lora-card-grid"></div>
+      <div id="browse-load-more" style="display:none;text-align:center;padding:16px 16px 60px;">
+        <button class="lfbtn" onclick="loadMoreBrowseResults()" style="padding:6px 20px;font-size:11px;">Load more</button>
+      </div>
+      <div id="browse-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted);">
+        <div style="font-size:28px;margin-bottom:12px;">⌕</div>
+        <div style="font-size:13px;font-weight:500;">Search CivitAI for LoRAs</div>
+        <div style="font-size:11px;margin-top:6px;color:var(--muted2);">Browse trending models or search by name</div>
+      </div>
+      <div id="browse-loading" style="display:none;text-align:center;padding:40px;color:var(--muted);font-family:var(--mono);font-size:11px;">Searching…</div>
+    </div>
   </div>
 </main>
 <button class="scroll-top-btn" id="scroll-top-btn" onclick="scrollBackToTop()" title="Back to top">↑</button>
@@ -2090,6 +2240,7 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
   <!-- 5. Send footer: full-width Send + status row -->
   <div class="send-footer">
     <div class="send-footer-row">
+      <button class="send-clear-btn" onclick="clearAll()" title="Clear all tags, LoRAs, and prompt fields">✕</button>
       <div class="batch-field" title="Send this many copies per checkpoint">
         <span class="batch-x">×</span>
         <input id="cfg-batch" type="number" class="batch-input" value="1" min="1" max="20" onchange="updateSendBtnLabel()" oninput="updateSendBtnLabel()">
@@ -2192,7 +2343,7 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
 
 <!-- WEIGHT POPUP -->
 <div class="wpopup" id="wpopup">
-  <div class="wplabel">Weight — <span class="wpname" id="wpname"></span></div>
+  <div class="wplabel"><span class="wpname" id="wpname"></span></div>
   <div class="wprow">
     <input type="range" class="wpslider" id="wpslider" min="0.5" max="1.8" step="0.05" value="1.0" oninput="document.getElementById('wpval').textContent=parseFloat(this.value).toFixed(2)" onchange="applyWeight()">
     <span class="wpval" id="wpval">1.0</span>
@@ -2202,10 +2353,15 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
     <button class="wpbtn brut-toggle" id="wp-brut-btn" onclick="toggleTagBrut(currentWPCat,currentWPTag);document.getElementById('wpopup').classList.remove('visible')">⍜ brut</button>
     <button class="wpbtn rem" onclick="removeTagWP()">Remove</button>
   </div>
-  <div id="wp-ex-section" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:9px;">
+  <div id="wp-ex-section" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:9px;flex:1;">
     <div id="wp-ex-img-wrap"></div>
     <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-top:6px;" id="wp-ex-desc"></div>
-    <a id="wp-ex-more" href="#" target="_blank" style="display:block;margin-top:6px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:5px;font-size:9px;color:var(--muted);text-decoration:none;font-family:var(--mono);">↗ See examples on Pinterest</a>
+  </div>
+  <div id="wp-ex-btns" style="display:flex;gap:4px;margin-top:auto;padding-top:8px;">
+    <a id="wp-ex-more" href="#" target="_blank" style="flex:1;text-align:center;padding:4px;border:1px solid var(--border);border-radius:5px;font-size:9px;color:var(--muted);text-decoration:none;font-family:var(--mono);">↗ Pinterest</a>
+    <button id="wp-ex-edit" style="flex:0 0 auto;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:9px;color:var(--muted);background:none;cursor:pointer;font-family:var(--mono);">✎ Edit</button>
+    <button id="wp-ex-upload" onclick="document.getElementById('wp-ex-file').click()" style="flex:0 0 auto;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:9px;color:var(--muted);background:none;cursor:pointer;font-family:var(--mono);">↑ Image</button>
+    <input type="file" id="wp-ex-file" accept="image/*" style="display:none" onchange="uploadTagImage(this)">
   </div>
 </div>
 
@@ -2306,6 +2462,53 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
 </div>
 <div id="lora-panel-backdrop" class="lora-panel-backdrop" onclick="closeLpPanel()"></div>
 
+<!-- BROWSE CIVITAI DETAIL PANEL -->
+<div id="browse-detail" class="lora-panel">
+  <div class="lp-header">
+    <div class="lp-header-top">
+      <div class="lp-name" id="bd-name"></div>
+      <button class="lp-close-btn" onclick="closeBrowseDetail()">✕</button>
+    </div>
+    <div class="lp-header-meta">
+      <div class="lp-type-badge" id="bd-type"></div>
+      <div class="lp-type-badge" id="bd-basemodel"></div>
+      <a class="lp-civitai-link" id="bd-civitai-link" href="#" target="_blank">CivitAI ↗</a>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;min-height:0;" id="bd-body">
+    <!-- Images carousel -->
+    <div id="bd-images" style="display:flex;gap:6px;padding:12px;overflow-x:auto;flex-shrink:0;"></div>
+    <!-- Version picker -->
+    <div style="padding:0 14px 10px;display:flex;align-items:center;gap:8px;">
+      <label style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;">Version</label>
+      <select id="bd-version" onchange="onBrowseVersionChange()" style="flex:1;font-size:11px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:var(--mono);"></select>
+    </div>
+    <!-- Stats grid -->
+    <div id="bd-stats" style="padding:0 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--mono);font-size:10px;"></div>
+    <!-- Trained words -->
+    <div id="bd-triggers-wrap" style="padding:0 14px 10px;display:none;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Trained Words</div>
+      <div id="bd-triggers" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+    </div>
+    <!-- Description -->
+    <div id="bd-desc-wrap" style="padding:0 14px 14px;display:none;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Description</div>
+      <div id="bd-desc" style="font-size:11px;line-height:1.5;color:var(--muted);max-height:200px;overflow-y:auto;"></div>
+    </div>
+  </div>
+  <!-- Footer -->
+  <div style="padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;">
+    <button class="lp-foot-btn lp-foot-primary" id="bd-install-btn" onclick="installFromBrowse()" style="width:100%;justify-content:center;">Install</button>
+    <div id="bd-install-progress" style="display:none;margin-top:8px;">
+      <div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;">
+        <div id="bd-progress-bar" style="height:100%;background:var(--orange);width:0%;transition:width .3s;border-radius:2px;"></div>
+      </div>
+      <div id="bd-progress-text" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;margin-top:4px;"></div>
+    </div>
+  </div>
+</div>
+<div id="browse-detail-backdrop" class="lora-panel-backdrop" onclick="closeBrowseDetail()"></div>
+
 <button class="gallery-back-top" id="gallery-back-top" onclick="scrollGalleryToTop()" title="Back to top">↑</button>
 
 <!-- GALLERY DETAIL PANEL -->
@@ -2346,6 +2549,8 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
   <div class="gallery-detail-footer">
     <button class="gdp-remix" onclick="remixFromGallery()">→ Remix</button>
     <button class="gdp-i2i" onclick="img2imgFromGallery()">⊞ IMG2IMG</button>
+    <button class="gdp-share" onclick="shareToCI()">↗ Share</button>
+    <button class="gdp-upscale" onclick="upscaleFromGallery()">⬆ Upscale</button>
   </div>
 </div>
 <div class="gallery-detail-backdrop" id="gallery-detail-backdrop" onclick="closeGalleryDetail()"></div>
@@ -2353,12 +2558,15 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
 <!-- GALLERY CONTEXT MENU -->
 <div id="gallery-ctx-menu" style="position:fixed;background:var(--surface2);border:1px solid var(--border3);border-radius:8px;z-index:600;min-width:150px;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;overflow:hidden;">
   <div onclick="ctxGalleryCopyImage()" style="padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text);" class="ctx-item"><span style="font-size:11px;flex-shrink:0;">⎘</span>Copy Image</div>
+  <div onclick="ctxGalleryReveal()" style="padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text);" class="ctx-item"><span style="font-size:11px;flex-shrink:0;">📂</span>Reveal in Finder</div>
   <div style="height:1px;background:var(--border);margin:4px 0;"></div>
   <div onclick="ctxGalleryApprove()" style="padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--green);" class="ctx-item" id="gallery-ctx-approve-item"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></span>Approve</div>
   <div onclick="ctxGalleryReview()" style="padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text);" class="ctx-item" id="gallery-ctx-review-item"><span style="width:8px;height:8px;border-radius:50%;background:var(--amber);flex-shrink:0;"></span>Mark Review</div>
   <div onclick="ctxGalleryDecline()" style="padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--red);" class="ctx-item" id="gallery-ctx-decline-item"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;"></span>Decline</div>
   <div style="height:1px;background:var(--border);margin:4px 0;"></div>
   <div onclick="ctxGalleryToggleBrut()" style="padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text);" class="ctx-item" id="gallery-ctx-brut-item"><span style="font-size:10px;flex-shrink:0;">⍜</span>Brut</div>
+  <div onclick="ctxGalleryToggleShared()" style="padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--green);" class="ctx-item" id="gallery-ctx-shared-item"><span style="font-size:11px;flex-shrink:0;">↗</span>Shared</div>
+  <div onclick="ctxGalleryToggleReddit()" style="padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:#ff4500;" class="ctx-item" id="gallery-ctx-reddit-item"><span style="font-size:11px;flex-shrink:0;font-weight:700;">r</span>Mark Posted to Reddit</div>
   <div style="height:1px;background:var(--border);margin:4px 0;"></div>
   <div style="padding:5px 12px 2px;font-size:9px;color:var(--muted2);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;user-select:none;">Set Category</div>
   <div id="gallery-ctx-cats" style="max-height:200px;overflow-y:auto;"></div>
@@ -2404,6 +2612,10 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
   </div>
 </div>
 
+<div class="queue-jobs" id="queue-jobs">
+  <div class="queue-jobs-title">Jobs</div>
+  <div id="queue-jobs-list"></div>
+</div>
 <script src="/app.js"></script>
 </body>
 </html>

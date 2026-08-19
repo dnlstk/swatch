@@ -36,8 +36,8 @@ const BUILTIN_CATS = [
     pony:['1boy','2boys','lean','athletic','muscular','buff','bodybuilder','broad shoulders','defined pecs','thick thighs','slim waist','pale skin','fair skin','tan skin','olive skin','brown skin','dark skin','ebony skin','young adult','20s','30s','mature','older man','short messy hair','buzzcut','long hair','stubble','beard','sharp jawline','handsome','nude','shirtless','clothed','partially undressed','underwear']},
   {id:'subject',label:'Subject / Action',color:'#a78bfa',tags:['solitary figure','two figures','close-up face','full body shot','silhouette','standing still','in motion','seated','floating','crouching','hands extended','back to viewer','partially obscured','emerging from shadow','dissolving into smoke'],pony:['solitary figure','close-up face','full body shot','1boy','solo','upper body','cowboy shot']},
   {id:'style',label:'Style / Type',color:'#818cf8',tags:['dark fantasy illustration','modern comic book art','graphic novel panel','underground comix','body horror aesthetic','surrealist painting','painterly brushwork','concept art','street photography','hyperrealistic photography','cinematic still from a film','fine art photography','high fashion editorial photography'],pony:['dark fantasy illustration','graphic novel style','concept art','detailed illustration','painterly','comic book art']},
-  {id:'lighting',label:'Lighting',color:'#f59e0b',tags:['dramatic studio lighting','neon lit street at night','candlelight','golden hour sunlight','bioluminescent light','rim lighting','deep shadows','harsh overhead light','soft diffused light','moonlight','fire light','light from below','colored gel lighting','split lighting','chiaroscuro','volumetric fog']},
-  {id:'camera',label:'Camera / Focus',color:'#34d399',tags:['sharp focus','shallow depth of field','motion blur','shot on medium format','shot on 35mm film','wide angle lens','extreme close up','low angle shot','birds eye view','dutch angle','film grain','anamorphic lens flare','long exposure','double exposure']},
+  {id:'lighting',label:'Lighting',color:'#f59e0b',tags:['dramatic studio lighting','neon lit street at night','candlelight','golden hour sunlight','bioluminescent light','rim lighting','deep shadows','harsh overhead light','soft diffused light','moonlight','fire light','light from below','colored gel lighting','split lighting','chiaroscuro','volumetric fog','overcast light','dappled sunlight','twilight','window light','fluorescent light','screen glow','underwater caustics','backlighting','high key lighting','low key lighting','silhouette lighting','light painting','butterfly lighting','Rembrandt lighting']},
+  {id:'camera',label:'Camera / Focus',color:'#34d399',tags:['sharp focus','shallow depth of field','motion blur','wide angle lens','extreme close up','low angle shot','birds eye view','dutch angle','anamorphic lens flare','double exposure','over-the-shoulder','worm\'s eye view','top-down','eye level','three-quarter view','bokeh','macro','tilt-shift']},
   {id:'mood',label:'Mood / Atmosphere',color:'#f472b6',tags:['oppressive atmosphere','existential dread','electric tension','sublime terror','quiet devastation','euphoric chaos','brooding intensity','otherworldly calm','barely contained violence','beautiful wrongness','sensual tension','raw visceral power','transcendent horror','melancholic beauty','profound loneliness']},
   {id:'color',label:'Color Palette',color:'#fb923c',tags:['deep jewel tones','desaturated with neon accents','monochromatic red','black and white with single color pop','rich crimson and deep violet','electric teal and black','burnt orange and shadow','ice blue and white','toxic green and black','gold and obsidian','acid colors','muted earth tones','high contrast black and white']},
   {id:'details',label:'Details / Texture',color:'#6366f1',tags:['intricate tattoos','flowing fabric','weathered skin','cracked surface','organic tendrils','geometric patterns','smoke and embers','dripping liquid','shattered glass','glowing runes','heavy chains','torn clothing','iridescent scales','circuit board veins','bone structure visible']},
@@ -232,7 +232,8 @@ function showInlinePrompt(message,defaultVal,onConfirm){
   if(existing)existing.remove();
   const d=document.createElement('div');
   d.id='inline-dialog';
-  d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);';
+  d.tabIndex=-1;
+  d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);outline:none;';
   d.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border3);border-radius:10px;padding:20px;width:320px;box-shadow:0 16px 48px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:12px;">
     <div style="font-size:13px;color:var(--text);font-family:var(--sans);">${message}</div>
     <input id="inline-dialog-input" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;width:100%;box-sizing:border-box;" value="${(defaultVal||'').replace(/"/g,'&quot;')}">
@@ -253,18 +254,22 @@ function showInlineConfirm(message,onConfirm,opts){
   if(existing)existing.remove();
   const okLabel=(opts&&opts.okLabel)||'Delete';
   const okColor=(opts&&opts.okColor)||'var(--red)';
+  const cancelLabel=(opts&&opts.cancelLabel)||'Cancel';
+  const onCancel=opts&&opts.onCancel;
   const d=document.createElement('div');
   d.id='inline-dialog';
-  d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);';
+  d.tabIndex=-1;
+  d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);outline:none;';
   d.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border3);border-radius:10px;padding:20px;width:320px;box-shadow:0 16px 48px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:12px;">
     <div style="font-size:13px;color:var(--text);font-family:var(--sans);">${message}</div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button onclick="document.getElementById('inline-dialog').remove()" style="padding:6px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--sans);">Cancel</button>
+      <button id="inline-dialog-cancel" style="padding:6px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--sans);">${cancelLabel}</button>
       <button id="inline-dialog-ok" style="padding:6px 14px;background:${okColor};border:1px solid ${okColor};border-radius:6px;color:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);">${okLabel}</button>
     </div>
   </div>`;
   document.body.appendChild(d);
   document.getElementById('inline-dialog-ok').onclick=()=>{d.remove();onConfirm();};
+  document.getElementById('inline-dialog-cancel').onclick=()=>{d.remove();if(onCancel)onCancel();};
   d.onkeydown=e=>{if(e.key==='Escape')d.remove();};
   d.focus();
 }
@@ -434,7 +439,8 @@ function toggleLoraColBrut(colId){
 
 function renderLoraNav(){
   const nav=document.getElementById('nav');
-  const hideBrut=!showAdult||document.body.classList.contains('hide-brut');
+  const demoMode=document.body.classList.contains('hide-brut');
+  const hideBrut=!showAdult||demoMode;
   const uncatCount=loraList.filter(l=>{
     if(!getLoraModels(l).includes(model))return false;
     return !loraCols.some(c=>c.keys.includes(l.file_name));
@@ -454,10 +460,10 @@ function renderLoraNav(){
       ondrop="loraNavDrop(event,'${col.id}')"
       ondragend="navDragEnd(event)">
       <span class="ndot" style="background:var(--orange)"></span>
-      <span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${col.label}</span>${brutActive?`<button onclick="event.stopPropagation();toggleLoraColBrut('${col.id}')" title="Unmark Brut" class="ncol-btn ncol-brut-active" style="font-size:10px;">⍜</button>`:''}
+      <span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${col.label}</span>${brutActive&&!demoMode?`<button onclick="event.stopPropagation();toggleLoraColBrut('${col.id}')" title="Unmark Brut" class="ncol-btn ncol-brut-active" style="font-size:10px;">⍜</button>`:''}
       <span class="ncount">${count}</span>
       <span class="ncol-actions">
-        ${brutActive?'':`<button onclick="event.stopPropagation();toggleLoraColBrut('${col.id}')" title="Mark Brut" class="ncol-btn" style="font-size:10px;">⍜</button>`}
+        ${brutActive||demoMode?'':`<button onclick="event.stopPropagation();toggleLoraColBrut('${col.id}')" title="Mark Brut" class="ncol-btn" style="font-size:10px;">⍜</button>`}
         <button onclick="event.stopPropagation();renameLoraCol('${col.id}')" title="Rename" class="ncol-btn">✎</button>
         <button onclick="event.stopPropagation();deleteLoraCol('${col.id}')" title="Delete" class="ncol-btn ncol-del">✕</button>
       </span>
@@ -679,7 +685,7 @@ function renderTagSections(){
         </div>
       </div>
       <div class="tags tags-wrap" id="tags-${cat.id}">${all.map(t=>mkTag(cat.id,t)).join('')}</div>
-      ${isEdit?`<div class="addrow"><input class="addinput" id="ai-${cat.id}" placeholder="add tag..." onkeydown="if(event.key==='Enter')addTag('${cat.id}')"><button class="addbtn" onclick="addTag('${cat.id}')">+ Add</button></div>`:''}
+      ${isEdit?`<div class="addrow"><input class="addinput" id="ai-${cat.id}" placeholder="add tag..." onkeydown="if(event.key==='Enter')addTag('${cat.id}');if(event.key==='Escape')toggleEdit('${cat.id}')"><button class="addbtn" onclick="addTag('${cat.id}')">+ Add</button></div>`:''}
     `;
     con.appendChild(div);
     if(editModes[cat.id])initDragOnContainer(cat.id);
@@ -944,10 +950,10 @@ function deleteCat(cid){
 // ===================== WEIGHT POPUP =====================
 function openWP(cid,tag,e){
   e.preventDefault();e.stopPropagation();
-  if(!activeTags[cid])activeTags[cid]=new Set();
-  if(!activeTags[cid].has(tag)){activeTags[cid].add(tag);appendTagToField(tagTargetField(cid),tag);refreshTag(cid,tag);updateOutput();updateNav();}
-  currentWPTag=tag;currentWPCat=cid;
   const popup=document.getElementById('wpopup');
+  if(popup.classList.contains('visible')&&currentWPTag===tag&&currentWPCat===cid){popup.classList.remove('visible');return;}
+  if(!activeTags[cid])activeTags[cid]=new Set();
+  currentWPTag=tag;currentWPCat=cid;
   const cur=tagWeights[`${cid}::${tag}`]||1.0;
   document.getElementById('wpslider').value=cur;
   document.getElementById('wpval').textContent=parseFloat(cur).toFixed(2);
@@ -961,8 +967,9 @@ function openWP(cid,tag,e){
   document.getElementById('wp-ex-img-wrap').innerHTML='';
   document.getElementById('wp-ex-desc').textContent='';
   exSec.style.display='none';
-  // Inject example if available
-  const exData=typeof TAG_EXAMPLES!=='undefined'&&TAG_EXAMPLES[tag];
+  // Inject example if available (custom descriptions override built-ins)
+  const customDesc=(appData.tagDescriptions||{})[tag];
+  const exData=customDesc?{desc:customDesc}:(typeof TAG_EXAMPLES!=='undefined'&&TAG_EXAMPLES[tag]);
   if(exData){
     exSec.style.display='block';
     document.getElementById('wp-ex-desc').textContent=exData.desc||'';
@@ -971,20 +978,78 @@ function openWP(cid,tag,e){
     const imgWrap=document.getElementById('wp-ex-img-wrap');
     const localSrc='/tag-images/'+tag.replace(/ /g,'_')+'.jpg';
     const img=new Image();
-    img.onload=()=>{imgWrap.innerHTML='<img class="wp-ex-img" src="'+localSrc+'">';};
+    img.onload=()=>{imgWrap.innerHTML='<img class="wp-ex-img" src="'+localSrc+'">';repositionWP();};
     img.onerror=()=>{if(exData.img){imgWrap.innerHTML='<img class="wp-ex-img" src="'+exData.img+'" onerror="this.parentElement.innerHTML=\'\'">';}};
     img.src=localSrc;
   }
-  // Smart position
-  popup.style.visibility='hidden';popup.style.left='-9999px';popup.style.top='-9999px';
+  // Show edit description button (always visible — allows adding descriptions to any tag)
+  const editDescBtn=document.getElementById('wp-ex-edit');
+  if(editDescBtn){
+    editDescBtn.onclick=()=>editTagDescription(tag);
+    if(!exData){exSec.style.display='block';}
+  }
+  // Dock to right edge of left panel, aligned with its top/bottom
   popup.classList.add('visible');
-  requestAnimationFrame(()=>{
-    const pw=popup.offsetWidth||220;const ph=popup.offsetHeight||160;const margin=12;
-    let left=e.clientX+4;let top=e.clientY-10;
-    left=Math.max(margin,Math.min(left,window.innerWidth-pw-margin));
-    top=Math.max(margin,Math.min(top,window.innerHeight-ph-margin));
-    popup.style.left=left+'px';popup.style.top=top+'px';popup.style.visibility='visible';
-  });
+  const footer=document.querySelector('.footer');
+  if(footer){
+    const r=footer.getBoundingClientRect();
+    popup.style.left=(r.right+6)+'px';
+    popup.style.top=r.top+'px';
+    popup.style.bottom=(window.innerHeight-r.bottom)+'px';
+  }else{
+    popup.style.left='390px';popup.style.top='100px';popup.style.bottom='10px';
+  }
+  // Escape to close
+  popup.onkeydown=ev=>{if(ev.key==='Escape')popup.classList.remove('visible');};
+  popup.tabIndex=-1;popup.focus();
+}
+function editTagDescription(tag){
+  const popup=document.getElementById('wpopup');
+  popup.classList.remove('visible');
+  const current=(appData.tagDescriptions||{})[tag]||(TAG_EXAMPLES[tag]||{}).desc||'';
+  const existing=document.getElementById('inline-dialog');
+  if(existing)existing.remove();
+  const d=document.createElement('div');
+  d.id='inline-dialog';d.tabIndex=-1;
+  d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);outline:none;';
+  d.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border3);border-radius:10px;padding:20px;width:380px;box-shadow:0 16px 48px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:12px;">
+    <div style="font-size:13px;color:var(--text);font-family:var(--sans);">Description for "${tag}":</div>
+    <textarea id="inline-dialog-input" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;width:100%;box-sizing:border-box;min-height:80px;resize:vertical;line-height:1.5;">${current.replace(/</g,'&lt;')}</textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="document.getElementById('inline-dialog').remove()" style="padding:6px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--sans);">Cancel</button>
+      <button id="inline-dialog-ok" style="padding:6px 14px;background:var(--text);border:1px solid var(--text);border-radius:6px;color:var(--bg);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);">OK</button>
+    </div>
+  </div>`;
+  document.body.appendChild(d);
+  const input=document.getElementById('inline-dialog-input');
+  input.focus();
+  const confirm=()=>{const v=input.value;d.remove();if(!appData.tagDescriptions)appData.tagDescriptions={};if(v.trim()){appData.tagDescriptions[tag]=v.trim();}else{delete appData.tagDescriptions[tag];}saveAppData();};
+  document.getElementById('inline-dialog-ok').onclick=confirm;
+  d.onkeydown=e=>{if(e.key==='Escape')d.remove();};
+}
+function repositionWP(){
+  const popup=document.getElementById('wpopup');
+  if(!popup||!popup.classList.contains('visible'))return;
+  const margin=12;const ph=popup.offsetHeight;
+  const maxTop=window.innerHeight-ph-margin;
+  popup.style.top=Math.max(margin,Math.min(parseInt(popup.style.top)||0,maxTop))+'px';
+}
+async function uploadTagImage(input){
+  const file=input.files[0];
+  if(!file||!currentWPTag)return;
+  const fd=new FormData();
+  fd.append('file',file,file.name);
+  fd.append('key',currentWPTag);
+  try{
+    const r=await fetch('/tag-images/upload',{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.ok){
+      const imgWrap=document.getElementById('wp-ex-img-wrap');
+      imgWrap.innerHTML='<img class="wp-ex-img" src="'+d.url+'?t='+Date.now()+'">';
+      showToast('Image saved for "'+currentWPTag+'"');
+    }else{showToast(d.error||'Upload failed','err');}
+  }catch(e){showToast('Upload failed','err');}
+  input.value='';
 }
 function applyWeight(){
   if(!currentWPTag)return;
@@ -1056,11 +1121,40 @@ async function loadLoras(){
     renderLoraGrid();
     renderLoraTab();
     renderCheckpoints();
+    fetchMissingLoraMetadata();
   }catch(err){
     st.textContent='Cannot connect';st.className='lrstatus err';
     document.getElementById('lora-conn').textContent='●';
     document.getElementById('lora-conn').style.color='var(--red)';
     gr.innerHTML=`<span style="font-size:11px;color:var(--red);font-family:var(--mono);">Error: ${err.message}</span>`;
+  }
+}
+
+async function fetchMissingLoraMetadata(){
+  const missing=loraList.filter(l=>!l.civitai&&!l.sha256);
+  if(!missing.length)return;
+  let fetched=0;
+  for(const lora of missing){
+    try{
+      const r=await fetch('/local/loras/fetch-metadata',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({file_name:lora.file_name}),
+      });
+      const j=await r.json();
+      if(j.ok&&j.found){
+        fetched++;
+        if(j.model_name)lora.model_name=j.model_name;
+        if(j.base_model)lora.base_model=j.base_model;
+      }
+    }catch{}
+  }
+  if(fetched>0){
+    showToast('Metadata fetched',`Found CivitAI data for ${fetched} LoRA${fetched>1?'s':''}`,'ok');
+    await fetch('/local/refresh').catch(()=>{});
+    const r=await fetch('/local/loras/list');
+    if(r.ok){const d=await r.json();loraList=d.items||[];loraList.forEach(l=>{const d=getLora(l.file_name);if(d.favorite!==undefined)l.favorite=d.favorite;if(d.name)l.model_name=d.name;});}
+    renderLoraGrid();
+    renderLoraTab();
   }
 }
 
@@ -1475,6 +1569,7 @@ function lpToggleCleaned(){
   const cur=!!getLora(currentLPKey).cleaned;
   setLora(currentLPKey,{cleaned:!cur});
   if(cur)delete appData.loraData[currentLPKey].cleaned;
+  else resetAutoTagsForLora(currentLPKey);
   document.getElementById('lpst-cleaned')?.classList.toggle('active',!cur);
   updateCleanedBadge(currentLPKey);
   saveAppData();
@@ -2311,6 +2406,7 @@ let _wsGenerating=false; // true between first executing/progress msg and execut
 let _wsQueueRemaining=0; // items waiting (not including the one currently executing)
 let _genStartTime=null;
 let _genOutputFiles=[];
+let _pendingUpscale=null;
 
 async function pollQueueOnce(){
   const pill=document.getElementById('queue-pill');
@@ -2463,8 +2559,8 @@ function toggleQueuePanel(){
   if(!el)return;
   el.classList.toggle('open',_queuePanelOpen);
   const btn=document.getElementById('queue-panel-toggle');
-  if(btn){btn.classList.toggle('active',_queuePanelOpen);btn.textContent=_queuePanelOpen?'jobs ▴':'jobs ▾';}
-  if(_queuePanelOpen)refreshQueuePanel();
+  if(btn){btn.classList.toggle('active',_queuePanelOpen);btn.textContent=_queuePanelOpen?'jobs ▾':'jobs ▴';}
+  if(_queuePanelOpen) refreshQueuePanel();
 }
 async function refreshQueuePanel(){
   if(!_queuePanelOpen)return;
@@ -2522,7 +2618,6 @@ function handleComfyWSMessage(msg){
     updateQueueBarState(1,_wsQueueRemaining);
     const qSuf=_wsQueueRemaining>0?` | +${_wsQueueRemaining}`:'';
     _trayProgress(`${pct}%${qSuf}`);
-    scheduleQueueLabelUpdate();
 
   }else if(msg.type==='executed'){
     const imgs=msg.data?.output?.images;
@@ -2544,6 +2639,17 @@ function handleComfyWSMessage(msg){
       _genOutputFiles=[];
       _wsGenerating=false;
       if(completedFiles.length)autoTagCompletedFiles(completedFiles);
+      if(_pendingUpscale&&msg.data.prompt_id===_pendingUpscale.promptId){
+        const wsFile=completedFiles[completedFiles.length-1];
+        if(wsFile){
+          const pu={..._pendingUpscale};
+          _pendingUpscale=null;
+          finalizeUpscale(pu,wsFile);
+        }else{
+          showToast('Upscale failed','No output file produced','err');
+          _pendingUpscale=null;
+        }
+      }
       _wsQueueRemaining=0;
       if(prog)prog.classList.remove('active');
       if(inner)inner.style.width='0%';
@@ -2562,7 +2668,6 @@ function handleComfyWSMessage(msg){
       if(!pill.textContent.includes('%'))pill.textContent='generating…';
       _trayProgress('…');
       updateQueueBarState(1,_wsQueueRemaining);
-      scheduleQueueLabelUpdate();
     }
 
   }else if(msg.type==='status'){
@@ -2825,6 +2930,8 @@ function toggleAdult(){
   });
   renderLoraNav();
   renderLoraTab();
+  // Re-search browse results with updated nsfw param
+  if(_loraMode==='browse')doBrowseSearch();
 }
 
 // ===================== LORA CONTEXT MENU =====================
@@ -2959,6 +3066,7 @@ function ctxToggleCleaned(){
   const cur=!!getLora(_ctxKey).cleaned;
   setLora(_ctxKey,{cleaned:!cur});
   if(cur)delete appData.loraData[_ctxKey].cleaned;
+  else resetAutoTagsForLora(_ctxKey);
   saveAppData();
   updateCleanedBadge(_ctxKey);
   closeLoraCtx();
@@ -3200,7 +3308,7 @@ function mkLoraCard(l){
   const ek=eq(key);const en=eq(l.model_name);
   const enableLabel=isActive?'✓ Enabled':'Enable';
   const imgHtml=imgSrc
-    ?'<img class="lora-card-img" draggable="false" src="'+imgSrc+'" onerror="this.outerHTML=\'<div class=lora-card-img-placeholder>No preview</div>\'">'
+    ?'<img class="lora-card-img" draggable="false" loading="lazy" src="'+imgSrc+'" onerror="this.outerHTML=\'<div class=lora-card-img-placeholder>No preview</div>\'">'
     :'<div class="lora-card-img-placeholder">No preview</div>';
   const statusCls=getStatusClass(key);
   const favBtn='<button class="lora-card-fav'+(l.favorite?' active':'')+'" onclick="toggleCardFav(\''+ek+'\',event)">★</button>';
@@ -3408,10 +3516,20 @@ function applyBrutSetting(hide){
   if(hide===undefined)hide=!!(appData.settings?.hideBrut);
   else saveSetting('hideBrut',hide);
   document.body.classList.toggle('hide-brut',hide);
-  if(hide&&showAdult){showAdult=false;renderLoraGrid();}
-  else renderLoraGrid();
+  if(hide&&showAdult){showAdult=false;}
+  if(hide&&showGalleryAdult){showGalleryAdult=false;}
+  renderLoraGrid();
   renderLoraNav();
   renderLoraTab();
+  renderGallery();
+  renderGalleryAlbumTabs();
+  // Force brut buttons hidden/shown in titlebar
+  const _bb=document.getElementById('tags-brut-btn');
+  const _lb=document.getElementById('ladult-btn');
+  const _gb=document.getElementById('gsc-brut');
+  if(_bb&&_bb.style.display!=='none')_bb.style.display=hide?'none':'';
+  if(_lb&&_lb.style.display!=='none')_lb.style.display=hide?'none':'';
+  if(_gb&&_gb.style.display!=='none')_gb.style.display=hide?'none':'';
 }
 
 // ===================== CHANGELOG =====================
@@ -3536,15 +3654,17 @@ function switchTab(tab){
   if(tab==='loras'){renderLoraTab();updateFooterH();}
   else if(tab==='gallery'){app.classList.remove('sidebar-collapsed');loadGallery();startGalleryAutoPoll();renderRecentStrip();}
   else if(tab==='settings'){loadSettings();renderChangelog();}
+  else if(tab==='train'){renderTrainTab();}
   else updateFooterH();
   if(tab==='tags'){renderRecentStrip();updateSendMeta();}
   // Stop auto-poll when leaving Gallery; hide back-to-top
   if(tab!=='gallery'){stopGalleryAutoPoll();updateBackToTopButton();}
 
-  // Show the right brut button for the active tab
-  const _bb=document.getElementById('tags-brut-btn');if(_bb)_bb.style.display=tab==='tags'?'':'none';
-  const _lb=document.getElementById('ladult-btn');if(_lb)_lb.style.display=tab==='loras'?'':'none';
-  const _gb=document.getElementById('gsc-brut');if(_gb)_gb.style.display=tab==='gallery'?'':'none';
+  // Show the right brut button for the active tab (hidden in demo mode)
+  const _hb=document.body.classList.contains('hide-brut');
+  const _bb=document.getElementById('tags-brut-btn');if(_bb)_bb.style.display=(!_hb&&tab==='tags')?'':'none';
+  const _lb=document.getElementById('ladult-btn');if(_lb)_lb.style.display=(!_hb&&tab==='loras')?'':'none';
+  const _gb=document.getElementById('gsc-brut');if(_gb)_gb.style.display=(!_hb&&tab==='gallery')?'':'none';
   // Hide IMG/VID subtabs on non-Generate tabs
   const genSubtabs=document.querySelector('.gen-subtabs-titlebar');
   if(genSubtabs)genSubtabs.style.visibility=tab==='tags'?'':'hidden';
@@ -3552,6 +3672,8 @@ function switchTab(tab){
   // Recent strip polls for new images while on the Generate tab
   if(tab==='tags')startRecentPoll();
   else stopRecentPoll();
+  // Close queue panel when leaving Generate tab
+  if(tab!=='tags'&&_queuePanelOpen){_queuePanelOpen=false;const qj=document.getElementById('queue-jobs');if(qj)qj.classList.remove('open');const qb=document.getElementById('queue-panel-toggle');if(qb){qb.classList.remove('active');qb.textContent='jobs ▴';}}
   // Queue indicator only polls while Generate (tags) tab is visible
   if(tab==='tags')startQueuePoll();
   else stopQueuePoll();
@@ -3706,6 +3828,8 @@ function closePopups(e){
   if(gctx&&!gctx.contains(e.target)){gctx.style.display='none';_galleryCtxFile=null;}
   const lmpop=document.getElementById('lora-meta-popover');
   if(lmpop&&lmpop.classList.contains('open')&&!lmpop.contains(e.target)&&!e.target.closest('.gdp-meta-chip'))closeLoraMetaPopover();
+  const qjobs=document.getElementById('queue-jobs');
+  if(_queuePanelOpen&&qjobs&&!qjobs.contains(e.target)&&!e.target.closest('#queue-panel-toggle')){_queuePanelOpen=false;qjobs.classList.remove('open');const qb=document.getElementById('queue-panel-toggle');if(qb){qb.classList.remove('active');qb.textContent='jobs ▴';}}
 }
 
 
@@ -3787,6 +3911,16 @@ function toggleDragLock(){
   tabs.style.webkitAppRegion=locked?'drag':'no-drag';
   const btn=document.getElementById('drag-lock-btn');
   if(btn){btn.classList.toggle('active',!locked);btn.textContent=locked?'⊟':'⊞';}
+}
+
+// ===================== CIVITAI IN-APP BROWSER =====================
+function openCivitAI(url){
+  const defaultUrl=document.body.classList.contains('hide-brut')?'https://civitai.com':'https://civitai.red';
+  if(window.promptGen&&window.promptGen.openCivitAI){
+    window.promptGen.openCivitAI(url||defaultUrl);
+  }else{
+    window.open(url||defaultUrl,'_blank');
+  }
 }
 
 // ===================== LORA FAVORITE + RENAME =====================
@@ -3891,38 +4025,182 @@ function initDragOnContainer(cid){
 // ===================== TAG EXAMPLE DATA =====================
 const TAG_EXAMPLES = {
   // Lighting
-  'chiaroscuro':{desc:'Strong contrast between light and dark — deep shadows with dramatic bright highlights. Think Caravaggio paintings.',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Caravaggio_-_La_vocazione_di_San_Matteo.jpg/800px-Caravaggio_-_La_vocazione_di_San_Matteo.jpg'},
-  'split lighting':{desc:'One side of the face is lit, the other in shadow. Classic portrait technique for moody or dramatic shots.',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/640px-Camponotus_flavomarginatus_ant.jpg'},
-  'rim lighting':{desc:'Light comes from behind the subject, creating a glowing outline or halo effect around the edges.',img:''},
-  'volumetric fog':{desc:'Light rays visible through atmospheric haze or mist. Creates god rays and a sense of depth.',img:''},
-  'chiaroscuro':{desc:'Extreme light/dark contrast. Deep blacks with precise bright highlights creating sculptural form.',img:''},
-  'bioluminescent light':{desc:'Glowing organic light — like deep sea creatures or glowing fungi. Blue-green otherworldly illumination.',img:''},
-  'golden hour sunlight':{desc:'Warm orange-gold light from just after sunrise or before sunset. Long shadows, soft diffuse warmth.',img:''},
-  'candlelight':{desc:'Warm flickering low light. Orange-yellow, intimate, shadows dance. Usually single small point source.',img:''},
-  'neon lit street at night':{desc:'Colored neon signs reflecting on wet pavement. Cyberpunk aesthetic, deep shadows with vivid color pops.',img:''},
-  // Camera
-  'shallow depth of field':{desc:'Subject is sharp, background blurs into smooth bokeh. Draws focus to a single element.',img:''},
-  'dutch angle':{desc:'Camera tilted on its axis — horizon is diagonal, creates unease or tension.',img:''},
-  'anamorphic lens flare':{desc:'Horizontal blue/teal streaks of light. Cinematic flare created by anamorphic lenses used in film.',img:''},
-  'film grain':{desc:'Fine noise texture over the image simulating analog film. Adds warmth and a lo-fi photographic feel.',img:''},
-  'double exposure':{desc:'Two images blended into one — silhouette filled with a landscape, portrait overlaid with texture.',img:''},
-  'birds eye view':{desc:'Looking straight down from above. Flattens the scene into a map-like composition.',img:''},
-  'low angle shot':{desc:'Camera placed low looking up. Makes subjects appear powerful or imposing.',img:''},
-  'wide angle lens':{desc:'More of the scene visible with perspective distortion — edges stretch, space feels larger.',img:''},
-  'extreme close up':{desc:'Very tight crop on a small detail — an eye, a texture, fingertips. Context disappears.',img:''},
-  // Style
-  'painterly brushwork':{desc:'Visible paint strokes and texture. Loose expressive marks rather than photographic smoothness.',img:''},
-  'body horror aesthetic':{desc:'Disturbing transformation or mutation of the human form. Flesh rendered wrong.',img:''},
-  'underground comix':{desc:'Raw hand-drawn style from 60s-70s counterculture. Scratchy lines, grotesque imagery, high contrast.',img:''},
-  // Mood
-  'sublime terror':{desc:'Overwhelming scale or power that inspires awe and fear simultaneously. Vastness beyond comprehension.',img:''},
-  'beautiful wrongness':{desc:'Something visually appealing but deeply uncanny — the aesthetics of the disturbing.',img:''},
-  'euphoric chaos':{desc:'Vibrant, overwhelming, uncontrolled energy — beautiful disorder.',img:''},
-  // Color
-  'desaturated with neon accents':{desc:'Muted grey-toned palette with one or two vivid neon colors punching through.',img:''},
-  'high contrast black and white':{desc:'Pure blacks and whites with minimal grey — graphic, bold, no subtlety.',img:''},
-  'deep jewel tones':{desc:'Rich saturated colors — sapphire, emerald, ruby, amethyst. Luxurious and intense.',img:''},
-  'acid colors':{desc:'Neon, slightly wrong, oversaturated. Hot pink, toxic green, electric yellow. Psychedelic.',img:''},
+  'dramatic studio lighting':{desc:'Hard directional light with controlled shadows, like a photography studio. Sculpts form with intent.'},
+  'neon lit street at night':{desc:'Colored neon signs reflecting on wet pavement. Cyberpunk aesthetic, deep shadows with vivid color pops.'},
+  'candlelight':{desc:'Warm flickering low light. Orange-yellow, intimate, shadows dance. Usually single small point source.'},
+  'golden hour sunlight':{desc:'Warm orange-gold light from just after sunrise or before sunset. Long shadows, soft diffuse warmth.'},
+  'bioluminescent light':{desc:'Glowing organic light — like deep sea creatures or glowing fungi. Blue-green otherworldly illumination.'},
+  'rim lighting':{desc:'Light comes from behind the subject, creating a glowing outline or halo effect around the edges.'},
+  'deep shadows':{desc:'Large areas of pure black. Details hidden, form suggested rather than shown. Moody and ominous.'},
+  'harsh overhead light':{desc:'Light directly above — deep eye sockets, strong nose shadow, unflattering but dramatic. Interrogation lamp feel.'},
+  'soft diffused light':{desc:'Even, shadowless illumination like an overcast day or through a diffuser. Gentle on skin, no hard edges.'},
+  'moonlight':{desc:'Cool blue-silver light, low intensity. Soft shadows with a nighttime color cast. Quiet and ethereal.'},
+  'fire light':{desc:'Warm orange-red with dancing shadows. Harsh near the source, falls off rapidly. Primal and unstable.'},
+  'light from below':{desc:'Upward-casting light that inverts normal shadows. Unnatural and sinister — classic horror campfire effect.'},
+  'colored gel lighting':{desc:'Theatrical colored light — cyan, magenta, amber gels over studio lights. Creates mood through tinted illumination.'},
+  'split lighting':{desc:'One side of the face is lit, the other in shadow. Classic portrait technique for moody or dramatic shots.'},
+  'chiaroscuro':{desc:'Extreme light/dark contrast. Deep blacks with precise bright highlights creating sculptural form. Caravaggio-style.'},
+  'volumetric fog':{desc:'Light rays visible through atmospheric haze or mist. Creates god rays and a sense of depth.'},
+  'overcast light':{desc:'Flat even illumination from a cloudy sky. No hard shadows, muted tones. Quietly melancholic.'},
+  'dappled sunlight':{desc:'Irregular spots of light filtering through leaves or lattice. Organic pattern of light and shadow on surfaces.'},
+  'twilight':{desc:'The blue hour — ambient sky glow after sunset. Cool purples and blues, no direct light source. Liminal.'},
+  'window light':{desc:'Soft directional light from a window. Falls off across the room creating a natural gradient. Vermeer-style.'},
+  'fluorescent light':{desc:'Flat greenish-white overhead lighting. Institutional, slightly unpleasant color cast. Office/hospital vibe.'},
+  'screen glow':{desc:'Cool blue-white light from a monitor illuminating a face in darkness. Modern, isolated, nocturnal.'},
+  'underwater caustics':{desc:'Dancing web-like light patterns from sunlight refracting through water surface. Shifts and ripples.'},
+  'backlighting':{desc:'Main light source behind the subject. Silhouettes or glowing translucent edges depending on exposure.'},
+  'high key lighting':{desc:'Bright, low-contrast, minimal shadows. Clean and airy. Fashion/beauty look with an optimistic feel.'},
+  'low key lighting':{desc:'Mostly dark with selective highlights. High contrast, heavy shadows. Film noir, dramatic, tense.'},
+  'silhouette lighting':{desc:'Subject is pure black shape against a bright background. All detail lost — only outline remains.'},
+  'light painting':{desc:'Long-exposure streaks of light traced through the scene. Neon trails, glowing lines in darkness.'},
+  'butterfly lighting':{desc:'Light directly in front and above the subject. Creates a small butterfly-shaped shadow under the nose. Glamour portrait standard.'},
+  'Rembrandt lighting':{desc:'Small triangle of light on the shadowed cheek. Named after the painter. Classic portrait technique — dramatic but natural.'},
+  // Camera / Focus
+  'sharp focus':{desc:'Everything crisp and detailed. No blur anywhere — every edge is defined. Technical precision.'},
+  'shallow depth of field':{desc:'Subject is sharp, background blurs into smooth bokeh. Draws focus to a single element.'},
+  'motion blur':{desc:'Moving elements streak across the frame. Conveys speed and kinetic energy. Static parts stay sharp.'},
+  'wide angle lens':{desc:'More of the scene visible with perspective distortion — edges stretch, space feels larger.'},
+  'extreme close up':{desc:'Very tight crop on a small detail — an eye, a texture, fingertips. Context disappears.'},
+  'low angle shot':{desc:'Camera placed low looking up. Makes subjects appear powerful or imposing.'},
+  'birds eye view':{desc:'Looking straight down from above. Flattens the scene into a map-like composition.'},
+  'dutch angle':{desc:'Camera tilted on its axis — horizon is diagonal, creates unease or tension.'},
+  'anamorphic lens flare':{desc:'Horizontal blue/teal streaks of light. Cinematic flare created by anamorphic lenses used in film.'},
+  'double exposure':{desc:'Two images blended into one — silhouette filled with a landscape, portrait overlaid with texture.'},
+  'over-the-shoulder':{desc:'Camera behind one person looking toward another. Creates depth and relationship between subjects.'},
+  'worm\'s eye view':{desc:'Extreme low angle looking almost straight up. Buildings tower, figures loom. Maximum dramatic distortion.'},
+  'top-down':{desc:'Flat overhead view, like a tabletop layout. No perspective — everything reads as a 2D arrangement.'},
+  'eye level':{desc:'Camera at the subject\'s eye height. Neutral, natural perspective. How we actually see people.'},
+  'three-quarter view':{desc:'Subject turned about 45° from camera. Shows depth of the face/body. Most common portrait angle.'},
+  'bokeh':{desc:'Out-of-focus light sources become soft glowing circles or shapes. Creamy, dreamy background quality.'},
+  'macro':{desc:'Extreme magnification of tiny subjects — insects, water drops, textures. Reveals a world invisible at normal scale.'},
+  'tilt-shift':{desc:'Selective focus plane that makes real scenes look like miniature models. Sharp center band, blur above and below.'},
+  // Quality & Rating
+  'masterpiece':{desc:'Highest quality tier tag. Tells the model to aim for its best output.'},
+  'best quality':{desc:'Quality booster — pushes toward cleaner lines, better anatomy, more detail.'},
+  'newest':{desc:'Biases toward newer training data aesthetics. Generally sharper, more modern look.'},
+  'highres':{desc:'High resolution output. Encourages fine detail and crisp rendering.'},
+  '4k':{desc:'4K resolution quality. Sharp details, clean edges, minimal artifacts.'},
+  '8k':{desc:'Ultra high resolution. Extremely fine detail — can sometimes over-sharpen.'},
+  '16k':{desc:'Maximum resolution tag. Use sparingly — can cause over-processing.'},
+  'absurdres':{desc:'Absurdly high resolution. Maximum detail push — best paired with highres fix.'},
+  'HDR':{desc:'High dynamic range — wider range between darks and lights. Vivid, punchy.'},
+  'ultra detailed':{desc:'Pushes for maximum surface detail — every pore, thread, and texture.'},
+  'sharp detail':{desc:'Crisp edges and defined textures. Anti-blur, anti-soft.'},
+  'rating safe':{desc:'SFW content filter. No nudity, no suggestive content.'},
+  'rating sensitive':{desc:'Mild suggestive content allowed. Swimwear, mild exposure.'},
+  'rating explicit':{desc:'NSFW content filter. Full nudity and explicit content.'},
+  // Physical Descriptors
+  '1boy':{desc:'Single male figure. Core tag for male-focused generations.'},
+  '2boys':{desc:'Two male figures in the scene. Interaction, contrast, or composition with two subjects.'},
+  'lean':{desc:'Slim but toned build. Visible definition without bulk. Runner/swimmer body.'},
+  'athletic':{desc:'Fit, active build. Moderate muscle definition, proportional.'},
+  'muscular':{desc:'Noticeably built. Clear muscle definition, broad frame.'},
+  'buff':{desc:'Very muscular. Large arms, thick chest, visible veins. Gym-built body.'},
+  'bodybuilder':{desc:'Extreme muscle mass. Competition-level physique, exaggerated proportions.'},
+  'broad shoulders':{desc:'Wide shoulder frame. Creates a V-taper silhouette. Emphasizes upper body.'},
+  'defined pecs':{desc:'Visible chest muscle definition. Clear separation and shape.'},
+  'thick thighs':{desc:'Heavy, muscular upper legs. Power and mass in the lower body.'},
+  'slim waist':{desc:'Narrow midsection. Emphasizes V-taper or hourglass proportions.'},
+  'pale skin':{desc:'Very light, cool-toned skin. Almost porcelain. Picks up light dramatically.'},
+  'fair skin':{desc:'Light skin with warm undertones. Natural caucasian complexion.'},
+  'tan skin':{desc:'Sun-kissed, warm golden-brown skin. Mediterranean or outdoor look.'},
+  'olive skin':{desc:'Warm greenish-yellow undertone. Mediterranean, Middle Eastern, or Latin complexion.'},
+  'brown skin':{desc:'Medium-dark warm skin. South Asian, Latin, or mixed heritage tones.'},
+  'dark skin':{desc:'Rich dark complexion. Deep warm tones, beautiful contrast with light.'},
+  'ebony skin':{desc:'Very deep, rich black skin. Stunning with dramatic lighting and contrast.'},
+  'young adult':{desc:'Late teens to early twenties appearance. Fresh-faced, youthful energy.'},
+  '20s':{desc:'Twenties-age appearance. Peak youth, defined features starting to set.'},
+  '30s':{desc:'Thirties-age appearance. Mature features, character lines beginning.'},
+  'mature':{desc:'Middle-aged appearance. Defined character, distinguished features.'},
+  'older man':{desc:'Visibly aged. Grey hair, wrinkles, weathered features. Gravitas.'},
+  'short messy hair':{desc:'Tousled, casual short hair. Bedhead or intentionally disheveled.'},
+  'buzzcut':{desc:'Very short, uniformly clipped hair. Military or minimalist. Shows skull shape.'},
+  'long hair':{desc:'Hair past the shoulders. Flowing, dramatic, adds movement to compositions.'},
+  'stubble':{desc:'Short facial hair, 1-3 days growth. Rugged, casual masculinity.'},
+  'beard':{desc:'Full facial hair. Adds weight and maturity to the face.'},
+  'sharp jawline':{desc:'Defined, angular jaw. Strong facial structure, chiseled look.'},
+  'handsome':{desc:'Conventionally attractive male features. Symmetrical, well-proportioned face.'},
+  'nude':{desc:'Fully unclothed. Anatomical, figure study, or explicit context.'},
+  'shirtless':{desc:'Bare upper body, clothed below. Emphasizes torso and build.'},
+  'clothed':{desc:'Fully dressed. Focus on outfit and fabric rather than body.'},
+  'partially undressed':{desc:'Some clothing removed or displaced. Transitional state, suggestive.'},
+  'underwear':{desc:'Wearing only undergarments. Intimate but not fully exposed.'},
+  // Subject / Action
+  'solitary figure':{desc:'One person alone in the frame. Isolation, focus, introspection.'},
+  'two figures':{desc:'Two people in the scene. Relationship, tension, or contrast between them.'},
+  'close-up face':{desc:'Tight crop on the face. Eyes, expression, and skin detail dominate.'},
+  'full body shot':{desc:'Entire figure visible head to toe. Shows pose, outfit, and proportions.'},
+  'silhouette':{desc:'Dark figure outline against a lighter background. Shape over detail.'},
+  'standing still':{desc:'Static upright pose. Calm, confrontational, or contemplative depending on context.'},
+  'in motion':{desc:'Active movement — running, leaping, turning. Dynamic energy and blur potential.'},
+  'seated':{desc:'Sitting pose. Grounded, relaxed, or contemplative. Changes body proportions.'},
+  'floating':{desc:'Suspended in air with no support. Dreamlike, supernatural, zero-gravity feel.'},
+  'crouching':{desc:'Low bent pose. Tension, readiness, or vulnerability depending on context.'},
+  'hands extended':{desc:'Arms and hands reaching outward. Offering, commanding, or desperate gesture.'},
+  'back to viewer':{desc:'Subject facing away from camera. Mystery, distance, contemplation.'},
+  'partially obscured':{desc:'Part of the subject hidden — by shadow, object, or framing. Creates intrigue.'},
+  'emerging from shadow':{desc:'Figure stepping out of darkness. Dramatic reveal, birth-from-void.'},
+  'dissolving into smoke':{desc:'Figure breaking apart into vapor or particles. Disintegration, transformation.'},
+  // Style / Type
+  'dark fantasy illustration':{desc:'Fantasy art with horror and gothic elements. Ornate, ominous, richly detailed.'},
+  'modern comic book art':{desc:'Contemporary comic style — clean lines, dynamic poses, bold color. Marvel/DC aesthetic.'},
+  'graphic novel panel':{desc:'Single panel from a graphic novel. Narrative framing, dramatic composition.'},
+  'underground comix':{desc:'Raw hand-drawn style from 60s-70s counterculture. Scratchy lines, grotesque imagery, high contrast.'},
+  'body horror aesthetic':{desc:'Disturbing transformation or mutation of the human form. Flesh rendered wrong.'},
+  'surrealist painting':{desc:'Dream logic made visual. Impossible objects, melting forms, symbolic imagery. Dalí territory.'},
+  'painterly brushwork':{desc:'Visible paint strokes and texture. Loose expressive marks rather than photographic smoothness.'},
+  'concept art':{desc:'Professional pre-production art. Clean, atmospheric, designed to communicate an idea for production.'},
+  'street photography':{desc:'Candid, urban, documentary style. Real moments, natural light, gritty authenticity.'},
+  'hyperrealistic photography':{desc:'Beyond-real photographic detail. Every pore, every fiber, every reflection rendered.'},
+  'cinematic still from a film':{desc:'Looks like a frame pulled from a movie. Dramatic lighting, narrative composition, film grain.'},
+  'fine art photography':{desc:'Gallery-quality photographic work. Intentional composition, artistic lighting, conceptual depth.'},
+  'high fashion editorial photography':{desc:'Fashion magazine aesthetic. Dramatic poses, styled wardrobe, striking lighting.'},
+  // Mood / Atmosphere
+  'oppressive atmosphere':{desc:'Heavy, suffocating mood. Low ceilings, dark palettes, claustrophobic framing.'},
+  'existential dread':{desc:'The void staring back. Cosmic insignificance, quiet horror of being.'},
+  'electric tension':{desc:'Energy crackling between elements. Something about to snap or explode.'},
+  'sublime terror':{desc:'Overwhelming scale or power that inspires awe and fear simultaneously. Vastness beyond comprehension.'},
+  'quiet devastation':{desc:'Aftermath stillness. The damage is done, now silence. Emotional weight without action.'},
+  'euphoric chaos':{desc:'Vibrant, overwhelming, uncontrolled energy — beautiful disorder.'},
+  'brooding intensity':{desc:'Dark, focused energy. Simmering beneath the surface, about to boil over.'},
+  'otherworldly calm':{desc:'Unnatural stillness. Too peaceful, too perfect — serene but unsettling.'},
+  'barely contained violence':{desc:'Tension at the breaking point. Clenched fists, coiled muscles, one breath from eruption.'},
+  'beautiful wrongness':{desc:'Something visually appealing but deeply uncanny — the aesthetics of the disturbing.'},
+  'sensual tension':{desc:'Charged intimacy without explicit action. Heat, proximity, anticipation.'},
+  'raw visceral power':{desc:'Primal force made visible. Muscle, blood, sweat, impact. Feels physical.'},
+  'transcendent horror':{desc:'Horror that elevates rather than repulses. Sacred and terrible simultaneously.'},
+  'melancholic beauty':{desc:'Sadness made gorgeous. Rain on glass, wilting flowers, lonely figures in vast spaces.'},
+  'profound loneliness':{desc:'Deep isolation. A single figure dwarfed by emptiness. Ache of disconnection.'},
+  // Color Palette
+  'deep jewel tones':{desc:'Rich saturated colors — sapphire, emerald, ruby, amethyst. Luxurious and intense.'},
+  'desaturated with neon accents':{desc:'Muted grey-toned palette with one or two vivid neon colors punching through.'},
+  'monochromatic red':{desc:'All reds — from pale pink to deep crimson. Blood, passion, danger, warmth.'},
+  'black and white with single color pop':{desc:'Grayscale image with one element in vivid color. Draws the eye immediately.'},
+  'rich crimson and deep violet':{desc:'Royal, dark palette. Blood reds and deep purples. Luxurious and ominous.'},
+  'electric teal and black':{desc:'Cyberpunk palette. Glowing teal against deep darkness. High-tech, cold, sharp.'},
+  'burnt orange and shadow':{desc:'Warm amber tones sinking into deep blacks. Autumn, fire, fading light.'},
+  'ice blue and white':{desc:'Cold, crystalline palette. Frost, snow, arctic light. Clean and unforgiving.'},
+  'toxic green and black':{desc:'Radioactive, venomous palette. Acid green glowing in darkness. Unnatural and threatening.'},
+  'gold and obsidian':{desc:'Black glass and liquid gold. Sacred, ancient, powerful. Byzantine icon colors.'},
+  'acid colors':{desc:'Neon, slightly wrong, oversaturated. Hot pink, toxic green, electric yellow. Psychedelic.'},
+  'muted earth tones':{desc:'Brown, olive, ochre, clay. Natural, grounded, warm. Organic and weathered.'},
+  'high contrast black and white':{desc:'Pure blacks and whites with minimal grey — graphic, bold, no subtlety.'},
+  // Details / Texture
+  'intricate tattoos':{desc:'Detailed ink work on skin. Tribal, geometric, traditional, or ornamental patterns.'},
+  'flowing fabric':{desc:'Cloth in motion — silk, chiffon, capes. Catches light, creates dynamic curves.'},
+  'weathered skin':{desc:'Aged, sun-damaged, lived-in skin. Wrinkles, spots, texture that tells a story.'},
+  'cracked surface':{desc:'Fractured material — dried earth, broken plaster, shattered stone. Decay and entropy.'},
+  'organic tendrils':{desc:'Living vine-like growths. Roots, tentacles, veins spreading across surfaces.'},
+  'geometric patterns':{desc:'Repeating mathematical shapes. Sacred geometry, tessellations, fractals.'},
+  'smoke and embers':{desc:'Wisps of smoke with glowing orange particles. Fire aftermath, smoldering atmosphere.'},
+  'dripping liquid':{desc:'Viscous fluid running down surfaces. Water, oil, blood, paint — wet and alive.'},
+  'shattered glass':{desc:'Broken transparent fragments catching light. Violence frozen in a beautiful moment.'},
+  'glowing runes':{desc:'Luminous magical symbols etched into surfaces. Arcane, mystical, supernatural.'},
+  'heavy chains':{desc:'Thick metal links. Bondage, imprisonment, industrial weight. Cold and heavy.'},
+  'torn clothing':{desc:'Ripped, damaged fabric. Battle-worn, decayed, or violently stripped. Raw edges.'},
+  'iridescent scales':{desc:'Rainbow-shifting reptilian or fish scales. Holographic, alien, beautiful surface.'},
+  'circuit board veins':{desc:'Electronic circuitry patterns replacing organic blood vessels. Cybernetic fusion.'},
+  'bone structure visible':{desc:'Skeletal anatomy showing through skin. X-ray effect, body horror, anatomical.'},
 };
 
 let tagExPopupTag=null;
@@ -4028,6 +4306,8 @@ init();
 let galleryImages=[];
 let galleryFilter='all';
 let galleryTimeFilter='all'; // 'all','24h','7d','30d'
+let gallerySharedFilter='all'; // 'all','shared','unshared'
+let galleryRedditFilter='all'; // 'all','posted','unposted'
 let galleryDetailFile=null;
 let gallerySelectMode=false;
 let gallerySelected=new Set();
@@ -4077,6 +4357,9 @@ function mkGalleryCard(img,state){
   const sel=gallerySelected.has(img.name)?' gsel':'';
   const brut=(appData.galleryAdult&&appData.galleryAdult[img.name]);
   const fav=!!(appData.galleryFavorites&&appData.galleryFavorites[img.name]);
+  const shared=!!(appData.galleryShared&&appData.galleryShared[img.name]);
+  const redditPosted=!!(appData.galleryRedditPosted&&appData.galleryRedditPosted[img.name]);
+  const upscaled=!!(appData.galleryUpscaled&&appData.galleryUpscaled[img.name]);
   const src=`/gallery/image?folder=${img.folder}&file=${encodeURIComponent(img.name)}`;
   const isVid=isVideoFile(img.name);
   const media=isVid
@@ -4086,7 +4369,7 @@ function mkGalleryCard(img,state){
     ${media}
     <div class="gthumb-overlay">${date}</div>
     <div class="gsel-check">✓</div>
-    <button class="gfav-star${fav?' active':''}" onclick="event.stopPropagation();toggleGalleryFav('${safeFile}')">★</button>${brut?'<div class="gbrut-badge"></div>':''}
+    <button class="gfav-star${fav?' active':''}" onclick="event.stopPropagation();toggleGalleryFav('${safeFile}')">★</button>${shared?`<div class="gshared-badge${upscaled?' gold':''}" title="Shared to CivitAI">↗</div>`:''}${upscaled&&!shared?'<div class="gupscale-badge" title="Upscaled">HD</div>':''}${redditPosted?'<div class="greddit-badge" title="Posted to Reddit">r</div>':''}${brut?'<div class="gbrut-badge"></div>':''}
   </div>`;
 }
 
@@ -4142,6 +4425,20 @@ function applyGallerySearchFilter(images){
     if(imgTags&&imgTags.some(t=>t.includes(q)))return true;
     return false;
   });
+}
+
+function applyGallerySharedFilter(images){
+  if(gallerySharedFilter==='all')return images;
+  const shared=appData.galleryShared||{};
+  if(gallerySharedFilter==='shared')return images.filter(img=>!!shared[img.name]);
+  return images.filter(img=>!shared[img.name]);
+}
+
+function applyGalleryRedditFilter(images){
+  if(galleryRedditFilter==='all')return images;
+  const posted=appData.galleryRedditPosted||{};
+  if(galleryRedditFilter==='posted')return images.filter(img=>!!posted[img.name]);
+  return images.filter(img=>!posted[img.name]);
 }
 
 function onGallerySearch(){
@@ -4220,6 +4517,32 @@ function cycleGalleryTimeFilter(){
   renderGallery();
 }
 
+const GALLERY_SHARED_CYCLE=['all','shared','unshared'];
+const GALLERY_SHARED_LABELS={'all':'↗ All','shared':'↗ Shared','unshared':'↗ Unshared'};
+function cycleGallerySharedFilter(){
+  const idx=GALLERY_SHARED_CYCLE.indexOf(gallerySharedFilter);
+  gallerySharedFilter=GALLERY_SHARED_CYCLE[(idx+1)%GALLERY_SHARED_CYCLE.length];
+  const btn=document.getElementById('gtf-shared');
+  if(btn){
+    btn.textContent=GALLERY_SHARED_LABELS[gallerySharedFilter];
+    btn.classList.toggle('active',gallerySharedFilter!=='all');
+  }
+  renderGallery();
+}
+
+const GALLERY_REDDIT_CYCLE=['all','posted','unposted'];
+const GALLERY_REDDIT_LABELS={'all':'r/ All','posted':'r/ Posted','unposted':'r/ Unposted'};
+function cycleGalleryRedditFilter(){
+  const idx=GALLERY_REDDIT_CYCLE.indexOf(galleryRedditFilter);
+  galleryRedditFilter=GALLERY_REDDIT_CYCLE[(idx+1)%GALLERY_REDDIT_CYCLE.length];
+  const btn=document.getElementById('gtf-reddit');
+  if(btn){
+    btn.textContent=GALLERY_REDDIT_LABELS[galleryRedditFilter];
+    btn.classList.toggle('active',galleryRedditFilter!=='all');
+  }
+  renderGallery();
+}
+
 function renderGallery(){
   const grid=document.getElementById('gallery-grid');
   if(!grid)return;
@@ -4235,11 +4558,11 @@ function renderGallery(){
     galleryCats.forEach(cat=>{
       if(!showGalleryAdult&&isCatBrut(cat.id))return;
       const catImages=galleryImages.filter(img=>cat.keys.includes(img.name));
-      const filtered=applyGallerySearchFilter(applyGalleryTimeFilter(applyGalleryAdultFilter(applyGalleryStateFilter(catImages,state))));
+      const filtered=applyGalleryRedditFilter(applyGallerySharedFilter(applyGallerySearchFilter(applyGalleryTimeFilter(applyGalleryAdultFilter(applyGalleryStateFilter(catImages,state))))));
       html+=mkGallerySection(cat.id,cat.label,cat.color||'var(--orange)',filtered,state);
     });
     const uncatImages=galleryImages.filter(img=>!catted.has(img.name));
-    const uncatFiltered=applyGallerySearchFilter(applyGalleryTimeFilter(applyGalleryAdultFilter(applyGalleryStateFilter(uncatImages,state))));
+    const uncatFiltered=applyGalleryRedditFilter(applyGallerySharedFilter(applyGallerySearchFilter(applyGalleryTimeFilter(applyGalleryAdultFilter(applyGalleryStateFilter(uncatImages,state))))));
     html+=mkGallerySection('__uncat','Uncategorized','var(--muted2)',uncatFiltered,state);
     if(!html){html='<p class="gallery-empty">No images here.</p>';}
     grid.innerHTML=html;
@@ -4260,7 +4583,7 @@ function renderGallery(){
     const keys=new Set(cat?cat.keys:[]);
     images=images.filter(img=>keys.has(img.name));
   }
-  images=applyGallerySearchFilter(applyGalleryTimeFilter(applyGalleryAdultFilter(applyGalleryStateFilter(images,state))));
+  images=applyGalleryRedditFilter(applyGallerySharedFilter(applyGallerySearchFilter(applyGalleryTimeFilter(applyGalleryAdultFilter(applyGalleryStateFilter(images,state))))));
   if(!images.length){
     grid.innerHTML='<p class="gallery-empty">No images here.</p>';
     return;
@@ -4358,6 +4681,14 @@ function openGalleryDetail(file){
   updateGalleryDetailCat();
   renderGalleryTags();
   cancelAddGalleryTag();
+  const upBtn=document.querySelector('.gdp-upscale');
+  if(upBtn)upBtn.style.display=(appData.galleryUpscaled&&appData.galleryUpscaled[file])?'none':'';
+  const shareBtn=document.querySelector('.gdp-share');
+  if(shareBtn){
+    const isShared=!!(appData.galleryShared&&appData.galleryShared[file]);
+    shareBtn.classList.toggle('shared',isShared);
+    shareBtn.textContent=isShared?'↗ Shared':'↗ Share';
+  }
   document.getElementById('gallery-detail').classList.add('open');
   document.getElementById('gallery-detail-backdrop').classList.add('visible');
   loadGalleryMetadata(file,folder);
@@ -4375,7 +4706,16 @@ async function loadGalleryMetadata(file,folder){
     const res=await fetch(`/gallery/metadata?folder=${folder}&file=${encodeURIComponent(file)}`);
     if(!res.ok){inner.innerHTML='';if(toggle)toggle.style.display='none';return;}
     const m=await res.json();
-    if(!m.has_metadata){inner.innerHTML='<div class="gdp-meta-none">No generation data found</div>';return;}
+    const hasUsefulMeta=m.has_metadata&&(m.positive||m.checkpoint);
+    if(!hasUsefulMeta){
+      const upRec=appData.galleryUpscaled&&appData.galleryUpscaled[file];
+      if(upRec&&upRec.meta){
+        if(galleryDetailFile!==file)return;
+        inner.innerHTML=renderGalleryMetadata(upRec.meta,file);
+        return;
+      }
+      if(!m.has_metadata){inner.innerHTML='<div class="gdp-meta-none">No generation data found</div>';return;}
+    }
     if(galleryDetailFile!==file){return;}
     autoTagFile(file,m);
     renderGalleryTags();
@@ -4464,6 +4804,21 @@ async function confirmGalleryRename(){
       appData.galleryTiming[finalName]=appData.galleryTiming[oldName];
       delete appData.galleryTiming[oldName];
     }
+    // Update galleryShared
+    if(appData.galleryShared&&appData.galleryShared[oldName]){
+      appData.galleryShared[finalName]=appData.galleryShared[oldName];
+      delete appData.galleryShared[oldName];
+    }
+    // Update galleryRedditPosted
+    if(appData.galleryRedditPosted&&appData.galleryRedditPosted[oldName]){
+      appData.galleryRedditPosted[finalName]=appData.galleryRedditPosted[oldName];
+      delete appData.galleryRedditPosted[oldName];
+    }
+    // Update galleryUpscaled
+    if(appData.galleryUpscaled&&appData.galleryUpscaled[oldName]){
+      appData.galleryUpscaled[finalName]=appData.galleryUpscaled[oldName];
+      delete appData.galleryUpscaled[oldName];
+    }
     // Update galleryCats keys
     galleryCats.forEach(cat=>{
       const idx=cat.keys.indexOf(oldName);
@@ -4498,6 +4853,27 @@ function migrateAutoTags(){
   appData.galleryAutoTagged={};
   appData._autoTagV2=true;
   saveAppData();
+}
+
+// When a LoRA is cleaned, clear autoTagged flags for images that used it
+// so they get re-processed with the LoRA's tag next time their detail is viewed
+async function resetAutoTagsForLora(loraKey){
+  if(!appData.galleryAutoTagged)return;
+  let changed=false;
+  for(const file of Object.keys(appData.galleryAutoTagged)){
+    try{
+      const folder=(appData.galleryState||{})[file]==='approved'?'approved':'raw';
+      const res=await fetch(`/gallery/metadata?folder=${folder}&file=${encodeURIComponent(file)}`);
+      if(!res.ok)continue;
+      const m=await res.json();
+      if(!m.has_metadata||!m.loras)continue;
+      if(m.loras.some(l=>l.name===loraKey)){
+        delete appData.galleryAutoTagged[file];
+        changed=true;
+      }
+    }catch(e){}
+  }
+  if(changed)saveAppData();
 }
 
 function autoTagFile(file,metadata){
@@ -4730,10 +5106,11 @@ async function doRemixFromGallery(file){
     const res=await fetch(`/gallery/metadata?folder=${folder}&file=${encodeURIComponent(file)}`);
     if(!res.ok)throw new Error('no metadata');
     m=await res.json();
-    if(!m.has_metadata)throw new Error('no metadata');
+    if(!m.has_metadata||(!m.positive&&!m.checkpoint))throw new Error('no metadata');
   }catch(e){
-    showInlineConfirm('No generation metadata found on this image.',()=>{},{okLabel:'OK',okColor:'var(--surface3)'});
-    return;
+    const upRec=appData.galleryUpscaled&&appData.galleryUpscaled[file];
+    if(upRec&&upRec.meta){m=upRec.meta;}
+    else{showInlineConfirm('No generation metadata found on this image.',()=>{},{okLabel:'OK',okColor:'var(--surface3)'});return;}
   }
 
   // Derive model. Priority:
@@ -4870,6 +5247,308 @@ async function doImg2imgFromGallery(file){
     switchTab('tags');
   }
   showImg2imgStrip();
+}
+
+// ===================== SHARE TO CIVITAI =====================
+function shareToCI(){
+  if(!galleryDetailFile)return;
+  const file=galleryDetailFile;
+  const img=galleryImages.find(i=>i.name===file);
+  const ext=(file.split('.').pop()||'').toLowerCase();
+  if(!['png','jpg','jpeg','webp'].includes(ext)){
+    showToast('Share','Only PNG, JPG, and WebP images can be shared','err');
+    return;
+  }
+  const isUpscaled=!!(appData.galleryUpscaled&&appData.galleryUpscaled[file]);
+  if(!isUpscaled&&!isVideoFile(file)){
+    showInlineConfirm('This image hasn\'t been upscaled. Upscale to 2× first?',
+      ()=>{doUpscaleFromGallery(file);},
+      {okLabel:'Upscale first',okColor:'#a78bfa',cancelLabel:'Share as-is',
+       onCancel:()=>shareToCI_confirm(file,img)});
+    return;
+  }
+  shareToCI_confirm(file,img);
+}
+function shareToCI_confirm(file,img){
+  const isBrut=appData.galleryAdult&&appData.galleryAdult[file];
+  const msg=isBrut
+    ?'Upload this image to CivitAI? Your prompt and settings will be pre-filled.<br><br><span style="color:var(--amber);font-size:11px;">⚠ This image is marked Brut — remember to set the Mature flag on CivitAI before publishing.</span>'
+    :'Upload this image to CivitAI? Your prompt and settings will be pre-filled.';
+  showInlineConfirm(msg,()=>doShareToCI(file,img),{okLabel:'Share',okColor:'var(--orange)'});
+}
+async function doShareToCI(file,img){
+  const folder=img?.folder||'raw';
+  const apiKey=appData.settings&&appData.settings.civitaiApiKey;
+  if(!apiKey){
+    showToast('No API key','Set your CivitAI API key in Settings','err');
+    return;
+  }
+  showToast('Uploading to CivitAI…','This may take a moment');
+
+  let meta=null;
+  try{
+    const mres=await fetch(`/gallery/metadata?folder=${folder}&file=${encodeURIComponent(file)}`);
+    if(mres.ok){const m=await mres.json();if(m.has_metadata&&(m.positive||m.checkpoint))meta=m;}
+  }catch{}
+  if(!meta){
+    const upRec=appData.galleryUpscaled&&appData.galleryUpscaled[file];
+    if(upRec&&upRec.meta)meta=upRec.meta;
+  }
+
+  const descParts=[];
+  const tags=[];
+  if(meta){
+    if(meta.positive)descParts.push('**Prompt:** '+meta.positive);
+    if(meta.negative)descParts.push('**Negative:** '+meta.negative);
+    const settings=[];
+    if(meta.checkpoint)settings.push('Checkpoint: '+meta.checkpoint);
+    if(meta.steps)settings.push('Steps: '+meta.steps);
+    if(meta.cfg)settings.push('CFG: '+meta.cfg);
+    if(meta.sampler)settings.push('Sampler: '+meta.sampler);
+    if(meta.scheduler)settings.push('Scheduler: '+meta.scheduler);
+    if(meta.seed)settings.push('Seed: '+meta.seed);
+    if(meta.width&&meta.height)settings.push('Size: '+meta.width+'×'+meta.height);
+    if(meta.denoise!=null&&meta.denoise<1)settings.push('Denoise: '+meta.denoise);
+    if(settings.length)descParts.push('**Settings:** '+settings.join(' · '));
+    if(meta.loras&&meta.loras.length){
+      const loraNames=meta.loras.map(l=>{
+        const ld=appData.loraData&&appData.loraData[l.name+'.safetensors'];
+        const displayName=ld?.name||l.name;
+        return displayName+(l.strength!=null&&l.strength!==1?' ('+l.strength+')':'');
+      });
+      descParts.push('**LoRAs:** '+loraNames.join(', '));
+    }
+    if(meta.checkpoint){
+      const stem=meta.checkpoint.split('/').pop().replace(/\.[^.]+$/,'');
+      const ckData=appData.checkpointNotes&&appData.checkpointNotes[stem+'.safetensors'];
+      tags.push(ckData?.displayName||stem);
+    }
+    if(meta.loras){
+      for(const l of meta.loras){
+        if(tags.length>=5)break;
+        const ld=appData.loraData&&appData.loraData[l.name+'.safetensors'];
+        tags.push(ld?.name||l.name);
+      }
+    }
+  }
+
+  const isBrut=!!(appData.galleryAdult&&appData.galleryAdult[file]);
+
+  try{
+    const ures=await fetch('/gallery/share-upload',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        file,folder,apiKey,
+        meta:meta||null,
+        description:descParts.length?descParts.join('\n\n'):'',
+        tags:tags.slice(0,5),
+        isBrut
+      })
+    });
+    const uj=await ures.json();
+    if(!uj.ok||!uj.postUrl)throw new Error(uj.error||'Upload failed');
+    if(!appData.galleryShared)appData.galleryShared={};
+    appData.galleryShared[file]={postUrl:uj.postUrl,ts:Date.now()};
+    saveAppData();
+    const card=document.querySelector(`.gthumb[data-file="${file.replace(/"/g,'&quot;')}"]`);
+    if(card){
+      const isUp=!!(appData.galleryUpscaled&&appData.galleryUpscaled[file]);
+      const existing=card.querySelector('.gshared-badge');
+      if(existing)existing.remove();
+      card.insertAdjacentHTML('beforeend',`<div class="gshared-badge${isUp?' gold':''}" title="Shared to CivitAI">↗</div>`);
+      const hdBadge=card.querySelector('.gupscale-badge');
+      if(hdBadge)hdBadge.remove();
+    }
+    showToast('Posted to CivitAI','Click to view','ok');
+    openCivitAI(uj.postUrl);
+  }catch(e){
+    showToast('Upload failed',e.message,'err');
+  }
+}
+
+// ---- Upscale ----
+
+function upscaleFromGallery(){
+  const file=galleryDetailFile;
+  if(!file)return;
+  if(isVideoFile(file)){showToast('Cannot upscale','Video files are not supported','err');return;}
+  showInlineConfirm('Upscale this image to 2× resolution?',()=>doUpscaleFromGallery(file),{okLabel:'Upscale',okColor:'#a78bfa'});
+}
+
+async function doUpscaleFromGallery(file){
+  const img=galleryImages.find(i=>i.name===file);
+  const folder=img?img.folder:'raw';
+
+  let meta=null;
+  try{
+    const mr=await fetch(`/gallery/metadata?folder=${folder}&file=${encodeURIComponent(file)}`);
+    if(mr.ok){const mj=await mr.json();if(mj.has_metadata)meta=mj;}
+  }catch{}
+
+  showToast('Uploading for upscale…','','info');
+  let uploadedName;
+  try{
+    const ur=await fetch('/comfy/upload-gallery',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({file,folder}),
+    });
+    const ud=await ur.json();
+    if(!ur.ok||!ud.name)throw new Error(ud.error||'Upload failed');
+    uploadedName=ud.name;
+  }catch(e){
+    showToast('Upload failed',e.message,'err');
+    return;
+  }
+
+  let targetW=0,targetH=0;
+  if(meta&&meta.width&&meta.height){
+    targetW=Math.round(parseInt(meta.width)*2/8)*8;
+    targetH=Math.round(parseInt(meta.height)*2/8)*8;
+  }
+
+  const origStem=file.replace(/\.[^.]+$/,'');
+  const wf=buildUpscaleWorkflow({
+    sourceImage:uploadedName,
+    targetW,targetH,
+    filenamePrefix:'Up_'+origStem,
+  });
+
+  try{
+    const r=await fetch('/comfy/prompt',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:wf,client_id:'prompt-gen'}),
+    });
+    const j=await r.json();
+    if(!r.ok||j.error){
+      let detail='';
+      if(j.node_errors&&typeof j.node_errors==='object'){
+        const ids=Object.keys(j.node_errors);
+        if(ids.length){
+          const ne=j.node_errors[ids[0]];
+          const firstErr=ne.errors&&ne.errors[0];
+          if(firstErr)detail=(ne.class_type?ne.class_type+': ':'')+(firstErr.details||firstErr.message);
+        }
+      }
+      showToast('Upscale error',detail||(typeof j.error==='string'?j.error:JSON.stringify(j.error)),'err');
+      _pendingUpscale=null;
+      return;
+    }
+    _pendingUpscale={promptId:j.prompt_id,originalFile:file,originalFolder:folder,meta};
+    let sub=targetW?`${targetW}×${targetH}`:'2× upscale';
+    try{
+      const qr=await fetch('/comfy/queue');
+      if(qr.ok){const q=await qr.json();const ahead=(q.running||0)+(q.pending||0)-1;if(ahead>0)sub+=` · ${ahead} ahead`;}
+    }catch{}
+    showToast('Upscale queued',sub,'ok');
+  }catch(e){
+    showToast('Upscale failed',e.message||'ComfyUI not reachable','err');
+    return;
+  }
+
+  closeGalleryDetail();
+}
+
+async function finalizeUpscale(pu,wsFile){
+  // loadGallery may rename the file (dedup with approved/ folder), so we need
+  // the real on-disk name before we can assign properties. The new file always
+  // starts in raw/ — match there to avoid hitting an old approved file with
+  // the same stem.
+  await loadGallery();
+  const stem=wsFile.replace(/\.[^.]+$/,'');
+  const realFile=galleryImages.find(i=>i.folder==='raw'&&i.name===wsFile)
+    ||galleryImages.find(i=>i.folder==='raw'&&i.name.startsWith(stem));
+  const upscaledFile=realFile?realFile.name:wsFile;
+  inheritUpscaleProperties(pu.originalFile,upscaledFile,pu.meta);
+  setTimeout(()=>archiveUpscaleOriginal(pu.originalFile,pu.originalFolder,upscaledFile),4000);
+}
+
+function inheritUpscaleProperties(originalFile,upscaledFile,originalMeta){
+  // Copy all properties from original → upscaled (runs immediately on WS completion)
+  if(appData.galleryState&&appData.galleryState[originalFile]){
+    appData.galleryState[upscaledFile]=appData.galleryState[originalFile];
+  }
+  if(appData.galleryAdult&&appData.galleryAdult[originalFile]){
+    if(!appData.galleryAdult)appData.galleryAdult={};
+    appData.galleryAdult[upscaledFile]=true;
+  }
+  if(appData.galleryTags&&appData.galleryTags[originalFile]){
+    if(!appData.galleryTags)appData.galleryTags={};
+    appData.galleryTags[upscaledFile]=[...appData.galleryTags[originalFile]];
+  }
+  if(appData.galleryFavorites&&appData.galleryFavorites[originalFile]){
+    if(!appData.galleryFavorites)appData.galleryFavorites={};
+    appData.galleryFavorites[upscaledFile]=true;
+  }
+  if(appData.galleryTiming&&appData.galleryTiming[originalFile]!=null){
+    if(!appData.galleryTiming)appData.galleryTiming={};
+    appData.galleryTiming[upscaledFile]=appData.galleryTiming[originalFile];
+  }
+  if(appData.galleryCats){
+    appData.galleryCats.forEach(cat=>{
+      if(cat.keys.includes(originalFile)&&!cat.keys.includes(upscaledFile)){
+        cat.keys.push(upscaledFile);
+      }
+    });
+  }
+  // Clear stale shared status — the new file hasn't been shared even if an
+  // old file with the same name was (filename reuse from ComfyUI counter reset)
+  if(appData.galleryShared)delete appData.galleryShared[upscaledFile];
+  if(appData.galleryRedditPosted)delete appData.galleryRedditPosted[upscaledFile];
+  // Track upscale relationship + stash metadata
+  if(!appData.galleryUpscaled)appData.galleryUpscaled={};
+  const upRec={original:originalFile,ts:Date.now()};
+  if(originalMeta)upRec.meta=originalMeta;
+  appData.galleryUpscaled[upscaledFile]=upRec;
+  saveAppData();
+}
+
+async function archiveUpscaleOriginal(originalFile,originalFolder,upscaledFile){
+  // If original was approved, approve the upscaled file too
+  if(appData.galleryState&&appData.galleryState[originalFile]==='approved'){
+    try{
+      await fetch('/gallery/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:upscaledFile})});
+      const entry=galleryImages.find(i=>i.name===upscaledFile);
+      if(entry)entry.folder='approved';
+    }catch{}
+  }
+
+  // Archive original
+  let archived=false;
+  try{
+    const ar=await fetch('/gallery/archive-original',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({file:originalFile,folder:originalFolder}),
+    });
+    if(ar.ok)archived=true;
+    else{const ae=await ar.json().catch(()=>({}));showToast('Archive failed',ae.error||`HTTP ${ar.status}`,'err');}
+  }catch(e){
+    showToast('Archive failed',e.message,'err');
+  }
+
+  if(archived){
+    // Remove original from gallery only if archive succeeded
+    const idx=galleryImages.findIndex(i=>i.name===originalFile);
+    if(idx!==-1)galleryImages.splice(idx,1);
+    if(appData.galleryState)delete appData.galleryState[originalFile];
+    if(appData.galleryAdult)delete appData.galleryAdult[originalFile];
+    if(appData.galleryTags)delete appData.galleryTags[originalFile];
+    if(appData.galleryAutoTagged)delete appData.galleryAutoTagged[originalFile];
+    if(appData.galleryTiming)delete appData.galleryTiming[originalFile];
+    if(appData.galleryShared)delete appData.galleryShared[originalFile];
+    if(appData.galleryRedditPosted)delete appData.galleryRedditPosted[originalFile];
+    if(appData.galleryFavorites)delete appData.galleryFavorites[originalFile];
+    if(appData.galleryCats){
+      appData.galleryCats.forEach(cat=>{
+        const ki=cat.keys.indexOf(originalFile);
+        if(ki!==-1)cat.keys.splice(ki,1);
+      });
+    }
+  }
+
+  saveAppData();
+  await loadGallery();
+  showToast('Upscale complete',`${upscaledFile}${archived?' · original archived':''}`,'ok');
 }
 
 function showImg2imgStrip(){
@@ -5514,7 +6193,8 @@ function galleryAlbumTabCtx(catId,e){
   const menu=document.createElement('div');
   menu.id='gallery-album-ctx';
   menu.className='gallery-album-ctx';
-  menu.innerHTML=`<button onclick="closeGalleryAlbumCtx();renameGalleryCat('${catId}')">✎ Rename</button><button onclick="closeGalleryAlbumCtx();toggleGalleryCatBrut('${catId}')">${brutActive?'Unmark':'Mark'} Brut</button><button onclick="closeGalleryAlbumCtx();deleteGalleryCat('${catId}')">✕ Delete</button>`;
+  const dm=document.body.classList.contains('hide-brut');
+  menu.innerHTML=`<button onclick="closeGalleryAlbumCtx();renameGalleryCat('${catId}')">✎ Rename</button>${dm?'':`<button onclick="closeGalleryAlbumCtx();toggleGalleryCatBrut('${catId}')">${brutActive?'Unmark':'Mark'} Brut</button>`}<button onclick="closeGalleryAlbumCtx();deleteGalleryCat('${catId}')">✕ Delete</button>`;
   menu.style.left=e.clientX+'px';
   menu.style.top=e.clientY+'px';
   document.body.appendChild(menu);
@@ -5701,6 +6381,20 @@ function openGalleryCtx(file,e){
     declineItem.childNodes[declineItem.childNodes.length-1].textContent=state==='declined'?'Decline ✓':'Decline';
     declineItem.style.fontWeight=state==='declined'?'600':'normal';
   }
+  // Update shared label
+  const sharedItem=document.getElementById('gallery-ctx-shared-item');
+  if(sharedItem){
+    const isShared=!!(appData.galleryShared&&appData.galleryShared[file]);
+    sharedItem.childNodes[sharedItem.childNodes.length-1].textContent=isShared?'Shared ✓':'Mark Shared';
+    sharedItem.style.fontWeight=isShared?'600':'normal';
+  }
+  // Update reddit label
+  const redditItem=document.getElementById('gallery-ctx-reddit-item');
+  if(redditItem){
+    const isPosted=!!(appData.galleryRedditPosted&&appData.galleryRedditPosted[file]);
+    redditItem.childNodes[redditItem.childNodes.length-1].textContent=isPosted?'Posted to Reddit ✓':'Mark Posted to Reddit';
+    redditItem.style.fontWeight=isPosted?'600':'normal';
+  }
   // Update brut label
   const brutItem=document.getElementById('gallery-ctx-brut-item');
   if(brutItem){
@@ -5793,6 +6487,42 @@ function ctxGalleryDecline(){
   if(bulk){exitGallerySelectMode();renderGallery();}
   else{patchGalleryCard(file);updateGalleryDetailState();}
 }
+function ctxGalleryToggleShared(){
+  if(!_galleryCtxFile)return;
+  const file=_galleryCtxFile;
+  closeGalleryCtx();
+  if(!appData.galleryShared)appData.galleryShared={};
+  if(appData.galleryShared[file]){
+    delete appData.galleryShared[file];
+  }else{
+    appData.galleryShared[file]={postUrl:'',ts:Date.now()};
+  }
+  saveAppData();
+  renderGallery();
+  const shareBtn=document.querySelector('.gdp-share');
+  if(shareBtn&&galleryDetailFile===file){
+    const isShared=!!appData.galleryShared[file];
+    shareBtn.classList.toggle('shared',isShared);
+    shareBtn.textContent=isShared?'↗ Shared':'↗ Share';
+  }
+}
+function ctxGalleryToggleReddit(){
+  if(!_galleryCtxFile)return;
+  const file=_galleryCtxFile;
+  closeGalleryCtx();
+  const bulk=gallerySelectMode&&gallerySelected.has(file);
+  const targets=bulk?[...gallerySelected]:[file];
+  if(!appData.galleryRedditPosted)appData.galleryRedditPosted={};
+  // If any target is unposted, mark all posted; else clear all
+  const anyUnposted=targets.some(f=>!appData.galleryRedditPosted[f]);
+  for(const f of targets){
+    if(anyUnposted)appData.galleryRedditPosted[f]={ts:Date.now()};
+    else delete appData.galleryRedditPosted[f];
+  }
+  saveAppData();
+  if(bulk)exitGallerySelectMode();
+  renderGallery();
+}
 async function copyGalleryImage(file){
   const img=galleryImages.find(i=>i.name===file);
   const folder=img?.folder||'raw';
@@ -5811,6 +6541,14 @@ function ctxGalleryCopyImage(){
   const file=_galleryCtxFile;
   closeGalleryCtx();
   copyGalleryImage(file);
+}
+function ctxGalleryReveal(){
+  if(!_galleryCtxFile)return;
+  const file=_galleryCtxFile;
+  closeGalleryCtx();
+  fetch('/gallery/reveal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file})})
+    .then(r=>r.json()).then(d=>{if(d&&d.error)console.error('reveal failed:',d.error);})
+    .catch(e=>console.error('reveal failed:',e));
 }
 function openGalleryDetailCtx(e){
   e.stopPropagation();
@@ -6181,6 +6919,218 @@ function buildComfyWorkflow(opts){
   wf['32']={inputs:{samples:['17',0],vae:['1',2]},class_type:'VAEDecode',_meta:{title:'VAE Decode'}};
   wf['41']={inputs:{filename_prefix:'ComfyUI',images:['32',0]},class_type:'SaveImage',_meta:{title:'Save Image'}};
   return wf;
+}
+
+function buildUpscaleWorkflow(opts){
+  const wf={};
+  const tw=opts.targetW||0;
+  const th=opts.targetH||0;
+
+  wf['50']={inputs:{image:opts.sourceImage,upload:'image'},class_type:'LoadImage',_meta:{title:'Load Source'}};
+  // Force contiguous tensor — ImageUpscaleWithModel crashes on non-contiguous input from LoadImage
+  if(tw&&th){
+    wf['49']={inputs:{image:['50',0],upscale_method:'lanczos',width:tw/2,height:th/2,crop:'disabled'},class_type:'ImageScale',_meta:{title:'Prep'}};
+  }else{
+    wf['49']={inputs:{image:['50',0],upscale_method:'lanczos',scale_by:1.0},class_type:'ImageScaleBy',_meta:{title:'Prep'}};
+  }
+  wf['51']={inputs:{model_name:'4xUltrasharp_4xUltrasharpV10.pt'},class_type:'UpscaleModelLoader',_meta:{title:'Load Upscaler'}};
+  wf['52']={inputs:{upscale_model:['51',0],image:['49',0]},class_type:'ImageUpscaleWithModel',_meta:{title:'Upscale 4×'}};
+
+  if(tw&&th){
+    wf['53']={inputs:{image:['52',0],upscale_method:'lanczos',width:tw,height:th,crop:'disabled'},class_type:'ImageScale',_meta:{title:'Scale to 2×'}};
+  }else{
+    wf['53']={inputs:{image:['52',0],upscale_method:'lanczos',scale_by:0.5},class_type:'ImageScaleBy',_meta:{title:'Scale to 2×'}};
+  }
+
+  const prefix=opts.filenamePrefix||'Upscale';
+  wf['41']={inputs:{filename_prefix:prefix,images:['53',0]},class_type:'SaveImage',_meta:{title:'Save Image'}};
+  return wf;
+}
+
+// ===================== TRAINING (Phase 1: dataset + caption builder) =====================
+let _activeTrainSet = null; // set id
+let _trainCkptsLoaded = false;
+
+function ensureTrainingData(){ if(!Array.isArray(appData.trainingSets)) appData.trainingSets = []; }
+
+function getActiveTrainSet(){
+  ensureTrainingData();
+  if(!appData.trainingSets.length) return null;
+  let s = appData.trainingSets.find(x=>x.id===_activeTrainSet);
+  if(!s){ s = appData.trainingSets[0]; _activeTrainSet = s.id; }
+  return s;
+}
+
+function newTrainingSet(name){
+  ensureTrainingData();
+  const id = 'ts' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const set = { id, name: name || ('style-' + (appData.trainingSets.length+1)), trigger:'', baseCheckpoint:'', rank:16, steps:2000, learningRate:'1e-4', resolution:1024, items:[], created:Date.now() };
+  appData.trainingSets.push(set);
+  _activeTrainSet = id;
+  saveAppData();
+  renderTrainTab();
+  return set;
+}
+
+function switchTrainSet(id){ _activeTrainSet = id; renderTrainTab(); }
+
+function deleteTrainingSet(){
+  const s = getActiveTrainSet();
+  if(!s) return;
+  showInlineConfirm(`Delete training set "${s.name}"? This only removes it from the app — any exported folder on disk stays.`, ()=>{
+    ensureTrainingData();
+    appData.trainingSets = appData.trainingSets.filter(x=>x.id!==s.id);
+    _activeTrainSet = appData.trainingSets.length ? appData.trainingSets[0].id : null;
+    saveAppData();
+    renderTrainTab();
+  });
+}
+
+function updateTrainField(field, val){
+  const s = getActiveTrainSet();
+  if(!s) return;
+  s[field] = val;
+  saveAppData();
+  if(field==='name') renderTrainSetSelect();
+  if(field==='trigger') renderTrainImages();
+}
+
+function addSelectedToTraining(){
+  const files = [...gallerySelected];
+  if(!files.length) return;
+  ensureTrainingData();
+  let s = getActiveTrainSet();
+  if(!s) s = newTrainingSet();
+  let added = 0;
+  for(const file of files){
+    if(s.items.some(it=>it.file===file)) continue;
+    const entry = galleryImages.find(i=>i.name===file);
+    const folder = entry ? entry.folder : 'raw';
+    s.items.push({ file, folder, caption:'' });
+    added++;
+  }
+  saveAppData();
+  exitGallerySelectMode();
+  showToast('Added to training', `${added} image${added===1?'':'s'} → "${s.name}"`, 'ok');
+  switchTab('train');
+}
+
+function renderTrainSetSelect(){
+  const sel = document.getElementById('train-set-select');
+  if(!sel) return;
+  ensureTrainingData();
+  const active = getActiveTrainSet();
+  if(!appData.trainingSets.length){ sel.innerHTML = '<option>(no sets yet)</option>'; return; }
+  sel.innerHTML = appData.trainingSets.map(s=>`<option value="${esc(s.id)}"${active&&s.id===active.id?' selected':''}>${esc(s.name)}</option>`).join('');
+}
+
+async function loadTrainCheckpoints(){
+  const sel = document.getElementById('train-ckpt');
+  if(!sel) return;
+  const s = getActiveTrainSet();
+  const cur = s && s.baseCheckpoint;
+  if(_trainCkptsLoaded && sel.options.length>1){ if(cur) sel.value = cur; return; }
+  try{
+    const r = await fetch('/comfy/checkpoints');
+    if(r.ok){
+      const j = await r.json();
+      const names = j.checkpoints || [];
+      sel.innerHTML = '<option value="">— pick base model —</option>' + names.map(n=>`<option value="${esc(n)}"${cur===n?' selected':''}>${esc(n)}</option>`).join('');
+      _trainCkptsLoaded = true;
+    }
+  }catch(e){}
+}
+
+async function renderTrainTab(){
+  ensureTrainingData();
+  renderTrainSetSelect();
+  await loadTrainCheckpoints();
+  const s = getActiveTrainSet();
+  const cnt = document.getElementById('train-count');
+  const nameEl = document.getElementById('train-name');
+  const trigEl = document.getElementById('train-trigger');
+  const rankEl = document.getElementById('train-rank');
+  const stepsEl = document.getElementById('train-steps');
+  const ckptEl = document.getElementById('train-ckpt');
+  const resEl = document.getElementById('train-res');
+  const grid = document.getElementById('train-grid');
+  if(!s){
+    if(cnt) cnt.textContent = '';
+    if(grid) grid.innerHTML = '<div class="train-empty">No training set yet.<br>Go to the <strong>Gallery</strong>, select images, and click <strong>◆ Add to Training</strong> — or start an empty set with <strong>＋ New set</strong>.</div>';
+    return;
+  }
+  if(nameEl) nameEl.value = s.name || '';
+  if(trigEl) trigEl.value = s.trigger || '';
+  if(rankEl) rankEl.value = s.rank || 16;
+  if(stepsEl) stepsEl.value = s.steps || 2000;
+  if(resEl) resEl.value = String(s.resolution || 1024);
+  if(ckptEl && s.baseCheckpoint) ckptEl.value = s.baseCheckpoint;
+  if(cnt) cnt.textContent = `${s.items.length} image${s.items.length===1?'':'s'}`;
+  renderTrainImages();
+}
+
+function renderTrainImages(){
+  const grid = document.getElementById('train-grid');
+  if(!grid) return;
+  const s = getActiveTrainSet();
+  if(!s || !s.items.length){ grid.innerHTML = '<div class="train-empty">This set has no images yet.<br>Add some from the <strong>Gallery</strong>.</div>'; return; }
+  const trig = (s.trigger || '').trim();
+  grid.innerHTML = s.items.map((it,idx)=>{
+    const src = `/gallery/image?folder=${it.folder||'raw'}&file=${encodeURIComponent(it.file)}`;
+    const trigChip = trig ? `<div class="train-card-trig">${esc(trig)}, …</div>` : '';
+    return `<div class="train-card"><img src="${src}" loading="lazy" alt="">
+      <div class="train-card-body">${trigChip}
+      <textarea placeholder="Describe the content only — subjects, pose, lighting, composition. Not the style." oninput="updateTrainCaption(${idx},this.value)">${esc(it.caption||'')}</textarea>
+      <button class="train-card-rm" onclick="removeTrainImage(${idx})">✕ remove</button></div></div>`;
+  }).join('');
+}
+
+function updateTrainCaption(idx, val){
+  const s = getActiveTrainSet();
+  if(!s || !s.items[idx]) return;
+  s.items[idx].caption = val;
+  saveAppData();
+}
+
+function removeTrainImage(idx){
+  const s = getActiveTrainSet();
+  if(!s) return;
+  s.items.splice(idx,1);
+  saveAppData();
+  renderTrainImages();
+  const cnt = document.getElementById('train-count');
+  if(cnt) cnt.textContent = `${s.items.length} image${s.items.length===1?'':'s'}`;
+}
+
+function autoCaptionTrain(){ showToast('Not yet', "Auto-captioning needs the WD14 tagger node — that's the next phase", 'warn'); }
+
+async function exportTrainingSet(){
+  const s = getActiveTrainSet();
+  if(!s){ showToast('No training set', 'Create one first', 'err'); return; }
+  if(!s.items.length){ showToast('Empty set', 'Add images before exporting', 'err'); return; }
+  if(!s.trigger || !s.trigger.trim()){ showToast('No trigger word', 'Set a trigger word — it carries your style', 'err'); return; }
+  const missing = s.items.filter(it=>!(it.caption||'').trim()).length;
+  const doExport = async ()=>{
+    try{
+      const r = await fetch('/training/export', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          name:s.name, trigger:s.trigger, baseCheckpoint:s.baseCheckpoint, rank:s.rank, steps:s.steps, learningRate:s.learningRate, resolution:s.resolution,
+          items: s.items.map(it=>({ file:it.file, folder:it.folder, caption:it.caption||'' })),
+        }),
+      });
+      const j = await r.json();
+      if(!r.ok || j.error){ showToast('Export failed', j.error || ('HTTP '+r.status), 'err'); return; }
+      s.exportPath = j.path;
+      saveAppData();
+      showToast('Training folder ready', `${j.count} images + captions saved`, 'ok');
+    }catch(e){ showToast('Export failed', e.message || 'Server error', 'err'); }
+  };
+  if(missing){
+    showInlineConfirm(`${missing} image${missing===1?'':'s'} still uncaptioned — they'll only get the trigger word. Export anyway?`, doExport);
+  } else {
+    doExport();
+  }
 }
 
 function buildVideoWorkflow(opts) {
@@ -6568,5 +7518,397 @@ async function uninstallLora(fileName){
       showToast('Error',e.message,'err');
     }
   },{okLabel:'Uninstall',okColor:'var(--red)'});
+}
+
+// ===================== BROWSE CIVITAI =====================
+let _loraMode='library';
+let _browseResults=[];
+let _browseMetadata={};
+let _browseQuery='';
+let _browseSearchTimer=null;
+let _browseSearchGen=0;
+let _browseScrollPos=0;
+let _libraryScrollPos=0;
+let _currentBrowseModel=null;
+let _currentBrowseVersion=null;
+let _bdInstallPoll=null;
+
+function switchLoraMode(mode){
+  const panel=document.getElementById('panel-loras');
+  const toolbar=document.getElementById('lora-toolbar');
+  if(!panel||!toolbar)return;
+  // Save scroll position
+  if(_loraMode==='library')_libraryScrollPos=panel.scrollTop;
+  else _browseScrollPos=panel.scrollTop;
+  _loraMode=mode;
+  const isBrowse=mode==='browse';
+  panel.classList.toggle('browse-mode',isBrowse);
+  toolbar.classList.toggle('browse-active',isBrowse);
+  document.getElementById('lora-mode-library').classList.toggle('active',!isBrowse);
+  document.getElementById('lora-mode-browse').classList.toggle('active',isBrowse);
+  // Toggle collection tabs — element is a sibling of #panel-loras, not a child,
+  // so CSS #panel-loras.browse-mode can't target it. Use JS with !important.
+  const colTabs=document.getElementById('lora-collection-tabs');
+  if(colTabs){
+    if(isBrowse)colTabs.style.setProperty('display','none','important');
+    else colTabs.style.removeProperty('display');
+  }
+  // Toggle grids
+  const libGrid=document.getElementById('lora-tab-grid');
+  const browseGrid=document.getElementById('browse-tab-grid');
+  if(libGrid)libGrid.style.setProperty('display',isBrowse?'none':'block','important');
+  if(browseGrid)browseGrid.style.setProperty('display',isBrowse?'block':'none','important');
+  // Toggle toolbar controls
+  toolbar.querySelectorAll('.library-only').forEach(el=>el.style.setProperty('display',isBrowse?'none':'contents','important'));
+  toolbar.querySelectorAll('.browse-only').forEach(el=>el.style.setProperty('display',isBrowse?'contents':'none','important'));
+  if(isBrowse){
+    if(_browseResults.length)panel.scrollTop=_browseScrollPos;
+  }else{
+    panel.scrollTop=_libraryScrollPos;
+  }
+}
+
+function onBrowseSearch(){
+  const input=document.getElementById('browse-search');
+  const clear=document.getElementById('browse-search-clear');
+  if(!input)return;
+  _browseQuery=input.value.trim();
+  if(clear)clear.style.display=_browseQuery?'block':'none';
+  clearTimeout(_browseSearchTimer);
+  _browseSearchTimer=setTimeout(()=>doBrowseSearch(),350);
+}
+
+function clearBrowseSearch(){
+  const input=document.getElementById('browse-search');
+  if(input)input.value='';
+  _browseQuery='';
+  const clear=document.getElementById('browse-search-clear');
+  if(clear)clear.style.display='none';
+  doBrowseSearch();
+}
+
+async function doBrowseSearch(cursor){
+  const isFirstPage=!cursor;
+  const gen=isFirstPage?++_browseSearchGen:_browseSearchGen;
+  const sort=document.getElementById('browse-sort')?.value||'Most Downloaded';
+  const period=document.getElementById('browse-period')?.value||'AllTime';
+  const baseModel=document.getElementById('browse-basemodel')?.value||'';
+  const nsfw=showAdult?'true':'false';
+  const statusEl=document.getElementById('browse-status');
+  const resultsEl=document.getElementById('browse-results');
+  const loadMoreEl=document.getElementById('browse-load-more');
+  const emptyEl=document.getElementById('browse-empty');
+  const loadingEl=document.getElementById('browse-loading');
+  if(isFirstPage){
+    if(resultsEl)resultsEl.innerHTML='';
+    _browseResults=[];
+    if(emptyEl)emptyEl.style.display='none';
+    if(loadingEl)loadingEl.style.display='block';
+    if(loadMoreEl)loadMoreEl.style.display='none';
+  }
+  try{
+    let url='/local/civitai/search?sort='+encodeURIComponent(sort)
+      +'&period='+encodeURIComponent(period)
+      +'&nsfw='+encodeURIComponent(nsfw)
+      +'&limit=20';
+    if(cursor)url+='&cursor='+encodeURIComponent(cursor);
+    if(_browseQuery)url+='&query='+encodeURIComponent(_browseQuery);
+    if(baseModel)url+='&baseModel='+encodeURIComponent(baseModel);
+    const res=await fetch(url);
+    if(!res.ok){
+      const errBody=await res.text().catch(()=>'');
+      throw new Error('Search failed ('+res.status+'): '+errBody);
+    }
+    const data=await res.json();
+    if(gen!==_browseSearchGen)return; // stale request, discard
+    if(data.error)throw new Error(data.error);
+    if(loadingEl)loadingEl.style.display='none';
+    const items=data.items||[];
+    _browseMetadata=data.metadata||{};
+    _browseResults=isFirstPage?items:_browseResults.concat(items);
+    if(isFirstPage&&!items.length){
+      if(emptyEl){emptyEl.style.display='block';emptyEl.querySelector('div:nth-child(2)').textContent=_browseQuery?'No results for "'+_browseQuery+'"':'No results';}
+      if(statusEl)statusEl.textContent='';
+      return;
+    }
+    items.forEach(m=>{
+      // Skip models with no still images (only videos or no images at all)
+      const ver0=m.modelVersions&&m.modelVersions[0];
+      const stillImgs=(ver0&&ver0.images||[]).filter(i=>i.type!=='video');
+      if(!stillImgs.length)return;
+      if(resultsEl)resultsEl.insertAdjacentHTML('beforeend',mkBrowseCard(m));
+    });
+    if(statusEl){
+      const total=_browseMetadata.totalItems||_browseResults.length;
+      statusEl.textContent=_browseResults.length+(total>_browseResults.length?' of '+total:'')+' results';
+    }
+    const hasMore=!!_browseMetadata.nextCursor;
+    if(loadMoreEl)loadMoreEl.style.display=hasMore?'block':'none';
+  }catch(e){
+    if(loadingEl)loadingEl.style.display='none';
+    showToast('Search error',e.message,'err');
+  }
+}
+
+function loadMoreBrowseResults(){
+  if(_browseMetadata.nextCursor)doBrowseSearch(_browseMetadata.nextCursor);
+}
+
+function mkBrowseCard(model){
+  const ver=model.modelVersions&&model.modelVersions[0];
+  const imgs=ver&&ver.images||[];
+  // Find first SFW still image (skip videos), or first image if adult mode
+  let img=null;
+  for(const i of imgs){
+    if(i.type==='video')continue;
+    if(showAdult||!i.nsfw||(i.nsfwLevel||0)<=2){img=i;break;}
+  }
+  const imgUrl=img?img.url:null;
+  const name=model.name||'Unknown';
+  const baseModel=ver?ver.baseModel:'';
+  const downloads=model.stats?model.stats.downloadCount||0:0;
+  const thumbsUp=model.stats?model.stats.thumbsUpCount||0:0;
+  const isNsfw=model.nsfw;
+  const isInstalled=isModelInstalled(model.id);
+  const imgHtml=imgUrl
+    ?'<img class="lora-card-img" draggable="false" loading="lazy" referrerpolicy="no-referrer" src="'+imgUrl+'" onerror="this.outerHTML=\'<div class=browse-card-img-retry onclick=retryBrowseImg(this,\\\''+(imgUrl.replace(/'/g,''))+'\\\') title=Click to retry>⟳</div>\'">'
+    :'<div class="lora-card-img-placeholder">No preview</div>';
+  const installedBadge=isInstalled?'<span class="browse-card-installed" title="Already installed">✓</span>':'';
+  const nsfwBadge=isNsfw&&showAdult?'<span class="browse-card-nsfw">NSFW</span>':'';
+  const dlStr=downloads>=1000?(downloads/1000).toFixed(1)+'k':downloads.toString();
+  const thumbsStr=thumbsUp?'👍 '+( thumbsUp>=1000?(thumbsUp/1000).toFixed(1)+'k':thumbsUp):'';
+  return '<div class="lora-card browse-card'+(isNsfw?' brut-card':'')+'" data-civitai-model-id="'+model.id+'" onclick="openBrowseDetail('+model.id+')">'
+    +imgHtml
+    +installedBadge
+    +nsfwBadge
+    +'<div class="lora-card-overlay"></div>'
+    +'<div class="lora-card-footer">'
+    +'<div class="lora-card-name-row"><div class="lora-card-name">'+esc(name)+'</div>'
+    +(baseModel?'<div class="lora-card-type">'+esc(baseModel)+'</div>':'')
+    +'</div>'
+    +'<div class="browse-card-stats">'
+    +'<span>↓ '+dlStr+'</span>'
+    +(thumbsStr?'<span>'+thumbsStr+'</span>':'')
+    +'</div>'
+    +'</div>'
+    +'</div>';
+}
+
+function retryBrowseImg(el,url){
+  event.stopPropagation();
+  const img=document.createElement('img');
+  img.className='lora-card-img';
+  img.draggable=false;
+  img.loading='lazy';
+  img.referrerPolicy='no-referrer';
+  img.src=url+'?t='+Date.now();
+  img.onerror=()=>{el.textContent='✕';el.title='Failed to load';};
+  el.replaceWith(img);
+}
+
+function isModelInstalled(civitaiModelId){
+  return loraList.some(l=>{
+    const civ=l.civitai;
+    if(!civ)return false;
+    return (civ.modelId||civ.id)==civitaiModelId;
+  });
+}
+
+function openBrowseDetail(modelId){
+  const model=_browseResults.find(m=>m.id===modelId);
+  if(!model)return;
+  _currentBrowseModel=model;
+  // Close library panel if open
+  closeLpPanel();
+  const panel=document.getElementById('browse-detail');
+  const backdrop=document.getElementById('browse-detail-backdrop');
+  // Name
+  document.getElementById('bd-name').textContent=model.name||'Unknown';
+  // Type + base model badges
+  const typeEl=document.getElementById('bd-type');
+  typeEl.textContent=model.type||'LORA';
+  const bmEl=document.getElementById('bd-basemodel');
+  const ver=model.modelVersions&&model.modelVersions[0];
+  bmEl.textContent=ver?ver.baseModel:'';
+  // CivitAI link
+  const linkEl=document.getElementById('bd-civitai-link');
+  linkEl.href='https://civitai.com/models/'+model.id;
+  // Version picker — default to version matching base model filter if set
+  const verSelect=document.getElementById('bd-version');
+  verSelect.innerHTML='';
+  const versions=model.modelVersions||[];
+  versions.forEach((v,i)=>{
+    const opt=document.createElement('option');
+    opt.value=i;
+    opt.textContent=v.name+(v.baseModel?' ('+v.baseModel+')':'');
+    verSelect.appendChild(opt);
+  });
+  const bmFilter=document.getElementById('browse-basemodel')?.value||'';
+  let defaultIdx=0;
+  if(bmFilter){
+    const matchIdx=versions.findIndex(v=>v.baseModel===bmFilter);
+    if(matchIdx>=0)defaultIdx=matchIdx;
+  }
+  verSelect.value=String(defaultIdx);
+  renderBrowseVersion(defaultIdx);
+  panel.classList.add('open');
+  if(backdrop)backdrop.classList.add('open');
+}
+
+function closeBrowseDetail(){
+  _currentBrowseModel=null;
+  _currentBrowseVersion=null;
+  if(_bdInstallPoll){clearInterval(_bdInstallPoll);_bdInstallPoll=null;}
+  document.getElementById('browse-detail')?.classList.remove('open');
+  document.getElementById('browse-detail-backdrop')?.classList.remove('open');
+}
+
+function onBrowseVersionChange(){
+  const idx=parseInt(document.getElementById('bd-version')?.value||'0');
+  renderBrowseVersion(idx);
+}
+
+function renderBrowseVersion(idx){
+  if(!_currentBrowseModel)return;
+  const versions=_currentBrowseModel.modelVersions||[];
+  const ver=versions[idx];
+  if(!ver)return;
+  _currentBrowseVersion=ver;
+  // Images
+  const imgsEl=document.getElementById('bd-images');
+  const imgs=ver.images||[];
+  const visibleImgs=(showAdult?imgs:imgs.filter(i=>!i.nsfw&&(i.nsfwLevel||0)<=2)).filter(i=>i.type!=='video');
+  imgsEl.innerHTML=visibleImgs.length
+    ?visibleImgs.map(i=>'<img src="'+i.url+'" onclick="openLightboxUrl(\''+i.url+'\')" loading="lazy" referrerpolicy="no-referrer">').join('')
+    :'<div style="padding:20px;color:var(--muted);font-size:11px;">No preview images</div>';
+  // Base model badge
+  document.getElementById('bd-basemodel').textContent=ver.baseModel||'';
+  // Stats
+  const statsEl=document.getElementById('bd-stats');
+  const primaryFile=(ver.files||[]).find(f=>f.primary&&f.name.endsWith('.safetensors'))
+    ||(ver.files||[]).find(f=>f.name.endsWith('.safetensors'));
+  const sizeMB=primaryFile?Math.round((primaryFile.sizeKB||0)/1024):0;
+  const model=_currentBrowseModel;
+  const downloads=model.stats?model.stats.downloadCount||0:0;
+  const thumbsUp=model.stats?model.stats.thumbsUpCount||0:0;
+  const thumbsDown=model.stats?model.stats.thumbsDownCount||0:0;
+  const published=ver.publishedAt?new Date(ver.publishedAt).toLocaleDateString():'';
+  statsEl.innerHTML=''
+    +'<div class="bd-stat"><div class="bd-stat-label">File Size</div><div class="bd-stat-value">'+(sizeMB?sizeMB+' MB':'Unknown')+'</div></div>'
+    +'<div class="bd-stat"><div class="bd-stat-label">Downloads</div><div class="bd-stat-value">'+downloads.toLocaleString()+'</div></div>'
+    +'<div class="bd-stat"><div class="bd-stat-label">Rating</div><div class="bd-stat-value">'+(thumbsUp?'👍 '+thumbsUp.toLocaleString()+(thumbsDown?' · 👎 '+thumbsDown.toLocaleString():''):'N/A')+'</div></div>'
+    +'<div class="bd-stat"><div class="bd-stat-label">Published</div><div class="bd-stat-value">'+(published||'Unknown')+'</div></div>';
+  // Trained words
+  const twWrap=document.getElementById('bd-triggers-wrap');
+  const twEl=document.getElementById('bd-triggers');
+  const words=ver.trainedWords||[];
+  if(words.length){
+    twWrap.style.display='block';
+    twEl.innerHTML=words.map(w=>'<span class="bd-trigger-chip">'+esc(w)+'</span>').join('');
+  }else{
+    twWrap.style.display='none';
+  }
+  // Description
+  const descWrap=document.getElementById('bd-desc-wrap');
+  const descEl=document.getElementById('bd-desc');
+  const desc=model.description||'';
+  if(desc){
+    descWrap.style.display='block';
+    // CivitAI returns HTML in descriptions — render as text for safety
+    const tmp=document.createElement('div');
+    tmp.innerHTML=desc;
+    descEl.textContent=tmp.textContent.slice(0,1000);
+  }else{
+    descWrap.style.display='none';
+  }
+  // Install button state
+  updateBrowseInstallBtn();
+}
+
+function updateBrowseInstallBtn(){
+  const btn=document.getElementById('bd-install-btn');
+  if(!btn||!_currentBrowseModel)return;
+  const installed=isModelInstalled(_currentBrowseModel.id);
+  btn.textContent=installed?'✓ Already Installed':'Install';
+  btn.disabled=installed;
+  btn.style.opacity=installed?'.5':'1';
+  btn.style.cursor=installed?'default':'pointer';
+  // Reset progress bar
+  document.getElementById('bd-install-progress').style.display='none';
+  document.getElementById('bd-progress-bar').style.width='0%';
+  document.getElementById('bd-progress-text').textContent='';
+}
+
+async function installFromBrowse(){
+  if(!_currentBrowseModel||!_currentBrowseVersion)return;
+  const model=_currentBrowseModel;
+  const ver=_currentBrowseVersion;
+  const civitUrl='https://civitai.com/models/'+model.id+'?modelVersionId='+ver.id;
+  const btn=document.getElementById('bd-install-btn');
+  const progressWrap=document.getElementById('bd-install-progress');
+  const progressBar=document.getElementById('bd-progress-bar');
+  const progressText=document.getElementById('bd-progress-text');
+  btn.textContent='Installing…';
+  btn.disabled=true;
+  btn.style.opacity='.5';
+  progressWrap.style.display='block';
+  try{
+    const res=await fetch('/local/loras/install',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url:civitUrl,civitaiApiKey:appData.settings?.civitaiApiKey||''})
+    });
+    const resData=await res.json().catch(()=>({}));
+    if(!res.ok){
+      throw new Error(resData.error||'Install failed');
+    }
+    // Poll progress (server returns immediately, download runs in background)
+    _bdInstallPoll=setInterval(async()=>{
+      try{
+        const pr=await fetch('/local/loras/install-progress');
+        const prog=await pr.json();
+        const pct=prog.pct||0;
+        progressBar.style.width=pct+'%';
+        progressText.textContent=prog.message||(pct+'%');
+        if(prog.status==='done'||prog.status==='error'){
+          clearInterval(_bdInstallPoll);
+          _bdInstallPoll=null;
+          if(prog.status==='done'){
+            progressBar.style.width='100%';
+            progressText.textContent='Installed!';
+            showToast('Installed',model.name,'ok');
+            // Refresh library
+            await loadLoras();
+            renderLoraTab();
+            updateBrowseInstallBtn();
+            // Update installed badge on browse card
+            const card=document.querySelector('[data-civitai-model-id="'+model.id+'"]');
+            if(card&&!card.querySelector('.browse-card-installed')){
+              card.insertAdjacentHTML('afterbegin','<span class="browse-card-installed" title="Already installed">✓</span>');
+            }
+          }else{
+            btn.textContent='Install';
+            btn.disabled=false;
+            btn.style.opacity='1';
+            showToast('Install failed',prog.message||'Unknown error','err');
+          }
+        }
+      }catch(e){}
+    },500);
+  }catch(e){
+    btn.textContent='Install';
+    btn.disabled=false;
+    btn.style.opacity='1';
+    progressWrap.style.display='none';
+    showToast('Install error',e.message,'err');
+  }
+}
+
+// Lightbox for browse detail images
+function openLightboxUrl(url){
+  const lb=document.getElementById('lp-lightbox');
+  if(!lb)return;
+  document.getElementById('lp-lightbox-img').src=url;
+  lb.classList.add('open');
 }
 

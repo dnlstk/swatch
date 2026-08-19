@@ -24,13 +24,56 @@ let _weStartedComfyUI = false; // true if we launched it (so we quit it on exit)
 let _comfyStarting = false;    // process launched, window not hidden yet
 let _comfyReady = false;       // port 8000 is responding
 
+// ===================== CIVITAI POPUP WINDOW =====================
+let civitaiWindow = null;
+
+function openCivitAIPopup(url) {
+  const targetUrl = url || 'https://civitai.red';
+  if (civitaiWindow && !civitaiWindow.isDestroyed()) {
+    civitaiWindow.loadURL(targetUrl);
+    civitaiWindow.show();
+    civitaiWindow.focus();
+    return;
+  }
+  civitaiWindow = new BrowserWindow({
+    width: 1200, height: 800,
+    title: 'CivitAI',
+    webPreferences: {
+      partition: 'persist:civitai',
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  civitaiWindow.loadURL(targetUrl);
+  civitaiWindow.webContents.setWindowOpenHandler(({ url: linkUrl }) => {
+    if (/civitai\.(com|red)/i.test(linkUrl)) {
+      civitaiWindow.loadURL(linkUrl);
+    } else {
+      shell.openExternal(linkUrl);
+    }
+    return { action: 'deny' };
+  });
+  const civBoundsFile = path.join(app.getPath('userData'), 'civitai-bounds.json');
+  try {
+    const saved = JSON.parse(fs.readFileSync(civBoundsFile, 'utf8'));
+    if (saved) civitaiWindow.setBounds(saved);
+  } catch {}
+  const saveCivBounds = () => {
+    if (!civitaiWindow || civitaiWindow.isDestroyed()) return;
+    try { fs.writeFileSync(civBoundsFile, JSON.stringify(civitaiWindow.getBounds())); } catch {}
+  };
+  civitaiWindow.on('resize', saveCivBounds);
+  civitaiWindow.on('move', saveCivBounds);
+  civitaiWindow.on('closed', () => { civitaiWindow = null; });
+}
+
 // ===================== EXTERNAL LINK ROUTING =====================
-// CivitAI links go to Chrome "Profile 1" (Daniel's alt account).
+// CivitAI links open in the in-app popup window.
 // Everything else opens in the default browser.
 function openExternalUrl(url) {
   try {
     if (/civitai\.(com|red)/i.test(url)) {
-      spawn('open', ['-na', 'Google Chrome', '--args', '--profile-directory=Profile 1', url]);
+      openCivitAIPopup(url);
     } else {
       shell.openExternal(url);
     }
@@ -56,70 +99,52 @@ function saveBounds() {
   } catch (e) { console.error('[bounds] save failed:', e.message); }
 }
 
-// ===================== STATUS CHECKS =====================
+// ===================== COMFYUI DIRECT LAUNCH =====================
+// Launch the Python backend directly instead of going through the Comfy Desktop launcher.
+const COMFY_PYTHON = path.join(os.homedir(), 'Tools', 'ComfyUI', '.venv', 'bin', 'python3');
+const COMFY_MAIN = path.join(os.homedir(), 'ComfyUI-Installs', 'ComfyUI', 'ComfyUI', 'main.py');
+const COMFY_CWD = path.join(os.homedir(), 'ComfyUI-Installs', 'ComfyUI', 'ComfyUI');
+const COMFY_BASE = path.join(os.homedir(), 'Tools', 'ComfyUI');
+const COMFY_EXTRA_MODELS = path.join(os.homedir(), 'Library', 'Application Support', 'ComfyUI', 'extra_models_config.yaml');
+const COMFY_SHARED_MODELS = path.join(os.homedir(), 'Library', 'Application Support', 'Comfy Desktop', 'shared_model_paths.yaml');
+let _comfyProcess = null;
+
 function isComfyUIRunning() {
   try {
-    execSync('pgrep -x ComfyUI', { stdio: 'ignore' });
+    execSync('pgrep -f "ComfyUI/main.py"', { stdio: 'ignore' });
     return true;
   } catch { return false; }
 }
 
-// ===================== COMFYUI =====================
 function startComfyUI() {
-  spawn('open', ['-a', 'ComfyUI']);
-  setTimeout(rebuildTrayMenu, 2000);
+  const args = [COMFY_MAIN, '--port', '8000',
+    '--output-directory', path.join(COMFY_BASE, 'output'),
+    '--input-directory', path.join(COMFY_BASE, 'input')];
+  if (fs.existsSync(COMFY_EXTRA_MODELS)) args.push('--extra-model-paths-config', COMFY_EXTRA_MODELS);
+  if (fs.existsSync(COMFY_SHARED_MODELS)) args.push(COMFY_SHARED_MODELS);
+  _comfyProcess = spawn(COMFY_PYTHON, args, { cwd: COMFY_CWD, stdio: 'ignore', detached: false });
+  _comfyProcess.on('exit', (code) => {
+    clog(`ComfyUI process exited with code ${code}`);
+    _comfyProcess = null;
+    _comfyReady = false;
+    rebuildTrayMenu();
+  });
+  setTimeout(rebuildTrayMenu, 1000);
 }
 
 function stopComfyUI() {
-  try {
-    execSync(`osascript -e 'tell application "ComfyUI" to quit'`);
-  } catch (e) {
-    console.error('[comfyui] quit failed:', e.message);
+  if (_comfyProcess) {
+    _comfyProcess.kill('SIGTERM');
+    _comfyProcess = null;
+  } else {
+    try { execSync('pkill -f "ComfyUI/main.py"', { stdio: 'ignore' }); } catch {}
   }
   setTimeout(rebuildTrayMenu, 1000);
 }
 
-function isComfyUIVisible() {
-  try {
-    const out = execSync(
-      `osascript -e 'tell application "System Events" to get visible of process "ComfyUI"'`,
-      { encoding: 'utf8' }
-    ).trim();
-    return out === 'true';
-  } catch { return false; }
-}
-
-function hideComfyUI() {
-  try {
-    execSync(`osascript -e '
-      tell application "System Events"
-        tell process "ComfyUI"
-          click menu bar item 1 of menu bar 2
-          delay 0.3
-          click menu item "Hide" of menu 1 of menu bar item 1 of menu bar 2
-        end tell
-      end tell'`);
-  } catch (e) {
-    console.error('[comfyui] hide failed:', e.message);
-  }
-  rebuildTrayMenu();
-}
-
-function showComfyUI() {
-  try {
-    execSync(`osascript -e '
-      tell application "System Events"
-        tell process "ComfyUI"
-          click menu bar item 1 of menu bar 2
-          delay 0.3
-          click menu item "Show Comfy Window" of menu 1 of menu bar item 1 of menu bar 2
-        end tell
-      end tell'`);
-  } catch (e) {
-    console.error('[comfyui] show failed:', e.message);
-  }
-  rebuildTrayMenu();
-}
+function isComfyUIVisible() { return false; }
+function hideComfyUI() {}
+function showComfyUI() {}
 
 // ===================== COMFYUI AUTO-LAUNCH =====================
 function checkComfyPort() {
@@ -160,15 +185,15 @@ async function autoStartComfyUI() {
       return;
     }
 
-    clog('ComfyUI not running — launching...');
+    clog('ComfyUI not running — launching Python backend directly...');
     _weStartedComfyUI = true;
     _comfyStarting = true;
     _comfyReady = false;
     rebuildTrayMenu();
 
-    spawn('open', ['-a', 'ComfyUI']);
+    startComfyUI();
 
-    // Wait for the process to appear (up to 15s), then hide its window
+    // Wait for the process to appear (up to 15s)
     const appeared = await waitForCondition(() => isComfyUIRunning(), 15000, 500);
     if (!appeared) {
       clog('ERROR: process never appeared — gave up');
@@ -177,10 +202,6 @@ async function autoStartComfyUI() {
       return;
     }
     clog('process appeared');
-
-    // Give the window a moment to render before hiding
-    await new Promise(r => setTimeout(r, 2500));
-    hideComfyUI();
     _comfyStarting = false;
     rebuildTrayMenu();
 
@@ -253,14 +274,6 @@ function rebuildTrayMenu() {
         }
       },
     },
-    {
-      label: comfyRunning && isComfyUIVisible() ? 'Hide ComfyUI' : 'Show ComfyUI',
-      enabled: comfyRunning && !_comfyStarting,
-      click: () => {
-        if (isComfyUIVisible()) hideComfyUI();
-        else showComfyUI();
-      },
-    },
     { type: 'separator' },
     {
       label: windowVisible ? 'Hide Window' : 'Show Window',
@@ -321,6 +334,10 @@ ipcMain.on('tray-progress', (_event, text) => {
   if (!tray) return;
   _trayOwnedByRenderer = !!text;
   tray.setTitle(text ? ' ' + text : '');
+});
+
+ipcMain.on('open-civitai', (_event, url) => {
+  openCivitAIPopup(url || '');
 });
 
 // ===================== WINDOW =====================

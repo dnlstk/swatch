@@ -1,11 +1,18 @@
 # Personal data (LoRA settings, gallery state, etc)
 app-data.json
+app-data.json.*
+civitai-share-debug.json
+
+# Personal gallery screenshots
+screenshots/
 
 # Cached LoRA preview images from LoRA Manager
 lora-images/
 
 # Old backups
 Archive/
+*.bak-*
+electron-app/*.app.backup-*/
 
 # Electron build output
 electron-app/dist/

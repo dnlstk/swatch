@@ -1,5 +1,5 @@
 # Prompt Gen Roadmap
-*Updated: May 26, 2026*
+*Updated: July 2, 2026*
 
 Everything through Phase 3.5 is shipped and tested. This is what's next.
 
@@ -66,7 +66,7 @@ Step back and rethink the whole thing.
 - [ ] **Portrait monitor UX** (large) — the app is "hit or miss" on the vertical display. Audit all three tabs at narrow-but-tall viewport sizes. Likely needs responsive breakpoints, maybe auto-collapse sidebar, maybe different grid column counts. Bundle with the redesign so Claude Design only has to do it once.
 - [x] **LoRA tab design review (CD round 2)** ✓ — implemented all 19 edits from CD's second review pass. Card visual polish (status badges, brut borders, frosted glass buttons, cleaned indicator). Detail panel button row redesigned to overlay on portrait image. Status dropdown replaced 3 buttons with compact single-button + dropdown. Collection tabs with drag reorder. Vibe-based collections (151/193 sorted). Section headers restyled.
 - [x] **Gallery tab design review** ✓ — full redesign shipped (sessions 37-39). Sidebar removed, horizontal album tabs, 170px cards, 400px detail panel with right-click status, fav star + brut overlay on detail image, tag autocomplete, PNG metadata accordion. 5 rounds of polish with Daniel: back-to-top restyled, queue bar height matched, brut border tuned, drag lock, user-select disabled.
-- [ ] **Full app redesign via Claude Design** (large) — take the whole app through Claude Design for a fresh visual pass. The current layouts are functional but grew organically. Input package: screenshots of all tabs, workflow descriptions, design constraints, reference aesthetic. Output: interactive HTML mockup, then Claude Code implements it.
+- [x] **Full app redesign via Claude Design** ✓ — full visual pass across all tabs completed
 
 ---
 
@@ -76,8 +76,21 @@ Remove the LoRA Manager dependency entirely and manage models from within the ap
 
 - [x] **Phase 1: Data source swap** ✓ — server.js now scans the filesystem directly for .safetensors files + .metadata.json sidecars instead of hitting LoRA Manager's API. New `/local/` endpoints for listing and preview serving. In-memory caching with `/local/refresh`. LoRA Manager Port removed from Settings. All 234 LoRAs and 16 checkpoints loading correctly.
 - [x] **Phase 2: Install/uninstall LoRAs** ✓ — CivitAI API key in Settings, install dialog with URL input + preview, streaming download with progress bar, atomic .tmp→final rename, .metadata.json sidecar written on install, preview image downloaded. Uninstall button in detail panel Settings tab with confirm dialog. Auto-scroll to newly installed LoRA + opens detail panel. Handles both civitai.com and civitai.red domains (separate model IDs). New endpoints: `/local/loras/install`, `/local/loras/uninstall`, `/local/loras/install-progress`, `/local/loras/preview-info`.
-- [ ] **Phase 3: Browse CivitAI** (large) — search CivitAI from within the app. Browse models, see previews, one-click install. Needs: CivitAI search API integration, results UI, install flow from browse.
-- [ ] **Handle LoRAs without metadata** (small) — for manually-added .safetensors files without .metadata.json, hash the file and call CivitAI's `/api/v1/model-versions/by-hash/{hash}` to fetch metadata.
+- [x] **Phase 3: Browse CivitAI** ✓ — search CivitAI from within the app. Library/Browse mode toggle on LoRA tab, search with base model filter + sort + NSFW toggle, browse card grid, detail panel with version selector + image carousel + install button. Cursor-based pagination, race condition prevention, CivitAI CDN referrerpolicy fix. 31 checklist items tested and passing.
+- [x] **Handle LoRAs without metadata** ✓ — auto-detect on load, SHA256 hash, CivitAI by-hash API lookup, write sidecar. Minimal sidecar on miss to prevent re-hashing.
+- [x] **Share to CivitAI** ✓ — direct CivitAI API upload (presigned S3 + tRPC post creation). Resource detection via .metadata.json sidecar SHA256 hashes + modelVersionId. ComfyUI tool attribution via `image.addTools` (toolId 86). NSFW flag for Brut images. Gallery shared indicator (green ↗ badge on cards, tracked in `appData.galleryShared`). Fully tested: basic flow, metadata pre-fill, NSFW, resources, tool, non-PNG rejection, no-metadata images.
+
+---
+
+## Wave 7 — LoRA Training (IN PROGRESS, session 51)
+
+Train LoRAs from inside the app. Starting with **style/aesthetic** LoRAs. The app owns the tedious 80% (curate → caption → surface the result); a training engine does the crunch. Building engine-neutral first — engine choice (Draw Things vs in-app Kohya) deferred.
+
+- [x] **Phase 1 — Dataset + caption builder** ✓ (session 51) — new "Train" tab. "◆ Add to Training" bulk button in gallery. Training sets in `appData.trainingSets`. Per-image caption grid with content-not-style guidance banner. Config (trigger, base ckpt, rank, steps, res). `POST /training/export` writes `_tools/training-sets/<name>/img/` = images + `.txt` caption sidecars (trigger prepended) + `config.json`. Universal handoff folder. **Not yet tested.**
+- [ ] **Phase 1b — Auto-caption** (next) — install WD14 tagger node in ComfyUI, caption via a ComfyUI workflow (reuse existing build+queue plumbing), fill the caption boxes automatically. This kills the hand-captioning slog. Button already stubbed in the UI.
+- [ ] **Phase 1 polish** — bigger caption-grid preview / lightbox (matters extra with aphantasia — he needs to *see* what he's describing).
+- [ ] **Phase 2 — Pick + wire the training engine.** Draw Things (native Metal, recommended, app hands off the folder) OR in-app Kohya sd-scripts (needs fp32 on MPS, slower, but all-in-one). ComfyUI training nodes are CUDA-only — ruled out on Mac.
+- [ ] **Phase 3 — Close the loop** — trained `.safetensors` lands in the LoRA folder, app already shows it. Maybe a "training runs" history + one-click retrain.
 
 ---
 
@@ -85,6 +98,7 @@ Remove the LoRA Manager dependency entirely and manage models from within the ap
 
 Stuff that's come up but isn't committed to a wave yet. Pull from here when a wave needs filling.
 
+- **CivitAI MCP integration** — CivitAI launched an MCP server (mcp.civitai.com/mcp, 53 tools) and a Generation Skill with cloud compute (Flux, Veo 3, Kling, 11+ video engines). Two angles worth exploring: (1) cloud generation for models you can't run locally — route video tab to CivitAI compute when selecting Veo 3/Kling, same prompt UI different backend, costs credits; (2) rate/comment on LoRAs from the detail panel Settings tab without going to the website. Most of what we do (browse/install/share) already hits their REST API fine — the MCP angle is mainly additive for cloud compute and social actions.
 - Settings wiring — server.js reads folder paths from appData.settings instead of hardcoded values
 - LoRA popover improvements — richer info in the metadata chip popover
 - Gallery notification/reminder for old unreviewed backlog
@@ -94,9 +108,16 @@ Stuff that's come up but isn't committed to a wave yet. Pull from here when a wa
 - **Remix tag pill sync** — when remixing an image, parse the prompt and auto-select matching tag chips in the Generate tab so the pills reflect what's in the prompt
 - **LoRA panel overview layout** — thumbnail (140px) feels oversized after panel narrowed to 520px. Rethink the image-beside-controls layout — maybe shrink to 110-120px, or try image-above-controls. Good candidate for Claude Design.
 - ~~**img2img denoise hint labels**~~ ✓ — shipped session 28, zone labels (refine/remix/reimagine) + hover tooltip
-- **Send config accordion** — collapse W/H/Steps/CFG/Sampler/Scheduler into a collapsible section with a summary line like "896×1152 · 30 steps · CFG 5" when collapsed. Checkpoint stays outside (always visible). State persists in appData.settings. Frees ~80px in the right panel.
+- ~~**Send config accordion**~~ ✓ — shipped in redesign
 - **Remix/img2img tag behavior audit** — review what auto-clears and auto-assigns when entering remix or img2img mode: which tag pills show as enabled, whether LoRA triggers persist in the subject after removing the LoRA, overall consistency of prompt state after remix. Goal: make the behavior predictable and clean.
-- **Chaos Sets** — a "Chaos" button in the Generate tab that produces 4-5 intentionally mismatched descriptive words (tension between texture, state, spatial, action, mood) to inject into prompts and see what the model does with them. Individually toggleable chips, re-roll, optional mood steering (horror, organic, glitch, etc). Two-tier approach: built-in word pools for instant offline chaos, optional Claude API integration for infinite generative variety. Inspired by Daniel's old ChatGPT "chaos sets" workflow for stretching models into unexpected territory. Fits the aphantasia workflow perfectly — throw chaos at the model, react to what comes back.
+- **LoRA detail image carousel** — horizontal scrolling sample images in the library LoRA detail panel, similar to how browse detail already works. Would replace the single static preview.
+- ~~**Upscale workflow**~~ ✓ — shipped session 47. One-click 2× upscale from gallery detail using 4x-UltraSharp model. Auto-archives original to `originals/` folder, inherits all properties (status, brut, tags, favorites, categories), preserves metadata for remix/share. HD badge on upscaled cards. Batch upscale still a future option.
+- ~~**Upscale + Share integration**~~ ✓ — shipped session 48. Prompt to upscale before sharing, gold shared badge for upscaled+shared, HD badge hidden once shared. Also fixed upscale filename collisions (unique prefix per source image) and added manual Mark Shared in context menu.
+- **Originals folder cleanup** — the `originals/` folder is a safety net while upscale is new. Once trusted: either auto-purge files older than 30-60 days, or skip archiving entirely and just delete originals on upscale. No third-party app needed.
+- **Batch upscale** — select multiple images → upscale all. Queue them sequentially, toast with progress count.
+- **Most Used LoRAs** — small section at the top of the LoRA tab showing 3-5 most frequently used LoRAs. Track a usage counter (bump each time a LoRA is added to a prompt), display as a quick-access row above the main grid.
+- **Chaos Sets** — "Chaos" button in the Generate tab that produces 4-5 intentionally mismatched descriptive words to inject into prompts. Picks one word from each of 5 dimensions (texture/material, state/condition, spatial/scale, action/force, mood/tone) to create tension the model has to resolve. Built-in word pools (~10-15 words per dimension, ~150k combinations). Words show as toggleable chips — kill the ones that don't vibe, keep the rest, re-roll for a new set. Mood steering biases the pools toward a feel (horror, organic, glitch, sacred, ethereal) without replacing them. Selected words inject into the prompt alongside existing tags. Start with offline pools only; Claude API tier for infinite generative variety is a future add-on. Pools can be expanded manually over time as we find gaps.
+- ~~**Queue panel back to sidebar**~~ ✓ — moved to full-height floating panel on the right edge of the app
 
 ---
 

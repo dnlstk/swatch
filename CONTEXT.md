@@ -1,6 +1,11 @@
 # Prompt Gen — Project Context
 *This file is the living memory of this project. Read it at the start of every session. Rewrite/update it at the end of every session with anything new learned or decided. Don't just add bullet points — preserve the WHY behind decisions.*
 
+**START-OF-SESSION CHECKLIST — do this before diving into work:**
+1. Read this file (CONTEXT.md)
+2. Read Claude HQ in Craft — at minimum the Start Here doc and Claude Journal (see memory file `reference_claude_hq.md` for Craft IDs)
+3. Run `reminders list PromptGen` (CLI at `/Users/daniel/Tools/reminders-cli/reminders`) to load this project's build backlog, and surface what's there. NOTE: the list for THIS project is **PromptGen** (not SatTools, Music, Widgets, Nudge — those are other projects). Walk Daniel through each item before actioning anything — some are just ambiguous notes-to-self. Decide together, then complete/update with `reminders done <id>` / `reminders add PromptGen "title" "note"`. AppleScript can't see these iCloud lists, so always use this CLI. (Full details: Claude HQ → "Shared Tools — Reminders Backlog".)
+
 **END-OF-SESSION CHECKLIST — do this before wrapping up every session:**
 1. Update this file (CONTEXT.md) with everything shipped, decided, or learned
 2. Update ROADMAP.md — mark completed items, add new ideas
@@ -8,6 +13,7 @@
 4. Update any other memory files that are now stale
 5. Add a "Recently shipped (session N)" block to the section below with enough detail that the next session understands what changed
 6. Take screenshots of each tab/section and save to `screenshots/` folder — Claude Design uses these as visual reference. Open the app, cycle through all tabs (Generate, LoRAs, Gallery, Checkpoints, Settings), capture current state. Commit alongside code changes.
+7. Add a journal entry to Claude Journal in Craft (see memory file `reference_claude_hq.md` for Craft IDs) — date, product (Claude Code), what shipped, notes for other Claudes.
 
 ---
 
@@ -59,6 +65,7 @@ appData = {
   galleryTiming: { [filename]: durationInSeconds },
   galleryAutoTagged: { [filename]: true },
   galleryFavorites: { [filename]: true },
+  galleryShared: { [filename]: { postUrl, ts } },
   embeddings: [ { name, target: 'pos'|'neg', active } ],
   settings: { lastSend, hiddenTabs, hideBrut, ... },
 }
@@ -78,7 +85,7 @@ Safari has a ~65KB limit on inline JavaScript. When the script exceeded this, Sa
 The original LoRA detail was a floating popup (lpopup). As we added more fields (prefix, suffix, triggers, settings, status, etc.) it got too cramped. Evolved into a 600px slide-in panel from the right side. The panel overlays the content rather than shifting it (user preference).
 
 **Why preload.js exists:**
-Electron runs with `contextIsolation: true` and `nodeIntegration: false` for security. The renderer (app.js) can't access Node.js or Electron APIs directly. preload.js uses `contextBridge.exposeInMainWorld` to expose a `window.promptGen` object with safe IPC methods (currently just `updateTrayProgress`). This is the bridge for renderer → main process communication.
+Electron runs with `contextIsolation: true` and `nodeIntegration: false` for security. The renderer (app.js) can't access Node.js or Electron APIs directly. preload.js uses `contextBridge.exposeInMainWorld` to expose a `window.promptGen` object with safe IPC methods (`updateTrayProgress`, `openCivitAI`). This is the bridge for renderer → main process communication.
 
 **Why sl() exists and its limitation:**
 `sl(str)` converts filenames to safe CSS IDs by replacing non-alphanumeric chars with underscores. The problem: it's lossy. `my.lora` and `my_lora` both become `my_lora`. This caused a long-running drag-to-reorder bug where we couldn't reverse the ID back to the original filename. Fixed by adding `data-key` attributes with the real filename to card elements.
@@ -124,6 +131,73 @@ Initially the panel always showed Save/Discard buttons. Daniel felt like he was 
 
 **Backlog:**
 - **Per-LoRA weight override on active LoRAs** — right-click a LoRA trigger chip (in the right panel) to set a one-off weight for this generation, without changing the LoRA's saved default. Currently you have to disable → change default → re-enable, which breaks flow.
+
+**Recently shipped (Claude Code session 51 — LoRA Training Phase 1: dataset + caption builder):**
+- **New feature direction — train LoRAs from inside the app.** Daniel wants to train his own LoRAs. Decided to start with a **style/aesthetic** LoRA. Engine (the thing that does the actual training crunch) is **deliberately undecided** — we're building the engine-neutral 80% first.
+- **The key insight:** the app already owns the tedious part of LoRA training — curating images (Gallery), captioning them (tags), and surfacing the finished LoRA (browser). So Phase 1 = a bridge: gallery images → captioned training folder → (later) an engine → LoRA appears.
+- **Style-captioning rule baked into the UI:** for a *style* LoRA you caption the **content, not the style** (describe subjects/pose/lighting, leave the aesthetic unnamed; the trigger word carries the look). Getting this backwards is the #1 first-attempt failure. There's a prominent orange banner in the Train tab reminding him.
+- **New "Train" tab** (titlebar, after Gallery). Contains: set picker + ＋New set / Delete set, the captioning-rule banner, a config row (set name, trigger word, base checkpoint [auto-loaded from Illustrious/PONY/SDXL via `/comfy/checkpoints`], LoRA rank, total steps, resolution — style defaults rank 16 / steps 2000 / 1024), and a grid of the set's images each with its own caption textarea (trigger shown as a greyed `trigger, …` prefix, prepended on export — not typed per box).
+- **"◆ Add to Training" bulk button** in the gallery selection bar — pushes selected images into the active training set (creating one if needed), then jumps to the Train tab. Captions seed empty (gallery tags are checkpoint/LoRA names, which would pollute a style LoRA).
+- **State:** `appData.trainingSets = [ { id, name, trigger, baseCheckpoint, rank, steps, learningRate, resolution, items:[{file,folder,caption}], created, exportPath } ]`. Module var `_activeTrainSet` tracks the open set.
+- **New server endpoint `POST /training/export`** — copies each image from output/approved into `_tools/training-sets/<safe-name>/img/`, writes a `<stem>.txt` caption sidecar per image (trigger auto-prepended, `trigger, caption` format), and a `config.json` with all settings. Handles filename collisions. This folder is the **universal handoff** — works with Draw Things, Kohya, or cloud. Returns `{ok, path, count}`.
+- **Auto-caption is Phase 1b** — the ✨ button exists but is disabled. Needs the **WD14 tagger node** installed in ComfyUI (none present in custom_nodes yet). The plan: caption via a ComfyUI workflow (WD14 node), reusing the app's existing workflow-build-and-queue plumbing.
+- **Engine research (for when we pick one):** ComfyUI's good training nodes (Realtime-LoRA) are **CUDA-only — dead end on Mac**. Real Mac paths are (1) **Draw Things** — best-optimized native Metal trainer, ~10GB peak for SDXL, app preps + hands off (recommended); (2) **Kohya sd-scripts** run by the app itself — most integrated but slow on MPS and needs **fp32** (fp16 gradients underflow to zero on MPS). Daniel hasn't downloaded Draw Things yet; no rush since Phase 1 is engine-neutral.
+- **Rebuilt .app** — server.js changed (new export endpoint). Verified the endpoint is in the installed bundle's asar.
+- **NOT yet tested by Daniel** — he had to jump right after the rebuild. Next session: he needs to fully quit + reopen the app (running instance still has the old server), then walk the Gallery→Add→caption→Export flow.
+
+**Recently shipped (Claude Code session 50 — Tag descriptions + queue panel + Comfy Desktop migration):**
+- **Tag descriptions for all default tags** — every non-negative tag across all 9 categories now has a description visible in the right-click weight popup. Descriptions explain what the tag does visually and how it affects the output. ~130 descriptions across quality, physical, subject, style, lighting, camera, mood, color, and details categories.
+- **Custom tag descriptions** — users can add/edit descriptions for any tag (including custom tags) via the ✎ Edit button in the weight popup. Custom descriptions stored in `appData.tagDescriptions`, override built-in defaults. Uses a resizable textarea dialog.
+- **Tag example images** — system loads images from `_tools/tag-images/<tag_name>.jpg` (spaces → underscores). ↑ Image button in the popup uploads directly via `/tag-images/upload` endpoint. Server saves to `TAG_IMG_DIR`. Images show in the docked popup automatically.
+- **Docked tag info panel** — right-click weight popup is now a full-height panel docked to the right edge of the left panel (aligned with its top/bottom). Tag name + weight slider + action buttons at top, image + description in the middle, Pinterest/Edit/Image buttons pinned at bottom. Right-click same tag again to close. Escape to close.
+- **Right-click no longer enables tags** — removed auto-activate in `openWP()`. Right-clicking a tag chip opens the info panel without toggling the tag on. Left-click still toggles normally.
+- **Queue panel → right sidebar** — moved from a dropdown below the queue bar to a full-height floating panel on the right edge of the app. Rounded corners + shadow matching the app's card style. Click-outside-to-close. Auto-closes on tab switch. Scrollable for long queue lists.
+- **Queue count flickering fix** — removed redundant `scheduleQueueLabelUpdate()` API polls during active generation. WS messages are authoritative while generating; API only checks on state transitions.
+- **Escape closes +tag input** — pressing Escape in the add-tag input field exits edit mode.
+- **"Weight" label removed** — popup header now shows just the tag name, not "Weight — tag".
+- **Comfy Desktop migration fix** — ComfyUI Desktop renamed to "Comfy Desktop" in an update, breaking auto-launch. Switched from launching the Electron wrapper (`open -a`) to spawning the Python backend directly (`main.py --port 8000 --output-directory --input-directory`). No more launcher window or instance selection needed — ComfyUI runs headless. Fixed stale `extra_models_config.yaml` reference to non-existent `/Applications/ComfyUI.app/` custom_nodes path. Fixed output directory pointing to install path instead of `~/Tools/ComfyUI/output/`.
+- **Rebuilt .app** — main.js and server.js changed (direct Python launch, output/input dirs, tag image upload endpoint, removed Show/Hide ComfyUI menu item).
+
+**Recently shipped (Claude Code session 49 — Demo mode (hideBrut) fix):**
+- **Demo mode fully fixed** — the Settings → "Brut / Adult Content → Hidden" toggle was broken since session 33-39 design review. Root cause: `switchTab()` was showing the titlebar ⍜ brut buttons via inline `style.display`, which overrode the CSS `body.hide-brut` rules. Additionally, the CSS selectors used class names (`.tags-brut-btn`, `.lora-brut-btn`, `.gallery-brut-btn`) that didn't match the actual button IDs.
+- **CSS hide-brut rule rewritten** — switched from stale class selectors to actual element IDs (`#tags-brut-btn`, `#ladult-btn`, `#gsc-brut`). Added missing elements: `#lpctx-adult` (LoRA panel image context menu Brut option, added in session 38), `#gallery-ctx-brut-item` (gallery card context menu Brut option).
+- **switchTab() respects demo mode** — now checks `body.hide-brut` before showing ⍜ buttons, so inline style won't override the hidden state.
+- **applyBrutSetting() more thorough** — now also resets `showGalleryAdult`, re-renders gallery and album tabs, and immediately hides/shows titlebar brut buttons (not just on next tab switch).
+- **LoRA collection nav** — "Mark Brut" ⍜ buttons on collection items hidden in demo mode.
+- **Gallery album context menu** — "Mark/Unmark Brut" option hidden in demo mode.
+- **CIVIT button SFW in demo mode** — when demo mode is on, the CIVIT button opens civitai.com (SFW) instead of civitai.red.
+- **No rebuild needed** — all changes in app.js and comfy-prompt-gen.html (served live from `_tools/`).
+
+**Recently shipped (Claude Code session 48 — LoRA metadata fetch + Upscale/Share integration + bug fixes):**
+- **LoRA metadata auto-fetch** — LoRAs without .metadata.json sidecars are automatically detected on load, SHA256-hashed, and looked up via CivitAI's by-hash API. Writes full sidecar (model name, base model, trained words, preview image) on match. Writes minimal sidecar with hash on miss to prevent re-hashing. New server endpoint `POST /local/loras/fetch-metadata`. Client calls `fetchMissingLoraMetadata()` after `loadLoras()`.
+- **Upscale + Share integration** — clicking Share on an un-upscaled image prompts "Upscale to 2× first?" with "Upscale first" (purple) and "Share as-is" options. When an image is both upscaled AND shared, the ↗ badge turns gold. HD badge hidden once shared (gold badge tells the whole story). `showInlineConfirm` extended with `cancelLabel` and `onCancel` options.
+- **Upscale filename collision fix** — ComfyUI's counter resets on restart, producing duplicate filenames (e.g. `Upscale_00007_.png`) that collided with previously approved files. Fixed by using source-image-based prefix (`Up_<originalname>_`). Also added `finalizeUpscale()` which calls `loadGallery()` before assigning properties to resolve any dedup renames. `inheritUpscaleProperties` now clears stale `galleryShared` entries. `archiveUpscaleOriginal` uses `loadGallery()` instead of `renderGallery()`.
+- **CivitAI in-app popup window** — `openCivitAIPopup()` in main.js creates a BrowserWindow with `persist:civitai` partition. All CivitAI URLs (from share, LoRA detail links, CIVIT button) route through it instead of Chrome. IPC bridge added to preload.js (`window.promptGen.openCivitAI`). Window remembers position/size via `civitai-bounds.json`.
+- **Share button dimmed state** — Share button shows "↗ Shared" at 40% opacity when image is already shared. Still clickable for re-sharing.
+- **Mark Shared context menu** — right-click gallery images to manually toggle shared status. Shows "↗ Mark Shared" / "↗ Shared ✓".
+- **Escape key fix** — inline dialog overlays now receive keyboard focus via `tabIndex=-1` so Escape closes them.
+- **Share postUrl fixed** — server was returning `civitai.com` URLs instead of `civitai.red`.
+- **CONTEXT.md start-of-session checklist** — added protocol to read Claude HQ in Craft at session start, and write Craft journal entry at session end.
+- **Rebuilt .app** — server.js, main.js, preload.js all changed.
+
+**Recently shipped (Claude Code session 46 — CivitAI in-app browser + gallery shared filter):**
+- **CivitAI in-app browser** — CivitAI links now open in a dedicated Electron BrowserWindow popup instead of Chrome. Reuses the same window for all CivitAI URLs. Persistent session (`persist:civitai` partition) so login survives across app restarts. Non-CivitAI links clicked inside the popup open in default browser. Default URL is civitai.red.
+- **CIVIT button** — new titlebar button opens CivitAI browser popup directly for browsing/profile. Located in the right side of the title bar near utility buttons.
+- **Gallery shared filter** — ↗ cycle button in gallery toolbar (after Old 14d+). Cycles All → Shared → Unshared. Filters gallery by whether images have been shared to CivitAI (`appData.galleryShared`). Active highlight when not on "All". Wired into all three filter pipeline locations (sectioned view, flat view, uncategorized).
+- **Post URL updated to civitai.red** — after sharing, the post opens on civitai.red instead of civitai.com.
+- **IPC bridge expanded** — `window.promptGen.openCivitAI(url)` added to preload.js for renderer → main communication.
+- **Upscale workflow** added to roadmap ideas bank for next session.
+
+**Recently shipped (Claude Code session 45 — Share to CivitAI: direct API + resources + tools):**
+- **Share to CivitAI completely rebuilt** — replaced the Litterbox+intent-URL approach (cross-origin blocked) with direct CivitAI API upload. New flow: presigned S3 upload (`GET /api/v1/image-upload` → `PUT` to S3), tRPC post creation (`post.create` → `post.addImage` → `post.update`), superjson Date serialization for `publishedAt`. Posts are immediately live on CivitAI.
+- **Resource detection** — reads `.metadata.json` sidecar files from LoRA and checkpoint directories to extract SHA256 hashes and CivitAI `modelVersionId` values. Builds `resources` array and `hashes` object in image meta matching CivitAI's expected format. Checkpoint + all LoRAs auto-linked on posts.
+- **ComfyUI tool attribution** — calls `image.addTools` tRPC endpoint with `toolId: 86` after image creation. Shows "ComfyUI" in the Tools section of posts.
+- **NSFW flagging** — `isBrut` flag from app.js triggers `imagePayload.nsfw = true` on the `post.addImage` call. Brut images correctly route to civitai.red and show X badge.
+- **Metadata pre-fill** — description has prompt/negative/settings/LoRAs, tags have checkpoint + LoRA display names (max 5).
+- **Gallery shared indicator** — green ↗ badge on bottom-left of gallery cards for images that have been shared. Tracked in `appData.galleryShared[filename]` with `postUrl` and timestamp. Survives renames. Badge injected on share success + rendered on card creation.
+- **Only PNG/JPG/WebP supported** — video files show error toast.
+- **Deploy fix discovered** — `cp -R` does NOT reliably overwrite files inside an existing macOS .app bundle (especially `app.asar`). Must `rm -rf "/Applications/Prompt Gen.app"` before `cp -R`. This was causing silent stale-code bugs across multiple rebuild cycles.
+- **Rebuilt .app** — server.js changed (direct CivitAI API, resource detection, tool attribution).
 
 **Recently shipped (Claude Code session 42 — CivitAI Phase 2: install/uninstall):**
 - **Install LoRAs from CivitAI** — "+ Install" button in LoRA toolbar, paste URL, preview model info, download with progress bar, auto-scroll to new card + open detail panel. Handles both civitai.com and civitai.red (different model IDs per domain). CivitAI API key stored in Settings.
@@ -493,7 +567,7 @@ Key insight from testing: they don't just "make things better," they shift the a
 **Project lives at:** `~/Tools/ComfyUI/electron-app/`
 **Packaged app:** `/Applications/Prompt Gen.app`
 **Dev mode:** `cd ~/Tools/ComfyUI/electron-app && npm start`
-**Rebuild:** `cd ~/Tools/ComfyUI/electron-app && rm -rf dist && npm run build` then copy to `/Applications/`
+**Rebuild:** `cd ~/Tools/ComfyUI/electron-app && rm -rf dist && npm run build` then `rm -rf "/Applications/Prompt Gen.app" && cp -R dist/mac-arm64/Prompt\ Gen.app "/Applications/Prompt Gen.app"` (must rm -rf first — `cp -R` doesn't reliably overwrite asar inside existing .app bundles)
 
 **How it works:**
 - `main.js` starts `server.js` (Node.js HTTP + WS server) on port 3000
@@ -550,6 +624,9 @@ Build prompt in app → click Send to ComfyUI → workflow JSON built from scrat
 10. **layout-right class is still written by applyLayout() from localStorage** — the redesign made the right panel a permanent grid column, so `layout-right` is now a no-op. It's suppressed via `.app.layout-right .main{margin-right:0 !important}` in the redesign block. Don't remove that rule or the dead-zone comes back.
 11. **ComfyUI Desktop memory corruption** — pink/salmon/mosaic/banded output across all checkpoints. Not a code bug, not an NSFW filter (ComfyUI has no content filter — confirmed via source code + GitHub). Root cause: MPS/Metal GPU memory gets dirty over long sessions, especially with many checkpoint switches. Fix: full Cmd+Q quit + relaunch of ComfyUI Desktop. The stop/clear buttons handle queue state but can't fix corrupted model cache.
 12. **preload.js must be in package.json files list** — Electron's `app.asar` bundle only includes files explicitly listed in `build.files`. Missing preload silently fails (no error, IPC bridge just doesn't connect). Always check the files array when adding new bundled files.
+13. **Inline `style.display='block'` can't beat `!important` in a stylesheet** — if a CSS rule uses `!important` (e.g. `.browse-only{display:none !important}`), plain `el.style.display = 'block'` will lose. Must use `el.style.setProperty('display', 'block', 'important')` to override. And use `el.style.removeProperty('display')` to clean up (not just `el.style.display = ''`).
+14. **CSS child selectors can't target siblings** — `#panel-loras.browse-mode .lora-collection-tabs` silently matches nothing if collection tabs are a sibling of `#panel-loras`, not a child. When JS toggling display of elements across a page, always verify the DOM hierarchy. If elements aren't parent→child, use JS `setProperty`/`removeProperty` instead of relying on CSS class selectors.
+15. **CivitAI API uses `baseModels` (plural)** — the search parameter is `baseModels`, not `baseModel`. Singular silently returns unfiltered results. Also: `model.stats.rating` is gone (use `thumbsUpCount`), images array contains `type:"video"` entries, CDN requires `referrerpolicy="no-referrer"` on img tags.
 
 ---
 
@@ -569,6 +646,7 @@ Build prompt in app → click Send to ComfyUI → workflow JSON built from scrat
 - `POST /local/loras/uninstall` — delete a LoRA's .safetensors + .metadata.json + preview image files
 - `GET /local/loras/install-progress` — poll download progress (percentage, bytes downloaded/total)
 - `GET /local/loras/preview-info?url=` — fetch model info from CivitAI before installing (name, version, size, preview image)
+- `GET /local/loras/search?query=&baseModel=&sort=&nsfw=&cursor=` — proxy search to CivitAI API (`/api/v1/models`), returns model list with pagination cursor
 - `GET /gallery/list?folder=raw|approved` — list images (name, mtime, size), sorted newest first
 - `GET /gallery/image?folder=raw|approved&file=xxx.png` — serve image
 - `GET /gallery/metadata?folder=raw|approved&file=xxx.png` — extract generation params from PNG metadata (positive/negative prompts, checkpoint, LoRAs, seed, steps, CFG, sampler, scheduler, size)
@@ -581,6 +659,7 @@ Build prompt in app → click Send to ComfyUI → workflow JSON built from scrat
 - `GET /comfy/loras` — authoritative LoRA list from `/object_info/LoraLoader`
 - `POST /comfy/interrupt` — aborts the currently running generation (proxies to ComfyUI `/interrupt`)
 - `POST /comfy/queue/clear` — flushes all pending queue items (proxies to ComfyUI `POST /queue {"clear":true}`)
+- `POST /gallery/share-upload` — uploads gallery image directly to CivitAI via presigned S3 URL, creates a post with metadata (prompt, settings, resources, tools). Reads `.metadata.json` sidecars for SHA256 hashes and CivitAI model/version IDs. Returns `{ok, postUrl}`.
 
 **State stored in appData.galleryState:**
 - absent = unreviewed
@@ -956,4 +1035,66 @@ The gallery tab was fully redesigned through Claude Design and implemented. It's
 - **New app.js functions**: `openLoraInstallDialog()`, `closeLoraInstallDialog()`, `previewLoraInstall()`, `startLoraInstall()`, `uninstallLora(fileName)`.
 - **Rebuilt .app** — server.js and main.js changed. Multiple rebuilds during the session for iterative fixes.
 - **Daniel confirmed working** — installed LoRAs from both civitai.com and civitai.red, uninstall tested, auto-scroll working, progress bar working.
+
+**Session: May 26 2026 (Claude Code session 43 — CivitAI Phase 3: Browse CivitAI)**
+- **Wave 6 Phase 3 complete and tested** — Browse CivitAI fully built, debugged through 4+ iterative testing rounds with Daniel, all 31 checklist items verified.
+- **Library/Browse mode toggle** on LoRA tab: two buttons in toolbar swap between local LoRA grid and CivitAI search results. `switchLoraMode(mode)` handles all display toggling — collection tabs, grids, toolbar controls — using `setProperty('display',...)` with `!important` to override stylesheet rules. `_loraMode` tracks current mode; scroll positions preserved separately (`_libraryScrollPos`, `_browseScrollPos`).
+- **Browse search UI**: query input, base model dropdown (Illustrious XL, Pony, SDXL, Flux Dev, Flux Schnell, SD 1.5, SD 3.5 Medium), sort dropdown (Most Downloaded, Highest Rated, Newest), integrated with global brut/adult toggle. `doBrowseSearch(cursor)` POSTs to `/local/loras/search` which proxies to CivitAI API with proper params (`types=LORA`, `baseModels` plural, `nsfw` flag, `sort`, `cursor`).
+- **Browse cards** (`mkBrowseCard(model)`): preview image with `referrerpolicy="no-referrer"` (CivitAI CDN blocks referrer-bearing requests), base model badge (frosted glass: `rgba(255,255,255,.18)` bg), thumbsUp count (formatted with k suffix for 1000+), type badge. Videos in CivitAI images array skipped (`i.type==='video'`). Models with zero still images filtered out entirely before card creation. Failed images show ⟳ retry button (`retryBrowseImg()`).
+- **Browse detail panel** (`openBrowseDetail(model)`): version selector (defaults to version matching base model filter via `findIndex`), horizontal scrolling image carousel (skip videos, nsfwLevel<=2 filter), description with expand/collapse, stats (downloads, 👍/👎, published date), Install or "Already installed" indicator. Reuses existing `installFromBrowse()` → server install pipeline.
+- **Cursor-based pagination**: "Load More" button at bottom of results grid. CivitAI API returns `metadata.nextCursor` for subsequent pages. `_browseCursor` tracks position. 60px bottom padding prevents overlap with back-to-top button.
+- **Race condition prevention**: `_browseSearchGen` counter incremented on each new first-page search. Stale responses (where `gen !== _browseSearchGen`) are silently discarded. Prevents older slow requests from overwriting newer results.
+- **Server-side changes**: request timeout 15s→30s. CivitAI search uses `baseModels` (plural, was singular `baseModel`). Install endpoint changed from `await installLora()` (blocking) to fire-and-forget pattern — responds `{status:'started'}` immediately, client polls progress. New endpoint: `/local/loras/search` proxies to CivitAI search API.
+- **CSS specificity battle**: `#browse-tab-grid` with class `browse-only` was hidden by `.browse-only{display:none !important}` — plain inline `style.display='block'` couldn't win. Solution: `el.style.setProperty('display','block','important')`. Same pattern applied to collection tabs and library grid. Key lesson: when overriding `!important` rules, must use `setProperty` with the important flag.
+- **Collection tabs leak fix**: tabs are a sibling of `#panel-loras`, not a child — CSS child selectors (`#panel-loras.browse-mode .lora-collection-tabs`) never matched. Fixed by explicitly setting display via JS in `switchLoraMode()`.
+- **Auto-search removed**: originally `doBrowseSearch()` fired on mode switch if no results existed. This showed "20 results" before user typed anything. Removed — user must type a query or change filters to trigger search.
+- **Key CivitAI API discoveries**: `baseModels` is plural (not `baseModel`); ratings replaced by `thumbsUpCount`/`thumbsDownCount` (no more `model.stats.rating`); images array contains `type:"video"` entries alongside stills; `nsfwLevel` scale where <=2 is safe/suggestive.
+- **Testing via Craft checklist**: 31 items across 6 sections (Search, Cards, Detail Panel, Install from Browse, Mode Switching, Edge Cases). All passed after 4 rounds of fixes. Craft MCP formatting lesson: `\n` is literal text, must use `\n\n` (double newline) to create separate blocks.
+- **Rebuilt .app** multiple times during session — server.js changed. macOS requires `rm -rf` before `cp -R` to `/Applications/` (running app blocks overwrite).
+- **LoRA detail image carousel** added to ROADMAP ideas bank (Daniel's request after seeing gallery scrolling) — NOT built this session.
+
+**Recently shipped (Claude Code session 43 — CivitAI Phase 3: Browse CivitAI):**
+- **Browse CivitAI from within the app** — full search/browse UI on the LoRA tab. Library/Browse mode toggle buttons in toolbar swap between local LoRA grid and CivitAI search results. Search bar, base model filter dropdown (Illustrious, Pony, SDXL, Flux Dev, Flux Schnell, SD 1.5, SD 3.5), sort dropdown (Most Downloaded, Highest Rated, Newest), NSFW toggle integration.
+- **Browse card grid** — CivitAI results rendered as cards matching the local LoRA card style. Each card shows: preview image, model name, base model badge (frosted glass), thumbs up count (👍), type badge. Cards link to detail panel on click.
+- **Browse detail panel** — version selector dropdown (defaults to version matching base model filter), horizontal image carousel with scroll arrows (skips videos, respects NSFW level), model description (truncated with expand), stats (downloads, thumbsUp/thumbsDown, published date), Install button (or "Already installed" indicator if LoRA filename matches).
+- **Install from browse** — one-click install from the detail panel, reuses the existing install pipeline with fire-and-forget server pattern for responsive progress bar polling.
+- **Cursor-based pagination** — "Load More" button at bottom of results. CivitAI API uses cursor-based pagination via `cursor` query parameter.
+- **Race condition prevention** — `_browseSearchGen` counter discards stale async responses when user types faster than the API responds.
+- **CivitAI CDN image fix** — `referrerpolicy="no-referrer"` on all browse card and detail panel images. CivitAI CDN blocks hotlinked images that send a Referer header.
+- **Video-only models filtered** — cards with no still images (only `type:'video'` entries in CivitAI images array) are skipped entirely.
+- **Retry button on failed images** — `retryBrowseImg()` replaces broken image placeholder with a ⟳ click-to-retry button that appends a cache-bust `?t=` param.
+- **thumbsUp/thumbsDown** — CivitAI deprecated star ratings. All stats display now uses `model.stats.thumbsUpCount` instead of `.rating`.
+- **NSFW filter** — `nsfwLevel<=2` for both cards and detail panel (level 2 = "suggestive", not adult). Brut toggle re-searches browse results.
+- **Server changes** — request timeout increased to 30s, `baseModels` (plural) parameter for CivitAI search API, install endpoint changed to fire-and-forget pattern (responds immediately, client polls `/local/loras/install-progress`).
+- **CSS fixes** — `setProperty('display','block','important')` to override `!important` stylesheet rules on browse grid. Collection tabs hidden via explicit JS `setProperty`/`removeProperty` in `switchLoraMode()` (they're siblings of `#panel-loras`, not children). Browse card base model badge styled with frosted glass.
+- **Key bugs fixed this session**: browse cards permanently hidden (CSS specificity), collection tabs leaking to Generate page (sibling vs child DOM), base model filter not working (`baseModel` → `baseModels` API param), images disappearing (referrerpolicy), failed images were videos, rating always N/A, install progress bar empty till done, NSFW filter too strict.
+- **Rebuilt .app** — server.js changed. Multiple rebuilds during session. `rm -rf` required before `cp -R` to `/Applications/`.
+- **Daniel confirmed all 31 checklist items passing** — full testing sweep via Craft checklist.
+
+**Session: May 28 2026 (Claude Code session 44 — Share to CivitAI)**
+- **Wave 6 Share to CivitAI built** — one-click sharing from gallery detail panel to CivitAI. Uploads image to Litterbox (temporary hosting, 72h), opens CivitAI intent URL with metadata pre-filled. User reviews and publishes on CivitAI's side.
+- **Implementation**: `POST /gallery/share-upload` server endpoint handles Litterbox multipart upload. `shareToCI()` / `doShareToCI()` in app.js handle the UI flow — confirmation dialog (with Brut/NSFW reminder), upload with toast feedback, intent URL construction, browser open. Green "↗ Share" button added to gallery detail footer.
+- **CivitAI intent URL format**: `https://civitai.com/intent/post?mediaUrl=...&description=...&tags=...`. `mediaUrl` is the Litterbox temporary URL. Description includes positive/negative prompts, checkpoint, LoRAs, and all generation settings. Tags are checkpoint display name + LoRA display names (max 5 per CivitAI limit).
+- **Litterbox vs Catbox**: chose Litterbox (temporary, 72h expiry) over Catbox (permanent) since images only need to persist long enough for CivitAI to fetch them. No account required, up to 1GB per file.
+- **Key technical detail**: `window.open(intentUrl, '_blank')` is intercepted by Electron's `setWindowOpenHandler` in main.js, which calls `openExternalUrl()` — CivitAI URLs route to Chrome Profile 1.
+- **Rebuilt .app** — server.js changed. Copied to `/Applications/`.
+- **Not yet tested by Daniel** — share flow needs confirmation (Litterbox upload, CivitAI intent page opening, metadata pre-fill accuracy).
+- **Drag lock default tested ✓** — Daniel confirmed the drag lock defaults to locked correctly.
+
+**Recently shipped (Claude Code session 47 — Upscale workflow):**
+- **One-click 2× upscale from gallery** — ⬆ Upscale button (purple) in gallery detail footer. Uploads source image to ComfyUI, builds a workflow using 4x-UltraSharp upscale model + ImageScale to 2× target resolution, sends to ComfyUI. ~9 seconds per upscale on M4 Pro.
+- **Workflow**: `buildUpscaleWorkflow(opts)` in app.js. LoadImage → ImageScale (identity pass-through to force contiguous tensor) → UpscaleModelLoader (4xUltrasharp_4xUltrasharpV10.pt) → ImageUpscaleWithModel → ImageScale (to 2× original, dimensions from metadata rounded to nearest 8) → SaveImage. Filename prefix `Upscale` to avoid collision with original.
+- **Auto-complete on finish** — WebSocket tracks upscale jobs by `prompt_id`. When job completes, `completeUpscale()` runs after 4s delay (lets gallery poll catch the file). Copies all properties from original → upscaled: approval status, brut, tags, favorites, categories, timing. If original was approved, upscaled file is also moved to approved/.
+- **Original archived** — `POST /gallery/archive-original` server endpoint moves original to `~/Tools/ComfyUI/originals/` folder. `ORIGINALS_DIR` constant added to server.js `initPaths()`. Original removed from gallery and all appData maps only if archive succeeds.
+- **Metadata preservation** — original's generation metadata stashed in `appData.galleryUpscaled[file].meta` at upscale time. Fallback added to gallery detail panel, remix, and share: if PNG has no useful generation metadata (no positive prompt or checkpoint), checks stashed metadata. Upscaled images show full original metadata for remix/share.
+- **HD badge** — purple "HD" pill badge on gallery cards for upscaled images. Data stored in `appData.galleryUpscaled[filename]`. CSS: `.gupscale-badge`. Shifts right when shared badge also present.
+- **Rename migration** — `appData.galleryUpscaled` entries migrate alongside other gallery filename-keyed data on rename.
+- **Key debugging lessons**: (1) `ImageUpscaleWithModel` crashes on non-contiguous tensors from LoadImage — workaround is an identity ImageScale pass before the upscale model. (2) electron-app/server.js and _tools/server.js can diverge — always verify both files have changes before rebuild. (3) Gallery dedup renames files when names collide across output/ and approved/ — use distinct filename prefixes for generated vs upscaled files.
+- **Rebuilt .app** — server.js changed (archive-original endpoint). Multiple rebuilds during debugging.
+- **Daniel confirmed working** — tested on both approved and raw images. Properties inherited, metadata preserved, originals archived, HD badge showing.
+
+**Session: May 29 2026 (Claude Code session 47 — Upscale workflow)**
+- Built the full upscale pipeline from scratch. Multiple iterations to resolve: wrong upscaler model filename (4x-UltraSharp.pth → 4xUltrasharp_4xUltrasharpV10.pt), PyTorch tensor contiguity crash (added identity ImageScale pass), filename collision with gallery dedup (switched to `Upscale` prefix), server.js file divergence (electron-app copy missing endpoint), metadata fallback not triggering (PNG has `has_metadata:true` but empty params — check for useful content instead).
+- Originally designed with a compare overlay (original vs upscaled, Keep/Discard buttons) but Daniel found the compare unnecessary — upscale model output is reliable, no need to approve/reject. Simplified to auto-complete flow.
+- Originally designed with a KSampler refine pass (low denoise 0.25 using original checkpoint/prompt/LoRAs) but PyTorch tensor reshape errors in VAEEncode made it impractical. Dropped the refine — the 4x-UltraSharp model alone does an excellent job at cleaning up artifacts and adding detail.
 

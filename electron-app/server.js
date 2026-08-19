@@ -33,7 +33,7 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
 };
 
-let TOOLS_DIR, DATA_FILE, LORA_IMG_DIR, TAG_IMG_DIR, FONT_DIR, RAW_DIR, APPROVED_DIR, LORAS_DIR, CHECKPOINTS_DIR;
+let TOOLS_DIR, DATA_FILE, LORA_IMG_DIR, TAG_IMG_DIR, FONT_DIR, RAW_DIR, APPROVED_DIR, ORIGINALS_DIR, LORAS_DIR, CHECKPOINTS_DIR;
 
 function initPaths(toolsDir) {
   TOOLS_DIR = toolsDir;
@@ -43,6 +43,7 @@ function initPaths(toolsDir) {
   FONT_DIR = path.join(TOOLS_DIR, 'fonts');
   RAW_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'output'));
   APPROVED_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'approved'));
+  ORIGINALS_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'originals'));
   LORAS_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'models', 'loras'));
   CHECKPOINTS_DIR = path.normalize(path.join(TOOLS_DIR, '..', 'models', 'checkpoints'));
 }
@@ -398,7 +399,7 @@ function civitaiFetch(urlStr, apiKey) {
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    req.setTimeout(15000);
+    req.setTimeout(30000);
     req.end();
   });
 }
@@ -762,6 +763,41 @@ async function handleRequest(req, res) {
       return;
     }
 
+    // CivitAI model search (proxy to avoid CORS)
+    if (urlPath === '/local/civitai/search') {
+      try {
+        const appDataRaw = fs.readFileSync(path.join(TOOLS_DIR, 'app-data.json'), 'utf8');
+        const appDataObj = JSON.parse(appDataRaw);
+        const apiKey = (appDataObj.settings && appDataObj.settings.civitaiApiKey) || '';
+        // Build CivitAI API URL — forward params directly to avoid encoding issues
+        const qp = new URLSearchParams();
+        qp.set('types', 'LORA');
+        qp.set('sort', params.get('sort') || 'Most Downloaded');
+        qp.set('period', params.get('period') || 'AllTime');
+        qp.set('nsfw', params.get('nsfw') || 'false');
+        qp.set('limit', params.get('limit') || '20');
+        // CivitAI requires cursor-based pagination when using query search
+        const cursor = params.get('cursor') || '';
+        if (cursor) qp.set('cursor', cursor);
+        const q = params.get('query') || '';
+        if (q) qp.set('query', q);
+        const baseModel = params.get('baseModel') || '';
+        if (baseModel) qp.set('baseModels', baseModel);
+        const apiUrl = 'https://civitai.com/api/v1/models?' + qp.toString();
+        const r = await civitaiFetch(apiUrl, apiKey);
+        if (r.status !== 200) {
+          const errBody = r.body ? r.body.toString('utf8').slice(0, 200) : '';
+          sendJson(res, { error: 'CivitAI API error: ' + r.status, url: apiUrl, detail: errBody }, 502);
+          return;
+        }
+        const data = JSON.parse(r.body.toString('utf8'));
+        sendJson(res, data);
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
     // Refresh local model caches
     if (urlPath === '/local/refresh') {
       _loraCache = null;
@@ -917,7 +953,7 @@ async function handleRequest(req, res) {
       return;
     }
 
-    // CivitAI — install a LoRA by URL
+    // CivitAI — install a LoRA by URL (fire-and-forget so client can poll progress)
     if (urlPath === '/local/loras/install') {
       try {
         const data = JSON.parse(body.toString('utf8'));
@@ -927,8 +963,11 @@ async function handleRequest(req, res) {
         const appDataObj = JSON.parse(appDataRaw);
         const apiKey = (appDataObj.settings && appDataObj.settings.civitaiApiKey) || '';
         if (!apiKey) { sendJson(res, { error: 'CivitAI API key not set — add it in Settings' }, 400); return; }
-        const result = await installLora(civitUrl, apiKey);
-        sendJson(res, result);
+        // Start install in background, respond immediately so client can poll
+        installLora(civitUrl, apiKey).catch(e => {
+          _installProgress = { status: 'error', pct: 0, message: e.message };
+        });
+        sendJson(res, { status: 'started' });
       } catch (e) {
         _installProgress = { status: 'error', pct: 0, message: e.message };
         sendJson(res, { error: e.message }, 500);
@@ -964,6 +1003,113 @@ async function handleRequest(req, res) {
       return;
     }
 
+    // CivitAI — fetch metadata for a LoRA without a sidecar (hash + API lookup)
+    if (urlPath === '/local/loras/fetch-metadata') {
+      try {
+        const data = JSON.parse(body.toString('utf8'));
+        const fileName = data.file_name;
+        if (!fileName || fileName.includes('..') || fileName.includes('/')) {
+          sendJson(res, { error: 'Invalid file_name' }, 400); return;
+        }
+        const safetensors = path.join(LORAS_DIR, fileName + '.safetensors');
+        const metaPath = path.join(LORAS_DIR, fileName + '.metadata.json');
+        if (!fs.existsSync(safetensors)) {
+          sendJson(res, { error: 'File not found' }, 404); return;
+        }
+        if (fs.existsSync(metaPath)) {
+          sendJson(res, { ok: true, skipped: true, reason: 'Metadata already exists' }); return;
+        }
+
+        const appDataRaw = fs.readFileSync(path.join(TOOLS_DIR, 'app-data.json'), 'utf8');
+        const appDataObj = JSON.parse(appDataRaw);
+        const apiKey = (appDataObj.settings && appDataObj.settings.civitaiApiKey) || '';
+
+        // SHA256 hash the file
+        const hash = await new Promise((resolve, reject) => {
+          const h = crypto.createHash('sha256');
+          const stream = fs.createReadStream(safetensors);
+          stream.on('data', d => h.update(d));
+          stream.on('end', () => resolve(h.digest('hex').toUpperCase()));
+          stream.on('error', reject);
+        });
+
+        // Look up by hash on CivitAI
+        let versionData = null;
+        try {
+          const resp = await civitaiFetch('https://civitai.com/api/v1/model-versions/by-hash/' + hash, apiKey);
+          if (resp.status === 200) {
+            versionData = JSON.parse(resp.body.toString('utf8'));
+          }
+        } catch {}
+
+        if (!versionData || !versionData.id) {
+          // No match — write a minimal sidecar so we don't re-hash every time
+          const stats = fs.statSync(safetensors);
+          const minSidecar = {
+            file_name: fileName,
+            model_name: fileName,
+            file_path: safetensors,
+            size: stats.size,
+            modified: stats.mtimeMs / 1000,
+            sha256: hash.toLowerCase(),
+            base_model: '',
+            preview_url: '',
+            notes: '',
+            from_civitai: false,
+            civitai: null,
+          };
+          fs.writeFileSync(metaPath, JSON.stringify(minSidecar, null, 2));
+          _loraCache = null;
+          sendJson(res, { ok: true, found: false, hash, file_name: fileName });
+          return;
+        }
+
+        // Download preview image
+        let previewLocalPath = null;
+        if (versionData.images && versionData.images.length) {
+          const imgUrl = versionData.images[0].url;
+          const ext = imgUrl.match(/\.(jpe?g|png|webp)/i);
+          const previewExt = ext ? '.' + ext[1].toLowerCase().replace('jpg', 'jpeg') : '.jpeg';
+          const previewDest = path.join(LORAS_DIR, fileName + previewExt);
+          try {
+            const imgResp = await civitaiFetch(imgUrl, null);
+            if (imgResp.status === 200) {
+              fs.writeFileSync(previewDest, imgResp.body);
+              previewLocalPath = previewDest;
+            }
+          } catch {}
+        }
+
+        // Write full sidecar matching install format
+        const stats = fs.statSync(safetensors);
+        const sidecar = {
+          file_name: fileName,
+          model_name: (versionData.model && versionData.model.name) || fileName,
+          file_path: safetensors,
+          size: stats.size,
+          modified: stats.mtimeMs / 1000,
+          sha256: hash.toLowerCase(),
+          base_model: versionData.baseModel || '',
+          preview_url: previewLocalPath || '',
+          preview_nsfw_level: (versionData.images && versionData.images[0]) ? versionData.images[0].nsfwLevel : 1,
+          notes: '',
+          from_civitai: true,
+          civitai: versionData,
+        };
+        fs.writeFileSync(metaPath, JSON.stringify(sidecar, null, 2));
+        _loraCache = null;
+        sendJson(res, {
+          ok: true, found: true, hash,
+          file_name: fileName,
+          model_name: sidecar.model_name,
+          base_model: sidecar.base_model,
+        });
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
     // Gallery — approve (move raw → approved, or confirm if already there)
     if (urlPath === '/gallery/approve') {
       try {
@@ -993,6 +1139,35 @@ async function handleRequest(req, res) {
       return;
     }
 
+    // Gallery — reveal file in Finder
+    if (urlPath === '/gallery/reveal') {
+      try {
+        const data = JSON.parse(body.toString('utf8'));
+        const filename = data.file || '';
+        if (!filename || filename.includes('..')) {
+          sendJson(res, { error: 'Invalid filename' }, 400);
+          return;
+        }
+        // File lives in raw (output), approved, or originals — find it
+        let filepath = null;
+        for (const base of [RAW_DIR, APPROVED_DIR, ORIGINALS_DIR]) {
+          const candidate = path.join(base, filename);
+          if (fs.existsSync(candidate)) { filepath = candidate; break; }
+        }
+        if (!filepath) {
+          sendJson(res, { error: 'File not found' }, 404);
+          return;
+        }
+        require('child_process').execFile('open', ['-R', filepath], (err) => {
+          if (err) console.error('reveal failed:', err);
+        });
+        sendJson(res, { ok: true });
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
     // Gallery — unapprove (move approved → raw)
     if (urlPath === '/gallery/unapprove') {
       try {
@@ -1015,6 +1190,37 @@ async function handleRequest(req, res) {
           dst = path.join(RAW_DIR, `${base}_${Math.floor(Date.now() / 1000)}${ext}`);
         }
         fs.renameSync(src, dst);
+        sendJson(res, { ok: true });
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
+    // Gallery — archive original (move to originals/ folder, used by upscale keep)
+    if (urlPath === '/gallery/archive-original') {
+      try {
+        const data = JSON.parse(body.toString('utf8'));
+        const filename = data.file || '';
+        const folder = data.folder || 'raw';
+        if (!filename || filename.includes('..')) {
+          sendJson(res, { error: 'Invalid filename' }, 400);
+          return;
+        }
+        const base = folder === 'approved' ? APPROVED_DIR : RAW_DIR;
+        const filepath = path.join(base, filename);
+        if (!fs.existsSync(filepath)) {
+          sendJson(res, { error: 'File not found' }, 404);
+          return;
+        }
+        ensureDir(ORIGINALS_DIR);
+        let dst = path.join(ORIGINALS_DIR, filename);
+        if (fs.existsSync(dst)) {
+          const ext = path.extname(filename);
+          const baseName = path.basename(filename, ext);
+          dst = path.join(ORIGINALS_DIR, `${baseName}_${Math.floor(Date.now() / 1000)}${ext}`);
+        }
+        fs.renameSync(filepath, dst);
         sendJson(res, { ok: true });
       } catch (e) {
         sendJson(res, { error: e.message }, 500);
@@ -1218,6 +1424,21 @@ async function handleRequest(req, res) {
       return;
     }
 
+    // Tag example image upload
+    if (urlPath === '/tag-images/upload') {
+      try {
+        ensureDir(TAG_IMG_DIR);
+        const ct = req.headers['content-type'] || '';
+        const { fileData, fileName, key } = parseMultipart(ct, body);
+        if (!fileData || !key) { sendJson(res, { error: 'Missing file or key' }, 400); return; }
+        const safeName = key.replace(/ /g, '_').replace(/[^a-zA-Z0-9_-]/g, '') + '.jpg';
+        fs.writeFileSync(path.join(TAG_IMG_DIR, safeName), fileData);
+        console.log(`  Saved tag image: ${safeName} (${fileData.length} bytes)`);
+        sendJson(res, { ok: true, url: `/tag-images/${safeName}` });
+      } catch (e) { sendJson(res, { error: e.message }, 500); }
+      return;
+    }
+
     // LoRA custom image upload
     if (urlPath === '/lora-image') {
       try {
@@ -1236,6 +1457,229 @@ async function handleRequest(req, res) {
         fs.writeFileSync(path.join(LORA_IMG_DIR, outName), fileData);
         console.log(`  Saved lora image: ${outName} (${fileData.length} bytes)`);
         sendJson(res, { ok: true, url: `/lora-images/${outName}` });
+      } catch (e) {
+        sendJson(res, { error: e.message }, 500);
+      }
+      return;
+    }
+
+    // Upload gallery image directly to CivitAI and create a post
+    if (urlPath === '/gallery/share-upload') {
+      try {
+        const parsed = JSON.parse(body.toString('utf8'));
+        const folder = parsed.folder || 'raw';
+        const filename = parsed.file || '';
+        const apiKey = parsed.apiKey || '';
+        const meta = parsed.meta || null;
+        const tags = parsed.tags || [];
+        const isBrut = parsed.isBrut || false;
+        if (!filename || filename.includes('..')) {
+          sendJson(res, { error: 'Invalid filename' }, 400);
+          return;
+        }
+        if (!apiKey) {
+          sendJson(res, { error: 'CivitAI API key required — set it in Settings' }, 400);
+          return;
+        }
+        const base = folder === 'approved' ? APPROVED_DIR : RAW_DIR;
+        const filepath = path.join(base, filename);
+        if (!fs.existsSync(filepath)) {
+          sendJson(res, { error: 'File not found' }, 404);
+          return;
+        }
+        const fileData = fs.readFileSync(filepath);
+        const ext = path.extname(filename).toLowerCase();
+        const mimeMap = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
+        const mime = mimeMap[ext] || 'image/png';
+
+        const civitApi = (method, apiPath, jsonBody) => new Promise((resolve, reject) => {
+          const opts = {
+            hostname: 'civitai.com',
+            path: apiPath,
+            method,
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+            timeout: 30000,
+          };
+          if (jsonBody) {
+            const bodyStr = JSON.stringify(jsonBody);
+            opts.headers['Content-Type'] = 'application/json';
+            opts.headers['Content-Length'] = Buffer.byteLength(bodyStr);
+          }
+          const req = https.request(opts, (r) => {
+            let d = '';
+            r.on('data', c => d += c);
+            r.on('end', () => {
+              if (r.statusCode >= 400) {
+                reject(new Error(`CivitAI API ${r.statusCode}: ${d.slice(0, 200)}`));
+              } else {
+                try { resolve(JSON.parse(d)); } catch { resolve(d); }
+              }
+            });
+          });
+          req.on('error', reject);
+          req.on('timeout', () => { req.destroy(); reject(new Error('CivitAI API timeout')); });
+          if (jsonBody) req.write(JSON.stringify(jsonBody));
+          req.end();
+        });
+
+        const s3Put = (uploadURL, data, contentType) => new Promise((resolve, reject) => {
+          const u = new URL(uploadURL);
+          const req = https.request({
+            hostname: u.hostname,
+            path: u.pathname + u.search,
+            method: 'PUT',
+            headers: { 'Content-Type': contentType, 'Content-Length': data.length },
+            timeout: 60000,
+          }, (r) => {
+            let d = '';
+            r.on('data', c => d += c);
+            r.on('end', () => {
+              if (r.statusCode >= 400) reject(new Error(`S3 upload ${r.statusCode}: ${d.slice(0, 200)}`));
+              else resolve();
+            });
+          });
+          req.on('error', reject);
+          req.on('timeout', () => { req.destroy(); reject(new Error('S3 upload timeout')); });
+          req.write(data);
+          req.end();
+        });
+
+        (async () => {
+          // Step 1: get presigned upload URL
+          console.log('  CivitAI share: getting upload URL...');
+          const upload = await civitApi('GET', '/api/v1/image-upload');
+          if (!upload.id || !upload.uploadURL) throw new Error('No upload URL returned');
+
+          // Step 2: PUT image to S3
+          console.log(`  CivitAI share: uploading ${(fileData.length/1024/1024).toFixed(1)}MB to S3...`);
+          await s3Put(upload.uploadURL, fileData, mime);
+
+          // Step 3: create post
+          console.log('  CivitAI share: creating post...');
+          const postResult = await civitApi('POST', '/api/trpc/post.create', { json: {} });
+          const postId = postResult?.result?.data?.json?.id;
+          if (!postId) throw new Error('Failed to create post: ' + JSON.stringify(postResult).slice(0, 200));
+
+          // Step 4: attach image with metadata
+          console.log(`  CivitAI share: attaching image to post ${postId}...`);
+          const imageMeta = {};
+          const readSidecar = (dir, stem) => {
+            for (const d of Array.isArray(dir) ? dir : [dir]) {
+              const p = path.join(d, stem + '.metadata.json');
+              try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
+            }
+            return null;
+          };
+          const LORA_DIR = LORAS_DIR;
+          const CKPT_DIR = CHECKPOINTS_DIR;
+          const loraSubdirs = [LORA_DIR];
+          try {
+            for (const d of fs.readdirSync(LORA_DIR, { withFileTypes: true })) {
+              if (d.isDirectory()) loraSubdirs.push(path.join(LORA_DIR, d.name));
+            }
+          } catch {}
+          const ckptSubdirs = [CKPT_DIR];
+          try {
+            for (const d of fs.readdirSync(CKPT_DIR, { withFileTypes: true })) {
+              if (d.isDirectory()) ckptSubdirs.push(path.join(CKPT_DIR, d.name));
+            }
+          } catch {}
+
+          if (meta) {
+            if (meta.positive) imageMeta.prompt = meta.positive;
+            if (meta.negative) imageMeta.negativePrompt = meta.negative;
+            if (meta.cfg) imageMeta.cfgScale = parseFloat(meta.cfg);
+            if (meta.steps) imageMeta.steps = parseInt(meta.steps);
+            if (meta.sampler) imageMeta.sampler = meta.sampler;
+            if (meta.scheduler) imageMeta.scheduler = meta.scheduler;
+            if (meta.seed) imageMeta.seed = parseInt(meta.seed);
+            if (meta.denoise != null) imageMeta.denoise = parseFloat(meta.denoise);
+            if (meta.checkpoint) {
+              const stem = meta.checkpoint.split('/').pop().replace(/\.[^.]+$/, '');
+              imageMeta.Model = stem;
+              const ckSidecar = readSidecar(ckptSubdirs, stem);
+              if (ckSidecar && ckSidecar.sha256) imageMeta['Model hash'] = ckSidecar.sha256.slice(0, 10);
+            }
+            const resources = [];
+            const hashes = {};
+            if (meta.checkpoint) {
+              const stem = meta.checkpoint.split('/').pop().replace(/\.[^.]+$/, '');
+              const ckSidecar = readSidecar(ckptSubdirs, stem);
+              if (ckSidecar && ckSidecar.sha256) {
+                const h = ckSidecar.sha256.slice(0, 10);
+                hashes.model = h;
+                const modelName = ckSidecar.civitai?.model?.name || stem;
+                resources.push({ type: 'model', hash: h, name: modelName });
+                if (ckSidecar.civitai) {
+                  resources[resources.length - 1].modelVersionId = ckSidecar.civitai.id || ckSidecar.civitai.modelVersionId;
+                }
+              }
+            }
+            if (meta.loras && meta.loras.length) {
+              const loraHashMap = {};
+              for (const l of meta.loras) {
+                const sc = readSidecar(loraSubdirs, l.name);
+                if (sc && sc.sha256) {
+                  const h = sc.sha256.slice(0, 10);
+                  loraHashMap[l.name] = h;
+                  hashes['lora:' + l.name] = h;
+                  const loraModelName = sc.civitai?.model?.name || l.name;
+                  const entry = { type: 'lora', hash: h, name: loraModelName };
+                  if (sc.civitai) entry.modelVersionId = sc.civitai.id || sc.civitai.modelVersionId;
+                  if (l.strength != null) entry.weight = parseFloat(l.strength);
+                  resources.push(entry);
+                }
+              }
+              if (Object.keys(loraHashMap).length) {
+                imageMeta['Lora hashes'] = Object.entries(loraHashMap).map(([n, h]) => `${n}: ${h}`).join(', ');
+              }
+            }
+            if (resources.length) imageMeta.resources = resources;
+            if (Object.keys(hashes).length) imageMeta.hashes = hashes;
+          }
+          const imagePayload = {
+            postId,
+            url: upload.id,
+            type: 'image',
+            name: filename,
+            mimeType: mime,
+          };
+          if (meta && meta.width) imagePayload.width = parseInt(meta.width);
+          if (meta && meta.height) imagePayload.height = parseInt(meta.height);
+          if (Object.keys(imageMeta).length) imagePayload.meta = imageMeta;
+          if (isBrut) imagePayload.nsfw = true;
+          const addImageResult = await civitApi('POST', '/api/trpc/post.addImage', { json: imagePayload });
+          const imageId = addImageResult?.result?.data?.json?.id;
+
+          // Step 4b: set ComfyUI as tool
+          if (imageId) {
+            try {
+              await civitApi('POST', '/api/trpc/image.addTools', { json: { data: [{ imageId, toolId: 86 }] } });
+            } catch {}
+          }
+
+          // Step 5: update post with description and tags, then publish
+          console.log('  CivitAI share: publishing...');
+          const updatePayload = { id: postId };
+          if (parsed.description) updatePayload.detail = parsed.description;
+          if (tags.length) {
+            updatePayload.tags = tags;
+            updatePayload.tag = tags;
+          }
+          const now = new Date().toISOString();
+          updatePayload.publishedAt = now;
+          await civitApi('POST', '/api/trpc/post.update', {
+            json: updatePayload,
+            meta: { values: { publishedAt: ['Date'] } }
+          });
+
+          const postUrl = `https://civitai.red/posts/${postId}`;
+          console.log(`  CivitAI share: done! ${postUrl}`);
+          sendJson(res, { ok: true, postUrl });
+        })().catch(e => {
+          console.error('  CivitAI share error:', e.message);
+          sendJson(res, { error: e.message }, 500);
+        });
       } catch (e) {
         sendJson(res, { error: e.message }, 500);
       }
