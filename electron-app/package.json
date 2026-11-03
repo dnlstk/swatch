@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "com.daniel.promptgen",
-    "productName": "Prompt Gen",
+    "productName": "swatch",
     "asar": true,
     "mac": {
       "icon": "icon.icns",

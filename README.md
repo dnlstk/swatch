@@ -1,4 +1,4 @@
-# Prompt Gen
+# swatch
 
 A personal desktop tool for working with [ComfyUI](https://github.com/comfyanonymous/ComfyUI): browse and organise LoRAs, build prompts from trigger words, send generations to ComfyUI, and triage the results in a gallery.
 

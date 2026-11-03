@@ -227,7 +227,7 @@ function createTray() {
   const icon = nativeImage.createFromPath(iconPath);
   icon.setTemplateImage(true);
   tray = new Tray(icon);
-  tray.setToolTip('Prompt Gen');
+  tray.setToolTip('swatch');
   rebuildTrayMenu();
 }
 
@@ -252,7 +252,7 @@ function rebuildTrayMenu() {
 
   const menu = Menu.buildFromTemplate([
     {
-      label: 'Prompt Gen',
+      label: 'swatch',
       enabled: false,
     },
     { type: 'separator' },
@@ -350,7 +350,7 @@ function createWindow() {
     y: saved?.y,
     minWidth: 900,
     minHeight: 600,
-    title: 'Prompt Gen',
+    title: 'swatch',
     backgroundColor: '#1a1a1a',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 14, y: 16 },

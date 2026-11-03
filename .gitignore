@@ -26,3 +26,4 @@ electron-app/node_modules/
 
 # Temporary design handoff files
 claude-design-summary.txt
+*.app.backup-*.zip
