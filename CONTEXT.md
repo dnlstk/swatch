@@ -627,6 +627,7 @@ Build prompt in app → click Send to ComfyUI → workflow JSON built from scrat
 13. **Inline `style.display='block'` can't beat `!important` in a stylesheet** — if a CSS rule uses `!important` (e.g. `.browse-only{display:none !important}`), plain `el.style.display = 'block'` will lose. Must use `el.style.setProperty('display', 'block', 'important')` to override. And use `el.style.removeProperty('display')` to clean up (not just `el.style.display = ''`).
 14. **CSS child selectors can't target siblings** — `#panel-loras.browse-mode .lora-collection-tabs` silently matches nothing if collection tabs are a sibling of `#panel-loras`, not a child. When JS toggling display of elements across a page, always verify the DOM hierarchy. If elements aren't parent→child, use JS `setProperty`/`removeProperty` instead of relying on CSS class selectors.
 15. **CivitAI API uses `baseModels` (plural)** — the search parameter is `baseModels`, not `baseModel`. Singular silently returns unfiltered results. Also: `model.stats.rating` is gone (use `thumbsUpCount`), images array contains `type:"video"` entries, CDN requires `referrerpolicy="no-referrer"` on img tags.
+16. **Checkpoints with no `.metadata.json` have no base model** (2 Nov 2026) — files dropped straight into `models/checkpoints/SDXL` (not via CivitAI) were filtered out of the SDXL/PONY/ILLUS views. `ckptBaseModel()` in app.js now falls back to the top-level folder name. Use it anywhere you filter checkpoints by model.
 
 ---
 

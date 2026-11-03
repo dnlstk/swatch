@@ -1622,6 +1622,11 @@ function saveLpData(){
   setTimeout(()=>openLpPanel(key),50);
 }
 // ===================== CHECKPOINTS =====================
+// Base model for a checkpoint; files without a CivitAI .metadata.json fall back to their folder (SDXL/PONY/Illustrious)
+function ckptBaseModel(c){
+  return (c.base_model||(c.folder||'').split('/')[0]||'').toLowerCase();
+}
+
 function ckptDisplayName(c){
   const key=c.file_name||c.model_name;
   const n=(appData.checkpointNotes&&appData.checkpointNotes[key])||{};
@@ -1641,7 +1646,7 @@ async function renderCheckpoints(){
   const modelMap={'sdxl':['sdxl','sdxl 1.0'],'pony':['pony'],'illustrious':['illustrious']};
   const modelKeys=modelMap[model]||[];
   const filtered=comfyCkpts.filter(c=>{
-    const bm=(c.base_model||'').toLowerCase();
+    const bm=ckptBaseModel(c);
     if(!modelKeys.some(k=>bm.includes(k)))return false;
     return ckptVisibleInComfy(c.file_name);
   });
@@ -3644,6 +3649,7 @@ function switchTab(tab){
   app.classList.toggle('tags-tab-active', tab==='tags');
   app.classList.toggle('lora-tab-active', tab==='loras');
   app.classList.toggle('gallery-tab-active', tab==='gallery');
+  app.classList.toggle('no-sidebar', ['history','checkpoints','train'].includes(tab));
   app.classList.toggle('footer-hidden', tab!=='tags');
   // v5 redesign: hide the entire right-panel grid column on non-Generate tabs
   app.classList.toggle('no-right-panel', tab!=='tags');
@@ -5128,7 +5134,7 @@ async function doRemixFromGallery(file){
       return fn.split('/').pop().replace(/\.[^.]+$/,'')===stem;
     });
     if(ckMatch){
-      const bm=(ckMatch.base_model||'').toLowerCase();
+      const bm=ckptBaseModel(ckMatch);
       if(bm.includes('illustrious'))newModel='illustrious';
       else if(bm.includes('pony'))newModel='pony';
       else if(bm.includes('sdxl'))newModel='sdxl';
@@ -6646,7 +6652,7 @@ function filteredCkptsForModel(){
   const map={'sdxl':['sdxl','sdxl 1.0'],'pony':['pony'],'illustrious':['illustrious']};
   const keys=map[model]||[];
   return comfyCkpts.filter(c=>{
-    const bm=(c.base_model||'').toLowerCase();
+    const bm=ckptBaseModel(c);
     if(!keys.some(k=>bm.includes(k)))return false;
     return ckptVisibleInComfy(c.file_name);
   });

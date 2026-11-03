@@ -133,6 +133,11 @@ input,textarea,.gdp-metadata-inner,.gdp-meta-val,.prompt-box{-webkit-user-select
 .app.gallery-tab-active .main{grid-column:1;display:flex;flex-direction:column;overflow:hidden;}
 .app.gallery-tab-active #panel-gallery.active{flex:1;overflow-y:auto;min-height:0;}
 
+/* HISTORY / CHECKPOINTS / TRAIN: no sidebar, panel takes the full width */
+.app.no-sidebar,.app.no-sidebar.no-right-panel,.app.no-sidebar.sidebar-collapsed,.app.no-sidebar.no-right-panel.sidebar-collapsed{grid-template-columns:1fr;}
+.app.no-sidebar .sidebar{display:none;}
+.app.no-sidebar .main{grid-column:1;}
+
 /* SIDEBAR */
 .sidebar{grid-row:2;background:var(--panel);padding:18px 14px;display:flex;flex-direction:column;gap:4px;height:calc(100vh - var(--tabs-h));overflow-y:auto;transition:all .2s ease;overflow:hidden;border-radius:12px;margin:0 0 10px 10px;box-shadow:var(--shadow);border:1px solid var(--border);scrollbar-width:none;}
 .sidebar::-webkit-scrollbar{display:none;}
@@ -1685,8 +1690,8 @@ body.light .seed-row:has(#seed-lock-btn.locked) #cfg-seed{border-color:rgba(224,
     <div class="tab" data-tab="checkpoints" onclick="switchTab('checkpoints')">Checkpoints</div>
     <div class="tab" data-tab="history" onclick="switchTab('history')" style="display:none;">History</div>
     <div class="tab" data-tab="presets" onclick="switchTab('presets')" style="display:none;">Presets</div>
-    <div class="tab" data-tab="gallery" onclick="switchTab('gallery')">Gallery <span id="gallery-tab-nag" class="tab-badge tab-badge-blue" style="display:none;"></span></div>
     <div class="tab" data-tab="train" onclick="switchTab('train')">Train</div>
+    <div class="tab" data-tab="gallery" onclick="switchTab('gallery')">Gallery <span id="gallery-tab-nag" class="tab-badge tab-badge-blue" style="display:none;"></span></div>
   </div>
   <div class="tabs-right">
     <div class="titlebar-group gen-subtabs-titlebar">
