@@ -577,7 +577,7 @@ Key insight from testing: they don't just "make things better," they shift the a
 - Tray title shows live generation progress (`45% | +2`) via IPC from renderer
 - External links: CivitAI opens in Chrome "Profile 1", everything else in default browser
 - `preload.js` bridges renderer → main via `contextBridge` (currently exposes `updateTrayProgress`)
-- Cmd+Q and window close just hide (tray stays alive); only tray "Quit" truly exits
+- Window close just hides (tray stays alive). Every Quit (app menu, Cmd+Q, tray) truly exits and stops a ComfyUI swatch started (changed 6 Nov 2026: hide-on-Quit stranded ComfyUI with 15 GB for 4 days). On launch swatch adopts an orphaned ComfyUI (parent PID 1) so Quit stops it too.
 - On real quit: kills ComfyUI only if we started it (`_weStartedComfyUI` flag)
 
 **What requires a rebuild:**
