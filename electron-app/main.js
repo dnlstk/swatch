@@ -441,18 +441,11 @@ app.whenReady().then(async () => {
 });
 
 app.on('before-quit', (e) => {
-  if (!forceQuit) {
-    e.preventDefault();
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      saveBounds();
-      mainWindow.hide();
-    }
-    app.dock.hide();
-    rebuildTrayMenu();
-    return;
-  }
-  // Real quit from tray menu
+  // Every Quit is a real quit (app menu, Cmd+Q, tray, logout). Closing the
+  // window still only hides it. A Quit that hid instead is how ComfyUI got
+  // stranded holding 15 GB for days (Nov 2026).
   if (mainWindow && !mainWindow.isDestroyed()) {
+    saveBounds();
     mainWindow.removeAllListeners('close');
     mainWindow.close();
   }
