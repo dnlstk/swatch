@@ -111,8 +111,15 @@ let _comfyProcess = null;
 
 function isComfyUIRunning() {
   try {
-    execSync('pgrep -f "ComfyUI/main.py"', { stdio: 'ignore' });
+    execSync('pgrep -f "[C]omfyUI/main.py"', { stdio: 'ignore' });
     return true;
+  } catch { return false; }
+}
+
+function isComfyOrphaned() {
+  try {
+    const pids = execSync('pgrep -f "[C]omfyUI/main.py"', { encoding: 'utf8' }).trim().split(/\s+/);
+    return pids.some(pid => execSync(`ps -o ppid= -p ${pid}`, { encoding: 'utf8' }).trim() === '1');
   } catch { return false; }
 }
 
@@ -137,7 +144,7 @@ function stopComfyUI() {
     _comfyProcess.kill('SIGTERM');
     _comfyProcess = null;
   } else {
-    try { execSync('pkill -f "ComfyUI/main.py"', { stdio: 'ignore' }); } catch {}
+    try { execSync('pkill -f "[C]omfyUI/main.py"', { stdio: 'ignore' }); } catch {}
   }
   setTimeout(rebuildTrayMenu, 1000);
 }
@@ -179,7 +186,15 @@ async function autoStartComfyUI() {
   clog('autoStartComfyUI called');
   try {
     if (isComfyUIRunning()) {
-      clog('ComfyUI already running — skipping auto-start');
+      // A server whose parent is launchd (PID 1) is a leftover from a swatch
+      // that was killed instead of quit. Adopt it so our Quit stops it,
+      // otherwise it sits there holding 15 GB of models for days.
+      if (isComfyOrphaned()) {
+        _weStartedComfyUI = true;
+        clog('ComfyUI already running (orphaned leftover) — adopting it');
+      } else {
+        clog('ComfyUI already running — skipping auto-start');
+      }
       _comfyReady = await checkComfyPort();
       rebuildTrayMenu();
       return;
